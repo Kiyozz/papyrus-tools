@@ -1,0 +1,25 @@
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Wk/papyrus-tools"
+
+[workspace.dependencies]
+papyrus-dialect = { path = "crates/papyrus-dialect", version = "0.0.1" }
+papyrus-syntax = { path = "crates/papyrus-syntax", version = "0.0.1" }
+
+logos = "0.16"
+text-size = "1.1"
+
+[workspace.lints.rust]
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"

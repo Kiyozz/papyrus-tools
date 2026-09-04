@@ -1,0 +1,10 @@
+/target
+**/*.rs.bk
+
+# Corpus local : jamais commité (droits Bethesda).
+# Les chemins d'installation vivent ici, hors du dépôt.
+/corpus.local.toml
+/test-data/vanilla/
+
+# Sorties de compilation Papyrus
+*.pex

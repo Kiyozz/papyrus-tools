@@ -1,0 +1,13 @@
+[package]
+name = "papyrus-dialect"
+description = "Cibles de compilation Papyrus (Skyrim, Fallout 4, Starfield) et fonctionnalités associées"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true
