@@ -8,15 +8,34 @@ et IntelliJ.
 
 ## État
 
-**v0.1** — lexer et parser. Le formateur et le linter viennent ensuite.
+**v0.2** — `papyrus check` et `papyrus fmt`.
+
+```sh
+papyrus check --game skyrim Data/Source/Scripts   # syntaxe + encodage
+papyrus fmt .                                     # formate sur place
+papyrus fmt --check --indent tab .                # CI : échoue si à reformater
+```
 
 | Crate | Rôle |
 |---|---|
 | `papyrus-dialect` | Cibles (`GameId`), fonctionnalités et leur jeu d'apparition |
 | `papyrus-syntax` | Lexer, parser event-based, arbre syntaxique concret (`rowan`) |
+| `papyrus-project` | Décodage des `.psc`, lint d'encodage, découverte des fichiers |
+| `papyrus-fmt` | Formateur canonique |
+| `papyrus-cli` | Le binaire `papyrus` |
 
 Sur les 29 641 scripts vanilla des trois jeux : arbre identique à la source
-octet pour octet, aucune erreur de parsing, aucune panique.
+octet pour octet, aucune erreur de parsing, formatage idempotent.
+
+Les fragments générés par le Creation Kit (`TIF__…`, `QF_…`, dossiers
+`Fragments`) sont ignorés par défaut ; `--include-fragments` les inclut.
+
+### Le formateur
+
+Mots-clés en minuscules, indentation de deux espaces (réglable), au plus une
+ligne vide, fins de ligne LF. Il ne touche jamais aux identifiants, aux chaînes
+ni aux commentaires, ne change pas l'encodage, et refuse un fichier qui ne se
+parse pas. Avant d'écrire, il vérifie que les tokens n'ont pas changé.
 
 ## Principes
 
@@ -51,7 +70,9 @@ installation n'est requise pour construire le projet.
 PAPYRUS_CORPUS_SKYRIM=".../Skyrim Special Edition/Data/Source/Scripts" \
 PAPYRUS_CORPUS_FALLOUT4=".../Fallout 4/Data/Scripts/Source" \
 PAPYRUS_CORPUS_STARFIELD=".../Starfield/Data/Scripts/Source" \
-  cargo test --release --features external-corpus -- --nocapture
+  cargo test --release --workspace \
+    --features papyrus-syntax/external-corpus,papyrus-fmt/external-corpus \
+    -- --nocapture
 ```
 
 Attention aux dispositions, qui n'ont aucune logique commune : Skyrim SE range
@@ -68,6 +89,13 @@ compilateur affiche « Compilation succeeded ».
 
 UTF-8 **avec BOM** est le seul cas qui passe sur les trois. LF est accepté
 partout.
+
+`papyrus check --game …` le signale (`PAP001`), dans les chaînes et les
+docstrings seulement — un commentaire n'atteint jamais le `.pex`. Sans
+`--game`, la vérification est sautée : le remède dépend du jeu. Sur le corpus
+vanilla, un seul cas : `DLC2PillarShoutTriggerScript.psc`, dont une docstring
+contient un tiret cadratin en UTF-8 sans BOM, que le Creation Kit affiche
+« â€“ ».
 
 ## Licence
 
