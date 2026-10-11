@@ -18,7 +18,7 @@ use std::str::FromStr;
 use clap::{Args, Parser, Subcommand};
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_fmt::{FormatError, FormatOptions, Indent};
-use papyrus_lint::{LINTS, Levels, apply_fixes, vanilla_flags};
+use papyrus_lint::{LINTS, Levels, ScriptSummary, Workspace, apply_fixes, vanilla_flags};
 use papyrus_project::flags::{FlagDef, parse_flags};
 use papyrus_project::{
     Config, Decoded, DiscoverOptions, IndentSetting, Level, decode, discover, encode,
@@ -249,7 +249,11 @@ fn read(path: &Path, reporter: &mut Reporter) -> Option<Vec<u8>> {
 }
 
 /// L'arbre et les diagnostics des lints d'un fichier.
-fn analyze(decoded: &Decoded, settings: &Settings) -> (Parse, Vec<papyrus_lint::Diagnostic>) {
+fn analyze(
+    decoded: &Decoded,
+    settings: &Settings,
+    workspace: &Workspace,
+) -> (Parse, Vec<papyrus_lint::Diagnostic>) {
     let parse = papyrus_syntax::parse(&decoded.text, settings.dialect());
     let root = parse.syntax();
     let context = papyrus_lint::Context {
@@ -257,19 +261,37 @@ fn analyze(decoded: &Decoded, settings: &Settings) -> (Parse, Vec<papyrus_lint::
         root: &root,
         game: settings.game,
         flags: &settings.flags,
+        workspace,
     };
     let lints = papyrus_lint::run(&context, &settings.levels);
     (parse, lints)
 }
 
+/// Ce que déclarent les scripts traités, pour suivre `extends` d'un fichier
+/// à l'autre.
+fn index(scripts: &[PathBuf], dialect: Dialect) -> Workspace {
+    let mut workspace = Workspace::default();
+    for path in scripts {
+        let Ok(bytes) = std::fs::read(path) else {
+            continue;
+        };
+        let parse = papyrus_syntax::parse(&decode(&bytes).text, dialect);
+        if let Some(summary) = ScriptSummary::of(&parse.syntax()) {
+            workspace.insert(summary);
+        }
+    }
+    workspace
+}
+
 fn check(settings: &Settings, fix: bool, reporter: &mut Reporter) -> bool {
+    let workspace = index(&settings.scripts, settings.dialect());
     let mut fixed = 0;
     for path in &settings.scripts {
         let Some(bytes) = read(path, reporter) else {
             continue;
         };
         let mut decoded = decode(&bytes);
-        let (mut parse, mut lints) = analyze(&decoded, settings);
+        let (mut parse, mut lints) = analyze(&decoded, settings, &workspace);
 
         // Jamais sur un arbre incomplet, ni sur un fichier mal décodé.
         let fixable = lints.iter().any(|d| d.fix.is_some());
@@ -284,7 +306,7 @@ fn check(settings: &Settings, fix: bool, reporter: &mut Reporter) -> bool {
                     }
                     fixed += 1;
                     decoded.text = text;
-                    (parse, lints) = analyze(&decoded, settings);
+                    (parse, lints) = analyze(&decoded, settings, &workspace);
                 }
                 None => reporter.skip(path, "correctif refusé — merci de signaler ce bug"),
             }

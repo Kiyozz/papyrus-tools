@@ -357,6 +357,7 @@ dependencies = [
  "insta",
  "papyrus-dialect",
  "papyrus-project",
+ "papyrus-stdlib",
  "papyrus-syntax",
 ]
 

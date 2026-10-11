@@ -11,6 +11,7 @@ repository.workspace = true
 papyrus-dialect.workspace = true
 papyrus-syntax.workspace = true
 papyrus-project.workspace = true
+papyrus-stdlib.workspace = true
 
 [dev-dependencies]
 insta.workspace = true

@@ -1,6 +1,7 @@
 //! Les lints sur le corpus vanilla.
 //!
-//! Le vanilla compile : tout `PAP002` y serait un faux positif. Les `.flg`
+//! Le vanilla compile : tout `PAP002` y serait un faux positif. Les `PAP004`
+//! sont de vrais événements morts, relus un à un : la liste est figée. Les `.flg`
 //! réels doivent coïncider avec les tables embarquées. Et `--fix`, appliqué
 //! en mémoire à chaque script, doit rester sûr et aller au bout.
 #![cfg(feature = "external-corpus")]
@@ -9,7 +10,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use papyrus_dialect::{Dialect, GameId};
-use papyrus_lint::{Context, Levels, apply_fixes, run, vanilla_flags};
+use papyrus_lint::{Context, Levels, ScriptSummary, Workspace, apply_fixes, run, vanilla_flags};
 use papyrus_project::flags::parse_flags;
 use papyrus_project::{DiscoverOptions, decode, discover};
 
@@ -28,6 +29,24 @@ fn flg_path(game: GameId, root: &std::path::Path) -> PathBuf {
         GameId::Fallout4 | GameId::Fallout76 => root.join("Base/Institute_Papyrus_Flags.flg"),
         GameId::Starfield => root.join("Starfield_Papyrus_Flags.flg"),
     }
+}
+
+/// Les événements morts du vanilla : fautes de frappe, et une quête qui
+/// attend `OnCombatStateChanged`.
+fn dead_events(game: GameId) -> Vec<String> {
+    let found: &[&str] = match game {
+        GameId::Skyrim => &[
+            "DA13DremoraFXWhenEnabledScript.psc onDead",
+            "DLC01WESC03Script.psc OnCellDetatch",
+            "DLC1SeranaLevelingScript.psc OnCombatStateChange",
+            "DLC1WE02Script.psc OnCombatStateChanged",
+            "DLC2MogrulThugScript.psc Unload",
+            "PangeasFluteScirpt.psc OnContainerChanges",
+            "dunVolunruudDoorSCRIPT.psc onLoad3d",
+        ],
+        _ => &[],
+    };
+    found.iter().map(|s| (*s).to_owned()).collect()
 }
 
 fn run_game(game: GameId) {
@@ -52,6 +71,17 @@ fn run_game(game: GameId) {
     let levels = Levels::default();
     let flags = vanilla_flags(Some(game));
 
+    // Les scripts non natifs du jeu prolongent la chaîne `extends`.
+    let mut workspace = Workspace::default();
+    for path in &scripts {
+        let decoded = decode(&std::fs::read(path).expect("lecture"));
+        let parse = papyrus_syntax::parse(&decoded.text, dialect);
+        if let Some(summary) = ScriptSummary::of(&parse.syntax()) {
+            workspace.insert(summary);
+        }
+    }
+
+    let mut events = Vec::new();
     let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
     let mut false_positives = Vec::new();
     let mut fixed_files = 0;
@@ -64,10 +94,15 @@ fn run_game(game: GameId) {
             root: &root,
             game: Some(game),
             flags: &flags,
+            workspace: &workspace,
         };
         let diagnostics = run(&context, &levels);
         for d in &diagnostics {
             *counts.entry(d.lint.code).or_default() += 1;
+            if d.lint.code == "PAP004" {
+                let name = path.file_name().unwrap().to_string_lossy();
+                events.push(format!("{name} {}", &decoded.text[d.range]));
+            }
             if d.lint.code == "PAP002" && false_positives.len() < 20 {
                 false_positives.push(format!("{} : {}", path.display(), d.message));
             }
@@ -92,6 +127,7 @@ fn run_game(game: GameId) {
                     root: &root,
                     game: Some(game),
                     flags: &flags,
+                    workspace: &workspace,
                 },
                 &levels,
             );
@@ -110,6 +146,9 @@ fn run_game(game: GameId) {
         scripts.len(),
         fixed_files
     );
+    events.sort();
+    events.dedup();
+    assert_eq!(events, dead_events(game), "PAP004 sur {game}");
     assert!(
         false_positives.is_empty(),
         "PAP002 sur du code qui compile :\n{}",

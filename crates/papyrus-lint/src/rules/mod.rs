@@ -1,6 +1,7 @@
 //! Les règles.
 
 mod encoding;
+mod events;
 mod flags;
 mod naming;
 
@@ -11,5 +12,6 @@ use crate::{Context, Finding};
 pub(crate) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
     encoding::run(context, findings);
     flags::run(context, findings);
+    events::run(context, findings);
     naming::run(context, findings);
 }

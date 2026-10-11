@@ -18,6 +18,7 @@
 mod case;
 mod rules;
 mod suppress;
+mod workspace;
 
 use std::collections::BTreeMap;
 
@@ -28,6 +29,7 @@ use papyrus_syntax::{SyntaxNode, TextRange, lex};
 
 pub use case::{to_lower_camel, to_pascal};
 pub use rules::vanilla_flags;
+pub use workspace::{ScriptSummary, Workspace};
 
 /// Ce qu'on sait d'un lint.
 #[derive(Debug)]
@@ -66,6 +68,14 @@ pub static ALLOW_UNKNOWN: Lint = Lint {
     description: "nom de lint inconnu dans `; papyrus: allow(...)`, qui ne supprime donc rien",
 };
 
+/// `PAP004` : événement que le moteur n'appellera jamais.
+pub static EVENTS_UNKNOWN: Lint = Lint {
+    code: "PAP004",
+    name: "events/unknown",
+    default: Level::Warn,
+    description: "événement que le script ne reçoit pas, faute de frappe le plus souvent",
+};
+
 /// `PAP101` : locales et paramètres en lowerCamelCase.
 pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
@@ -95,6 +105,7 @@ pub static LINTS: &[&Lint] = &[
     &ENCODING_LOSSY,
     &FLAGS_PLACEMENT,
     &ALLOW_UNKNOWN,
+    &EVENTS_UNKNOWN,
     &NAMING_LOCALS,
     &NAMING_VARIABLES,
     &NAMING_FUNCTIONS,
@@ -109,7 +120,7 @@ pub fn find(key: &str) -> Option<&'static Lint> {
 }
 
 /// Distance d'édition, sans tenir compte de la casse.
-fn distance(a: &str, b: &str) -> usize {
+pub(crate) fn distance(a: &str, b: &str) -> usize {
     let a: Vec<u8> = a.bytes().map(|c| c.to_ascii_lowercase()).collect();
     let b: Vec<u8> = b.bytes().map(|c| c.to_ascii_lowercase()).collect();
     let mut row: Vec<usize> = (0..=b.len()).collect();
@@ -181,6 +192,16 @@ pub struct Edit {
     pub text: String,
 }
 
+/// Un correctif proposé, jamais appliqué d'office : il change le sens du
+/// code.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Suggestion {
+    /// Ce qu'il fait : « Renommer en `OnActivate` ».
+    pub title: String,
+    /// Les remplacements.
+    pub edits: Vec<Edit>,
+}
+
 /// Un problème trouvé par un lint.
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
@@ -194,6 +215,8 @@ pub struct Diagnostic {
     pub message: String,
     /// Le correctif, quand il est sûr.
     pub fix: Option<Vec<Edit>>,
+    /// Un correctif à proposer, quand il ne l'est pas.
+    pub suggestion: Option<Suggestion>,
 }
 
 /// Ce dont les lints ont besoin.
@@ -208,6 +231,8 @@ pub struct Context<'a> {
     pub game: Option<GameId>,
     /// Les flags du `.flg` en vigueur.
     pub flags: &'a [FlagDef],
+    /// Les autres scripts du projet.
+    pub workspace: &'a Workspace,
 }
 
 /// Ce que les règles produisent, avant niveaux et suppressions.
@@ -216,6 +241,7 @@ pub(crate) struct Finding {
     pub(crate) range: TextRange,
     pub(crate) message: String,
     pub(crate) fix: Option<Vec<Edit>>,
+    pub(crate) suggestion: Option<Suggestion>,
 }
 
 /// Lance les lints actifs et retire ce que le code a explicitement autorisé.
@@ -234,6 +260,7 @@ pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
                 unknown_message(key)
             ),
             fix: None,
+            suggestion: None,
         });
     }
     let mut diagnostics: Vec<Diagnostic> = findings
@@ -249,6 +276,7 @@ pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
                 range: f.range,
                 message: f.message,
                 fix: f.fix,
+                suggestion: f.suggestion,
             })
         })
         .collect();

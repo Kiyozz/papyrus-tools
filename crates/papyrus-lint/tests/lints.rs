@@ -1,7 +1,7 @@
 //! Les règles, sur des cas choisis.
 
 use papyrus_dialect::{Dialect, GameId};
-use papyrus_lint::{Context, Levels, apply_fixes, run, vanilla_flags};
+use papyrus_lint::{Context, Levels, ScriptSummary, Workspace, apply_fixes, run, vanilla_flags};
 use papyrus_project::{Level, decode};
 
 /// `(code, texte visé)` de chaque diagnostic.
@@ -13,6 +13,14 @@ fn lint(source: &str, game: Option<GameId>) -> Vec<(&'static str, String)> {
 }
 
 fn diagnostics(source: &str, game: Option<GameId>) -> Vec<papyrus_lint::Diagnostic> {
+    diagnostics_in(source, game, &Workspace::default())
+}
+
+fn diagnostics_in(
+    source: &str,
+    game: Option<GameId>,
+    workspace: &Workspace,
+) -> Vec<papyrus_lint::Diagnostic> {
     let decoded = decode(source.as_bytes());
     let dialect = game.map(Dialect::new).unwrap_or_default();
     let parse = papyrus_syntax::parse(&decoded.text, dialect);
@@ -23,6 +31,7 @@ fn diagnostics(source: &str, game: Option<GameId>) -> Vec<papyrus_lint::Diagnost
         root: &parse.syntax(),
         game,
         flags: &flags,
+        workspace,
     };
     run(&context, &Levels::default())
 }
@@ -284,4 +293,106 @@ fn la_configuration_suggere_aussi() {
     let config = [("PAP10".to_owned(), Level::Allow)].into_iter().collect();
     let error = Levels::from_config(&config).unwrap_err();
     assert!(error.contains("vouliez-vous dire"), "{error}");
+}
+
+// ── Événements ────────────────────────────────────────────────────────────
+
+fn events(source: &str, game: Option<GameId>, workspace: &Workspace) -> Vec<String> {
+    diagnostics_in(source, game, workspace)
+        .into_iter()
+        .filter(|d| d.lint.code == "PAP004")
+        .map(|d| source[d.range].to_owned())
+        .collect()
+}
+
+#[test]
+fn un_evenement_mal_orthographie_est_signale() {
+    let source = "ScriptName T extends ObjectReference\nEvent OnActivatee(ObjectReference akActionRef)\nEndEvent\n";
+    let found = diagnostics(source, Some(GameId::Skyrim));
+    let event = found
+        .iter()
+        .find(|d| d.lint.code == "PAP004")
+        .expect("PAP004");
+    assert_eq!(&source[event.range], "OnActivatee");
+    assert!(event.message.contains("`OnActivate`"), "{}", event.message);
+    // Renommer change le sens du code : proposé, jamais appliqué d'office.
+    assert!(event.fix.is_none());
+    let suggestion = event.suggestion.as_ref().expect("suggestion");
+    assert_eq!(suggestion.edits[0].text, "OnActivate");
+}
+
+#[test]
+fn un_script_recoit_les_evenements_des_types_derives() {
+    // Posé sur un acteur, un script `extends ObjectReference` reçoit `OnDeath`.
+    let source = "ScriptName T extends ObjectReference\nEvent OnDeath(Actor akKiller)\nEndEvent\n";
+    assert_eq!(
+        events(source, Some(GameId::Skyrim), &Workspace::default()),
+        Vec::<String>::new()
+    );
+    // Un effet magique reçoit ceux de son acteur.
+    let source = "ScriptName T extends ActiveMagicEffect\nEvent OnEnterBleedout()\nEndEvent\n";
+    assert_eq!(
+        events(source, Some(GameId::Skyrim), &Workspace::default()),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn un_evenement_qu_aucun_objet_porteur_ne_recoit_est_signale() {
+    let source = "ScriptName T extends Quest\nEvent OnCombatStateChanged(Actor akTarget, int aeCombatState)\nEndEvent\n";
+    assert_eq!(
+        events(source, Some(GameId::Skyrim), &Workspace::default()),
+        ["OnCombatStateChanged"]
+    );
+}
+
+#[test]
+fn sans_certitude_le_lint_se_tait() {
+    let none = Vec::<String>::new();
+    let typo = "ScriptName T extends ObjectReference\nEvent OnActivatee()\nEndEvent\n";
+    // Sans cible.
+    assert_eq!(events(typo, None, &Workspace::default()), none);
+    // Parent inconnu.
+    let source = "ScriptName T extends MyBase\nEvent OnActivatee()\nEndEvent\n";
+    assert_eq!(
+        events(source, Some(GameId::Skyrim), &Workspace::default()),
+        none
+    );
+    // Callback d'un événement de mod.
+    let source = "ScriptName T extends ObjectReference\nEvent OnInit()\n\
+                  RegisterForModEvent(\"MyMod_Done\", \"OnActivatee\")\nEndEvent\n\
+                  Event OnActivatee(string eventName, string strArg, float numArg, Form sender)\nEndEvent\n";
+    assert_eq!(
+        events(source, Some(GameId::Skyrim), &Workspace::default()),
+        none
+    );
+    // Nom sans rapport avec aucun événement connu.
+    let source = "ScriptName T extends ObjectReference\nEvent OnMyModReady()\nEndEvent\n";
+    assert_eq!(
+        events(source, Some(GameId::Skyrim), &Workspace::default()),
+        none
+    );
+}
+
+#[test]
+fn la_chaine_extends_traverse_les_scripts_du_projet() {
+    let base = "ScriptName MyBase extends ObjectReference\nEvent OnRitualDone()\nEndEvent\n";
+    let parse = papyrus_syntax::parse(base, Dialect::new(GameId::Skyrim));
+    let mut workspace = Workspace::default();
+    workspace.insert(ScriptSummary::of(&parse.syntax()).expect("en-tête"));
+
+    let source = "ScriptName T extends MyBase\nEvent OnRitualDome()\nEndEvent\nEvent OnActivatee()\nEndEvent\nEvent OnRitualDone()\nEndEvent\n";
+    assert_eq!(
+        events(source, Some(GameId::Skyrim), &workspace),
+        ["OnRitualDome", "OnActivatee"]
+    );
+}
+
+#[test]
+fn les_evenements_distants_sont_verifies() {
+    let source = "ScriptName T\nEvent ObjectReference.OnActivatee(ObjectReference akSender, ObjectReference akActionRef)\nEndEvent\nEvent ObjectReference.OnActivate(ObjectReference akSender, ObjectReference akActionRef)\nEndEvent\n";
+    assert_eq!(
+        events(source, Some(GameId::Fallout4), &Workspace::default()),
+        ["OnActivatee"]
+    );
 }

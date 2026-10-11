@@ -142,6 +142,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                 role.describe()
             ),
             fix,
+            suggestion: None,
         });
     }
 }
