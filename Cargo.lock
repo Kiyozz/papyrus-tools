@@ -350,6 +350,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "papyrus-lint"
+version = "0.2.0"
+dependencies = [
+ "insta",
+ "papyrus-dialect",
+ "papyrus-project",
+ "papyrus-syntax",
+]
+
+[[package]]
 name = "papyrus-project"
 version = "0.2.0"
 dependencies = [

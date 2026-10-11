@@ -1,0 +1,23 @@
+[package]
+name = "papyrus-lint"
+description = "Lints du langage Papyrus"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+papyrus-dialect.workspace = true
+papyrus-syntax.workspace = true
+papyrus-project.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+
+[features]
+# Fait tourner les lints sur les sources vanilla d'une installation locale.
+external-corpus = []
+
+[lints]
+workspace = true

@@ -14,6 +14,7 @@ papyrus-dialect = { path = "crates/papyrus-dialect", version = "0.2.0" }
 papyrus-syntax = { path = "crates/papyrus-syntax", version = "0.2.0" }
 papyrus-project = { path = "crates/papyrus-project", version = "0.2.0" }
 papyrus-fmt = { path = "crates/papyrus-fmt", version = "0.2.0" }
+papyrus-lint = { path = "crates/papyrus-lint", version = "0.2.0" }
 papyrus-stdlib = { path = "crates/papyrus-stdlib", version = "0.2.0" }
 
 ariadne = "0.6"
