@@ -331,6 +331,7 @@ dependencies = [
  "clap",
  "papyrus-dialect",
  "papyrus-fmt",
+ "papyrus-lint",
  "papyrus-project",
  "papyrus-syntax",
 ]

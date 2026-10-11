@@ -2,6 +2,7 @@
 //!
 //! ```sh
 //! papyrus check --game skyrim Source/Scripts
+//! papyrus check --fix .
 //! papyrus fmt --check .
 //! ```
 
@@ -17,7 +18,12 @@ use std::str::FromStr;
 use clap::{Args, Parser, Subcommand};
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_fmt::{FormatError, FormatOptions, Indent};
-use papyrus_project::{DiscoverOptions, decode, discover, encode, encoding};
+use papyrus_lint::{LINTS, Levels, apply_fixes, vanilla_flags};
+use papyrus_project::flags::{FlagDef, parse_flags};
+use papyrus_project::{
+    Config, Decoded, DiscoverOptions, IndentSetting, Level, decode, discover, encode,
+};
+use papyrus_syntax::Parse;
 
 use report::{Diagnostic, Reporter, Severity};
 
@@ -34,11 +40,12 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// Signale les erreurs de syntaxe et, avec --game, les textes que le
-    /// compilateur corromprait.
-    Check(Common),
+    /// Signale les erreurs de syntaxe et ce que relèvent les lints.
+    Check(CheckArgs),
     /// Formate les scripts, sur place.
     Fmt(FmtArgs),
+    /// Liste les lints, leur code et leur niveau par défaut.
+    Lints,
 }
 
 #[derive(Debug, Args)]
@@ -47,6 +54,7 @@ struct Common {
     paths: Vec<PathBuf>,
 
     /// Jeu ciblé : skyrim, fallout4, fallout76, starfield (ou sse, fo4, sf…).
+    /// L'emporte sur `game` dans papyrus.toml.
     ///
     /// Sans cible, la syntaxe la plus large est acceptée, et les vérifications
     /// d'encodage sont sautées : leur conseil dépend du jeu.
@@ -59,6 +67,16 @@ struct Common {
 }
 
 #[derive(Debug, Args)]
+struct CheckArgs {
+    #[command(flatten)]
+    common: Common,
+
+    /// Applique les correctifs sûrs, sur place.
+    #[arg(long)]
+    fix: bool,
+}
+
+#[derive(Debug, Args)]
 struct FmtArgs {
     #[command(flatten)]
     common: Common,
@@ -67,9 +85,10 @@ struct FmtArgs {
     #[arg(long)]
     check: bool,
 
-    /// Indentation : un nombre d'espaces, ou `tab`.
-    #[arg(long, default_value = "2")]
-    indent: IndentArg,
+    /// Indentation : un nombre d'espaces, ou `tab`. Deux espaces par défaut,
+    /// ou `fmt.indent` de papyrus.toml.
+    #[arg(long)]
+    indent: Option<IndentArg>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -91,27 +110,92 @@ impl FromStr for IndentArg {
     }
 }
 
-impl Common {
+/// Les réglages en vigueur : ligne de commande, puis papyrus.toml, puis les
+/// valeurs par défaut.
+#[derive(Debug)]
+struct Settings {
+    scripts: Vec<PathBuf>,
+    game: Option<GameId>,
+    indent: Indent,
+    flags: Vec<FlagDef>,
+    levels: Levels,
+}
+
+impl Settings {
     fn dialect(&self) -> Dialect {
         self.game.map(Dialect::new).unwrap_or_default()
     }
 
-    /// Les scripts à traiter, ou `None` après avoir signalé l'erreur.
-    fn scripts(&self) -> Option<Vec<PathBuf>> {
-        let roots = if self.paths.is_empty() {
+    fn resolve(common: &Common, indent: Option<IndentArg>) -> Result<Settings, String> {
+        let roots = if common.paths.is_empty() {
             vec![PathBuf::from(".")]
         } else {
-            self.paths.clone()
+            common.paths.clone()
         };
+        let config = Config::discover(&roots[0]).map_err(|e| e.to_string())?;
+        let in_config = |message: String| match &config.path {
+            Some(path) => format!("{} : {message}", path.display()),
+            None => message,
+        };
+
         let options = DiscoverOptions {
-            include_fragments: self.include_fragments,
+            include_fragments: common.include_fragments || config.include_fragments,
         };
-        match discover(&roots, options) {
-            Ok(scripts) => Some(scripts),
-            Err(error) => {
-                eprintln!("erreur : {error}");
-                None
+        let scripts = discover(&roots, options).map_err(|e| e.to_string())?;
+
+        let game = common.game.or(config.game).or_else(|| detect(&scripts));
+        let flags = match &config.flags {
+            Some(path) => {
+                let text = std::fs::read_to_string(path)
+                    .map_err(|e| format!("{} : {e}", path.display()))?;
+                parse_flags(&text).map_err(|e| format!("{} : {e}", path.display()))?
             }
+            None => vanilla_flags(game),
+        };
+        let levels = Levels::from_config(&config.lints).map_err(in_config)?;
+        let indent = match (indent, config.indent) {
+            (Some(IndentArg(indent)), _) => indent,
+            (None, Some(IndentSetting::Spaces(n))) => Indent::Spaces(n),
+            (None, Some(IndentSetting::Tab)) => Indent::Tabs,
+            (None, None) => Indent::default(),
+        };
+        Ok(Settings {
+            scripts,
+            game,
+            indent,
+            flags,
+            levels,
+        })
+    }
+}
+
+/// Devine le jeu des scripts, quand ni `--game` ni papyrus.toml ne le
+/// disent : la majorité des fichiers qui le trahissent.
+///
+/// Sans aucun indice, `None` : la syntaxe la plus large s'applique, et les
+/// lints qui dépendent du jeu se taisent plutôt que de deviner.
+fn detect(scripts: &[PathBuf]) -> Option<GameId> {
+    let widest = Dialect::new(GameId::Starfield);
+    let verdicts = scripts.iter().filter_map(|path| {
+        let bytes = std::fs::read(path).ok()?;
+        let parse = papyrus_syntax::parse(&decode(&bytes).text, widest);
+        Some(papyrus_project::detect::evidence(&parse.syntax()).verdict())
+    });
+    match papyrus_project::detect::majority(verdicts) {
+        Some((game, votes, decided)) => {
+            eprintln!(
+                "cible déduite : {} ({votes} fichier(s) sur {decided} qui l'indiquent) — \
+                 `--game` ou `game` dans papyrus.toml pour l'imposer",
+                game.display_name()
+            );
+            Some(game)
+        }
+        None => {
+            eprintln!(
+                "cible inconnue : syntaxe de Starfield, vérifications propres au jeu \
+                 sautées — `--game` ou `game` dans papyrus.toml pour la préciser"
+            );
+            None
         }
     }
 }
@@ -119,14 +203,37 @@ impl Common {
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let mut reporter = Reporter::new(std::io::stderr().is_terminal());
-    let clean = match cli.command {
-        Command::Check(args) => check(&args, &mut reporter),
-        Command::Fmt(args) => fmt(&args, &mut reporter),
+    let result = match cli.command {
+        Command::Check(args) => Settings::resolve(&args.common, None)
+            .map(|settings| check(&settings, args.fix, &mut reporter)),
+        Command::Fmt(args) => Settings::resolve(&args.common, args.indent)
+            .map(|settings| fmt(&settings, args.check, &mut reporter)),
+        Command::Lints => {
+            lints();
+            Ok(true)
+        }
     };
-    match clean {
-        Some(true) => ExitCode::SUCCESS,
-        Some(false) => ExitCode::FAILURE,
-        None => ExitCode::from(2),
+    match result {
+        Ok(true) => ExitCode::SUCCESS,
+        Ok(false) => ExitCode::FAILURE,
+        Err(error) => {
+            eprintln!("erreur : {error}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+fn lints() {
+    for lint in LINTS {
+        let level = match lint.default {
+            Level::Allow => "allow",
+            Level::Warn => "warn",
+            Level::Error => "error",
+        };
+        println!(
+            "{}  {:<18} {:<6} {}",
+            lint.code, lint.name, level, lint.description
+        );
     }
 }
 
@@ -141,53 +248,93 @@ fn read(path: &Path, reporter: &mut Reporter) -> Option<Vec<u8>> {
     }
 }
 
-fn check(args: &Common, reporter: &mut Reporter) -> Option<bool> {
-    let scripts = args.scripts()?;
-    let dialect = args.dialect();
+/// L'arbre et les diagnostics des lints d'un fichier.
+fn analyze(decoded: &Decoded, settings: &Settings) -> (Parse, Vec<papyrus_lint::Diagnostic>) {
+    let parse = papyrus_syntax::parse(&decoded.text, settings.dialect());
+    let root = parse.syntax();
+    let context = papyrus_lint::Context {
+        decoded,
+        root: &root,
+        game: settings.game,
+        flags: &settings.flags,
+    };
+    let lints = papyrus_lint::run(&context, &settings.levels);
+    (parse, lints)
+}
 
-    for path in &scripts {
+fn check(settings: &Settings, fix: bool, reporter: &mut Reporter) -> bool {
+    let mut fixed = 0;
+    for path in &settings.scripts {
         let Some(bytes) = read(path, reporter) else {
             continue;
         };
-        let decoded = decode(&bytes);
-        let parse = papyrus_syntax::parse(&decoded.text, dialect);
+        let mut decoded = decode(&bytes);
+        let (mut parse, mut lints) = analyze(&decoded, settings);
+
+        // Jamais sur un arbre incomplet, ni sur un fichier mal décodé.
+        let fixable = lints.iter().any(|d| d.fix.is_some());
+        if fix && fixable && parse.ok() && !decoded.lossy {
+            let result = apply_fixes(&decoded.text, &lints)
+                .and_then(|text| encode(&text, decoded.encoding).map(|bytes| (text, bytes)));
+            match result {
+                Some((text, bytes)) => {
+                    if let Err(error) = write_atomic(path, &bytes) {
+                        reporter.io_error(path, &error);
+                        continue;
+                    }
+                    fixed += 1;
+                    decoded.text = text;
+                    (parse, lints) = analyze(&decoded, settings);
+                }
+                None => reporter.skip(path, "correctif refusé — merci de signaler ce bug"),
+            }
+        }
 
         let mut diagnostics: Vec<Diagnostic> = parse
             .errors()
             .iter()
             .map(|e| Diagnostic {
                 severity: Severity::Error,
-                code: "syntax",
+                code: "syntax".to_owned(),
                 message: e.message().to_owned(),
                 range: e.range(),
             })
             .collect();
-        if let Some(game) = args.game {
-            if let Some(issue) = encoding::check(&decoded, game) {
-                diagnostics.push(Diagnostic {
-                    severity: Severity::Warning,
-                    code: encoding::ENCODING_LOSSY,
-                    message: issue.message,
-                    range: issue.range,
-                });
+        diagnostics.extend(lints.into_iter().map(|d| {
+            let hint = if d.fix.is_some() {
+                " Corrigeable avec `papyrus check --fix`."
+            } else {
+                ""
+            };
+            Diagnostic {
+                severity: if d.level == Level::Error {
+                    Severity::Error
+                } else {
+                    Severity::Warning
+                },
+                code: format!("{} {}", d.lint.code, d.lint.name),
+                message: format!("{}{hint}", d.message),
+                range: d.range,
             }
-        }
+        }));
         reporter.emit(path, &decoded.text, &diagnostics);
     }
 
-    reporter.summary(scripts.len(), "vérifié(s)");
-    Some(reporter.is_clean())
+    if fix {
+        eprintln!("{fixed} fichier(s) corrigé(s)");
+    }
+    reporter.summary(settings.scripts.len(), "vérifié(s)");
+    reporter.is_clean()
 }
 
-fn fmt(args: &FmtArgs, reporter: &mut Reporter) -> Option<bool> {
-    let scripts = args.common.scripts()?;
-    let dialect = args.common.dialect();
+fn fmt(settings: &Settings, check_only: bool, reporter: &mut Reporter) -> bool {
+    let dialect = settings.dialect();
     let options = FormatOptions {
-        indent: args.indent.0,
+        indent: settings.indent,
     };
 
     let mut changed = 0;
-    for path in &scripts {
+    for path in &settings.scripts {
         let Some(bytes) = read(path, reporter) else {
             continue;
         };
@@ -222,7 +369,7 @@ fn fmt(args: &FmtArgs, reporter: &mut Reporter) -> Option<bool> {
         }
         changed += 1;
 
-        if args.check {
+        if check_only {
             println!("{}", path.display());
             continue;
         }
@@ -239,20 +386,20 @@ fn fmt(args: &FmtArgs, reporter: &mut Reporter) -> Option<bool> {
         }
     }
 
-    let verb = if args.check {
+    let verb = if check_only {
         "à reformater"
     } else {
         "reformaté(s)"
     };
-    eprintln!("{changed} fichier(s) {verb} sur {}", scripts.len());
-    Some(reporter.is_clean() && !(args.check && changed > 0))
+    eprintln!("{changed} fichier(s) {verb} sur {}", settings.scripts.len());
+    reporter.is_clean() && !(check_only && changed > 0)
 }
 
 /// Écrit à côté puis renomme : une coupure en plein milieu ne laisse jamais
 /// un script à moitié écrit.
 fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".papyrus-fmt.tmp");
+    tmp.push(".papyrus.tmp");
     let tmp = PathBuf::from(tmp);
     std::fs::write(&tmp, bytes)?;
     std::fs::rename(&tmp, path).inspect_err(|_| {
@@ -285,6 +432,6 @@ mod tests {
         let Command::Check(args) = cli.command else {
             panic!("sous-commande");
         };
-        assert_eq!(args.game, Some(GameId::Skyrim));
+        assert_eq!(args.common.game, Some(GameId::Skyrim));
     }
 }

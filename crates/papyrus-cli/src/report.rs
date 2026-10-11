@@ -17,7 +17,7 @@ pub(crate) enum Severity {
 #[derive(Debug, Clone)]
 pub(crate) struct Diagnostic {
     pub(crate) severity: Severity,
-    pub(crate) code: &'static str,
+    pub(crate) code: String,
     pub(crate) message: String,
     pub(crate) range: TextRange,
 }
@@ -64,7 +64,7 @@ impl Reporter {
                         .with_index_type(IndexType::Byte)
                         .with_color(self.color),
                 )
-                .with_code(diagnostic.code)
+                .with_code(&diagnostic.code)
                 .with_message(&diagnostic.message)
                 // Sans texte, ariadne ne souligne pas : le label dit « ici ».
                 .with_label(
