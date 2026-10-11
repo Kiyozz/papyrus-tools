@@ -182,6 +182,16 @@ name = "papyrus-dialect"
 version = "0.0.1"
 
 [[package]]
+name = "papyrus-fmt"
+version = "0.0.1"
+dependencies = [
+ "insta",
+ "papyrus-dialect",
+ "papyrus-project",
+ "papyrus-syntax",
+]
+
+[[package]]
 name = "papyrus-project"
 version = "0.0.1"
 dependencies = [

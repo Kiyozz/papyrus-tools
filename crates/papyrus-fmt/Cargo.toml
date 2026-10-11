@@ -1,0 +1,23 @@
+[package]
+name = "papyrus-fmt"
+description = "Formateur canonique du langage Papyrus"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+papyrus-dialect.workspace = true
+papyrus-syntax.workspace = true
+
+[dev-dependencies]
+papyrus-project.workspace = true
+insta.workspace = true
+
+[features]
+# Vérifie l'idempotence sur les sources vanilla d'une installation locale.
+external-corpus = []
+
+[lints]
+workspace = true

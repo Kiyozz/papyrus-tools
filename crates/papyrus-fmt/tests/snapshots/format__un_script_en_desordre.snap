@@ -1,0 +1,31 @@
+---
+source: crates/papyrus-fmt/tests/format.rs
+expression: fmt(DESORDRE)
+---
+scriptname Foo:Bar extends Quest conditional
+{Documentation du script}
+import Utility
+
+int property Count = 3 auto const ; compteur
+Actor property Who hidden
+  Actor function GET()
+    return Game.GetPlayer()
+  endfunction
+endproperty
+auto state Default
+  event OnInit()
+    ; avant la boucle
+    int[] t = new int[Count]
+    while t.Length > 0 && !(akRef is Actor)
+      t[0] += 1
+      if x == -1
+        Debug.Trace("x" + \
+            t[0], aiSeverity = 2)
+      elseif (x)
+        ; branche vide
+      else
+        return
+      endif
+    endwhile
+  endevent
+endstate
