@@ -66,10 +66,10 @@ impl Reporter {
                 )
                 .with_code(&diagnostic.code)
                 .with_message(&diagnostic.message)
-                // Without text, ariadne does not underline: the label says « ici ».
+                // Without text, ariadne does not underline: the label says "here".
                 .with_label(
                     Label::new((name.as_str(), span))
-                        .with_message("ici")
+                        .with_message("here")
                         .with_color(color),
                 )
                 .finish();
@@ -80,17 +80,17 @@ impl Reporter {
     /// A file left aside, and why.
     pub(crate) fn skip(&mut self, path: &Path, reason: &str) {
         self.errors += 1;
-        eprintln!("ignoré : {} — {reason}", path.display());
+        eprintln!("skipped: {} — {reason}", path.display());
     }
 
     pub(crate) fn io_error(&mut self, path: &Path, error: &std::io::Error) {
         self.errors += 1;
-        eprintln!("erreur : {} — {error}", path.display());
+        eprintln!("error: {} — {error}", path.display());
     }
 
     pub(crate) fn summary(&self, files: usize, verb: &str) {
         eprintln!(
-            "{files} fichier(s) {verb} : {} erreur(s), {} avertissement(s)",
+            "{files} file(s) {verb}: {} error(s), {} warning(s)",
             self.errors, self.warnings
         );
     }

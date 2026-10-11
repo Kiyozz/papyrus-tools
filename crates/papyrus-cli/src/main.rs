@@ -21,9 +21,7 @@ use papyrus_dialect::{Dialect, GameId};
 use papyrus_fmt::{FormatError, FormatOptions, Indent};
 use papyrus_lint::{LINTS, Levels, ScriptSummary, Workspace, apply_fixes, vanilla_flags};
 use papyrus_project::flags::{FlagDef, parse_flags};
-use papyrus_project::{
-    Config, Decoded, DiscoverOptions, IndentSetting, Level, decode, discover, encode,
-};
+use papyrus_project::{Decoded, IndentSetting, Level, Project, decode, encode};
 use papyrus_syntax::Parse;
 
 use report::{Diagnostic, Reporter, Severity};
@@ -104,14 +102,14 @@ impl FromStr for IndentArg {
         match s.parse::<u8>() {
             Ok(n @ 1..=8) => Ok(IndentArg(Indent::Spaces(n))),
             _ => Err(format!(
-                "`{s}` : attendu un nombre d'espaces de 1 à 8, ou `tab`"
+                "`{s}`: expected a number of spaces from 1 to 8, or `tab`"
             )),
         }
     }
 }
 
-/// The settings in effect: command line, then papyrus.toml, then the
-/// defaults.
+/// The settings of one project: command line, then its papyrus.toml, then
+/// the defaults.
 #[derive(Debug)]
 struct Settings {
     scripts: Vec<PathBuf>,
@@ -126,29 +124,46 @@ impl Settings {
         self.game.map(Dialect::new).unwrap_or_default()
     }
 
-    fn resolve(common: &Common, indent: Option<IndentArg>) -> Result<Settings, String> {
+    /// The settings of every project under the given paths: each script
+    /// follows the papyrus.toml that covers it.
+    fn resolve(common: &Common, indent: Option<IndentArg>) -> Result<Vec<Settings>, String> {
         let roots = if common.paths.is_empty() {
             vec![PathBuf::from(".")]
         } else {
             common.paths.clone()
         };
-        let config = Config::discover(&roots[0]).map_err(|e| e.to_string())?;
+        let projects = papyrus_project::projects(&roots, common.include_fragments)
+            .map_err(|e| e.to_string())?;
+        let several = projects.len() > 1;
+        projects
+            .into_iter()
+            .map(|project| Settings::of(project, common, indent, several))
+            .collect()
+    }
+
+    fn of(
+        project: Project,
+        common: &Common,
+        indent: Option<IndentArg>,
+        several: bool,
+    ) -> Result<Settings, String> {
+        let config = &project.config;
         let in_config = |message: String| match &config.path {
-            Some(path) => format!("{} : {message}", path.display()),
+            Some(path) => format!("{}: {message}", path.display()),
             None => message,
         };
+        // With several projects, every message says which one it is about.
+        let label = several.then(|| project.root.display().to_string());
 
-        let options = DiscoverOptions {
-            include_fragments: common.include_fragments || config.include_fragments,
-        };
-        let scripts = discover(&roots, options).map_err(|e| e.to_string())?;
-
-        let game = common.game.or(config.game).or_else(|| detect(&scripts));
+        let game = common
+            .game
+            .or(config.game)
+            .or_else(|| detect(&project.scripts, label.as_deref()));
         let flags = match &config.flags {
             Some(path) => {
                 let text = std::fs::read_to_string(path)
-                    .map_err(|e| format!("{} : {e}", path.display()))?;
-                parse_flags(&text).map_err(|e| format!("{} : {e}", path.display()))?
+                    .map_err(|e| format!("{}: {e}", path.display()))?;
+                parse_flags(&text).map_err(|e| format!("{}: {e}", path.display()))?
             }
             None => vanilla_flags(game),
         };
@@ -160,7 +175,7 @@ impl Settings {
             (None, None) => Indent::default(),
         };
         Ok(Settings {
-            scripts,
+            scripts: project.scripts,
             game,
             indent,
             flags,
@@ -169,31 +184,32 @@ impl Settings {
     }
 }
 
-/// Guesses the game of the scripts when neither `--game` nor papyrus.toml
-/// says it: the majority of the files that give it away.
+/// Guesses the game of a project's scripts when neither `--game` nor its
+/// papyrus.toml says it: the majority of the files that give it away.
 ///
 /// Without any clue, `None`: the widest syntax applies, and game-dependent
 /// lints stay quiet rather than guess.
-fn detect(scripts: &[PathBuf]) -> Option<GameId> {
+fn detect(scripts: &[PathBuf], project: Option<&str>) -> Option<GameId> {
     let widest = Dialect::new(GameId::Starfield);
     let verdicts = scripts.iter().filter_map(|path| {
         let bytes = std::fs::read(path).ok()?;
         let parse = papyrus_syntax::parse(&decode(&bytes).text, widest);
         Some(papyrus_project::detect::evidence(&parse.syntax()).verdict())
     });
+    let prefix = project.map(|p| format!("{p}: ")).unwrap_or_default();
     match papyrus_project::detect::majority(verdicts) {
         Some((game, votes, decided)) => {
             eprintln!(
-                "cible déduite : {} ({votes} fichier(s) sur {decided} qui l'indiquent) — \
-                 `--game` ou `game` dans papyrus.toml pour l'imposer",
+                "{prefix}inferred target: {} ({votes} of {decided} file(s) point to it) — \
+                 set `--game` or `game` in papyrus.toml to force it",
                 game.display_name()
             );
             Some(game)
         }
         None => {
             eprintln!(
-                "cible inconnue : syntaxe de Starfield, vérifications propres au jeu \
-                 sautées — `--game` ou `game` dans papyrus.toml pour la préciser"
+                "{prefix}unknown target: Starfield syntax, game-specific checks skipped — \
+                 set `--game` or `game` in papyrus.toml"
             );
             None
         }
@@ -205,9 +221,9 @@ fn main() -> ExitCode {
     let mut reporter = Reporter::new(std::io::stderr().is_terminal());
     let result = match cli.command {
         Command::Check(args) => Settings::resolve(&args.common, None)
-            .map(|settings| check(&settings, args.fix, &mut reporter)),
+            .map(|projects| check(&projects, args.fix, &mut reporter)),
         Command::Fmt(args) => Settings::resolve(&args.common, args.indent)
-            .map(|settings| fmt(&settings, args.check, &mut reporter)),
+            .map(|projects| fmt(&projects, args.check, &mut reporter)),
         Command::Lints => {
             lints();
             Ok(true)
@@ -218,7 +234,7 @@ fn main() -> ExitCode {
         Ok(true) => ExitCode::SUCCESS,
         Ok(false) => ExitCode::FAILURE,
         Err(error) => {
-            eprintln!("erreur : {error}");
+            eprintln!("error: {error}");
             ExitCode::from(2)
         }
     }
@@ -268,7 +284,7 @@ fn analyze(
     (parse, lints)
 }
 
-/// What the processed scripts declare, to follow `extends` from one file to
+/// What a project's scripts declare, to follow `extends` from one file to
 /// another.
 fn index(scripts: &[PathBuf], dialect: Dialect) -> Workspace {
     let mut workspace = Workspace::default();
@@ -284,138 +300,170 @@ fn index(scripts: &[PathBuf], dialect: Dialect) -> Workspace {
     workspace
 }
 
-fn check(settings: &Settings, fix: bool, reporter: &mut Reporter) -> bool {
-    let workspace = index(&settings.scripts, settings.dialect());
+fn check(projects: &[Settings], fix: bool, reporter: &mut Reporter) -> bool {
     let mut fixed = 0;
-    for path in &settings.scripts {
-        let Some(bytes) = read(path, reporter) else {
-            continue;
-        };
-        let mut decoded = decode(&bytes);
-        let (mut parse, mut lints) = analyze(&decoded, settings, &workspace);
-
-        // Never on an incomplete tree, nor on a badly decoded file.
-        let fixable = lints.iter().any(|d| d.fix.is_some());
-        if fix && fixable && parse.ok() && !decoded.lossy {
-            let result = apply_fixes(&decoded.text, &lints)
-                .and_then(|text| encode(&text, decoded.encoding).map(|bytes| (text, bytes)));
-            match result {
-                Some((text, bytes)) => {
-                    if let Err(error) = write_atomic(path, &bytes) {
-                        reporter.io_error(path, &error);
-                        continue;
-                    }
-                    fixed += 1;
-                    decoded.text = text;
-                    (parse, lints) = analyze(&decoded, settings, &workspace);
-                }
-                None => reporter.skip(path, "correctif refusé — merci de signaler ce bug"),
-            }
+    for settings in projects {
+        // A project only sees its own scripts.
+        let workspace = index(&settings.scripts, settings.dialect());
+        for path in &settings.scripts {
+            fixed += usize::from(check_file(path, settings, &workspace, fix, reporter));
         }
-
-        let mut diagnostics: Vec<Diagnostic> = parse
-            .errors()
-            .iter()
-            .map(|e| Diagnostic {
-                severity: Severity::Error,
-                code: "syntax".to_owned(),
-                message: e.message().to_owned(),
-                range: e.range(),
-            })
-            .collect();
-        diagnostics.extend(lints.into_iter().map(|d| {
-            let hint = if d.fix.is_some() {
-                " Corrigeable avec `papyrus check --fix`."
-            } else {
-                ""
-            };
-            Diagnostic {
-                severity: if d.level == Level::Error {
-                    Severity::Error
-                } else {
-                    Severity::Warning
-                },
-                code: format!("{} {}", d.lint.code, d.lint.name),
-                message: format!("{}{hint}", d.message),
-                range: d.range,
-            }
-        }));
-        reporter.emit(path, &decoded.text, &diagnostics);
     }
 
     if fix {
-        eprintln!("{fixed} fichier(s) corrigé(s)");
+        eprintln!("{fixed} file(s) fixed");
     }
-    reporter.summary(settings.scripts.len(), "vérifié(s)");
+    let files = projects.iter().map(|p| p.scripts.len()).sum();
+    reporter.summary(files, "checked");
     reporter.is_clean()
 }
 
-fn fmt(settings: &Settings, check_only: bool, reporter: &mut Reporter) -> bool {
-    let dialect = settings.dialect();
-    let options = FormatOptions {
-        indent: settings.indent,
+/// Checks one file, and fixes it if asked; true if it was rewritten.
+fn check_file(
+    path: &Path,
+    settings: &Settings,
+    workspace: &Workspace,
+    fix: bool,
+    reporter: &mut Reporter,
+) -> bool {
+    let Some(bytes) = read(path, reporter) else {
+        return false;
     };
+    let mut decoded = decode(&bytes);
+    let (mut parse, mut lints) = analyze(&decoded, settings, workspace);
 
+    // Never on an incomplete tree, nor on a badly decoded file.
+    let mut fixed = false;
+    let fixable = lints.iter().any(|d| d.fix.is_some());
+    if fix && fixable && parse.ok() && !decoded.lossy {
+        let result = apply_fixes(&decoded.text, &lints)
+            .and_then(|text| encode(&text, decoded.encoding).map(|bytes| (text, bytes)));
+        match result {
+            Some((text, bytes)) => {
+                if let Err(error) = write_atomic(path, &bytes) {
+                    reporter.io_error(path, &error);
+                    return false;
+                }
+                fixed = true;
+                decoded.text = text;
+                (parse, lints) = analyze(&decoded, settings, workspace);
+            }
+            None => reporter.skip(path, "fix refused — please report this bug"),
+        }
+    }
+
+    let mut diagnostics: Vec<Diagnostic> = parse
+        .errors()
+        .iter()
+        .map(|e| Diagnostic {
+            severity: Severity::Error,
+            code: "syntax".to_owned(),
+            message: e.message().to_owned(),
+            range: e.range(),
+        })
+        .collect();
+    diagnostics.extend(lints.into_iter().map(|d| {
+        let hint = if d.fix.is_some() {
+            " Fixable with `papyrus check --fix`."
+        } else {
+            ""
+        };
+        Diagnostic {
+            severity: if d.level == Level::Error {
+                Severity::Error
+            } else {
+                Severity::Warning
+            },
+            code: format!("{} {}", d.lint.code, d.lint.name),
+            message: format!("{}{hint}", d.message),
+            range: d.range,
+        }
+    }));
+    reporter.emit(path, &decoded.text, &diagnostics);
+    fixed
+}
+
+fn fmt(projects: &[Settings], check_only: bool, reporter: &mut Reporter) -> bool {
     let mut changed = 0;
-    for path in &settings.scripts {
-        let Some(bytes) = read(path, reporter) else {
-            continue;
+    for settings in projects {
+        let options = FormatOptions {
+            indent: settings.indent,
         };
-        let decoded = decode(&bytes);
-        if decoded.lossy {
-            reporter.skip(
+        for path in &settings.scripts {
+            changed += usize::from(fmt_file(
                 path,
-                "octets invalides pour son encodage ; le réécrire en perdrait",
-            );
-            continue;
-        }
-
-        let formatted = match papyrus_fmt::format(&decoded.text, dialect, &options) {
-            Ok(formatted) => formatted,
-            Err(FormatError::Syntax(errors)) => {
-                reporter.skip(
-                    path,
-                    &format!(
-                        "{} erreur(s) de syntaxe, voir `papyrus check`",
-                        errors.len()
-                    ),
-                );
-                continue;
-            }
-            Err(error @ FormatError::Unsafe { .. }) => {
-                reporter.skip(path, &format!("{error} — merci de signaler ce bug"));
-                continue;
-            }
-        };
-        if formatted == decoded.text {
-            continue;
-        }
-        changed += 1;
-
-        if check_only {
-            println!("{}", path.display());
-            continue;
-        }
-        // Re-encoded as read: the formatter never changes the encoding.
-        let Some(bytes) = encode(&formatted, decoded.encoding) else {
-            reporter.skip(
-                path,
-                "le résultat n'est pas représentable dans l'encodage d'origine",
-            );
-            continue;
-        };
-        if let Err(error) = write_atomic(path, &bytes) {
-            reporter.io_error(path, &error);
+                settings.dialect(),
+                &options,
+                check_only,
+                reporter,
+            ));
         }
     }
 
     let verb = if check_only {
-        "à reformater"
+        "to reformat"
     } else {
-        "reformaté(s)"
+        "reformatted"
     };
-    eprintln!("{changed} fichier(s) {verb} sur {}", settings.scripts.len());
+    let files: usize = projects.iter().map(|p| p.scripts.len()).sum();
+    eprintln!("{changed} file(s) {verb} out of {files}");
     reporter.is_clean() && !(check_only && changed > 0)
+}
+
+/// Formats one file; true if it changed, or would change with `--check`.
+fn fmt_file(
+    path: &Path,
+    dialect: Dialect,
+    options: &FormatOptions,
+    check_only: bool,
+    reporter: &mut Reporter,
+) -> bool {
+    let Some(bytes) = read(path, reporter) else {
+        return false;
+    };
+    let decoded = decode(&bytes);
+    if decoded.lossy {
+        reporter.skip(
+            path,
+            "invalid bytes for its encoding; rewriting it would lose them",
+        );
+        return false;
+    }
+
+    let formatted = match papyrus_fmt::format(&decoded.text, dialect, options) {
+        Ok(formatted) => formatted,
+        Err(FormatError::Syntax(errors)) => {
+            reporter.skip(
+                path,
+                &format!("{} syntax error(s), see `papyrus check`", errors.len()),
+            );
+            return false;
+        }
+        Err(error @ FormatError::Unsafe { .. }) => {
+            reporter.skip(path, &format!("{error} — please report this bug"));
+            return false;
+        }
+    };
+    if formatted == decoded.text {
+        return false;
+    }
+
+    if check_only {
+        println!("{}", path.display());
+        return true;
+    }
+    // Re-encoded as read: the formatter never changes the encoding.
+    let Some(bytes) = encode(&formatted, decoded.encoding) else {
+        reporter.skip(
+            path,
+            "the result cannot be represented in the original encoding",
+        );
+        return false;
+    };
+    if let Err(error) = write_atomic(path, &bytes) {
+        reporter.io_error(path, &error);
+    }
+    true
 }
 
 /// Writes next to the file, then renames: an interruption never leaves a
@@ -453,7 +501,7 @@ mod tests {
     fn les_alias_de_jeu_sont_acceptes() {
         let cli = Cli::try_parse_from(["papyrus", "check", "--game", "sse", "x"]).unwrap();
         let Command::Check(args) = cli.command else {
-            panic!("sous-commande");
+            panic!("subcommand");
         };
         assert_eq!(args.common.game, Some(GameId::Skyrim));
     }

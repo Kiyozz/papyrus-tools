@@ -90,18 +90,23 @@ fn project() -> PathBuf {
     dir
 }
 
-#[tokio::test]
-async fn une_session_complete() {
-    let dir = project();
+/// A server running in the background, and a client talking to it.
+fn connect() -> Client {
     // Two pipes, one per direction.
     let (to_server, server_in) = tokio::io::duplex(1 << 16);
     let (server_out, from_server) = tokio::io::duplex(1 << 16);
     tokio::spawn(papyrus_lsp::serve(server_in, server_out));
-    let mut client = Client {
+    Client {
         reader: BufReader::new(from_server),
         writer: to_server,
         next_id: 0,
-    };
+    }
+}
+
+#[tokio::test]
+async fn une_session_complete() {
+    let dir = project();
+    let mut client = connect();
 
     let result = client
         .request(
@@ -128,7 +133,7 @@ async fn une_session_complete() {
         .await;
     let log = client.wait(|m| m["method"] == "window/logMessage").await;
     let log = log["params"]["message"].as_str().unwrap().to_owned();
-    assert!(log.contains("1 scripts indexés"), "{log}");
+    assert!(log.contains("1 scripts indexed"), "{log}");
 
     // A misspelled event, inherited from a project script, and a badly named
     // local.
@@ -266,6 +271,79 @@ async fn une_session_complete() {
         .wait(|m| m["method"] == "textDocument/publishDiagnostics")
         .await;
     assert_eq!(published["params"]["diagnostics"], json!([]));
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn each_project_of_a_window_stays_apart() {
+    // One window, two projects declaring a `MyBase` script with different
+    // events: each child is checked against its own.
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-projects-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    for (path, text) in [
+        ("skyrim/papyrus.toml", "game = \"skyrim\"\n"),
+        (
+            "skyrim/MyBase.psc",
+            "ScriptName MyBase extends ObjectReference\nEvent OnRitualDone()\nEndEvent\n",
+        ),
+        ("fallout/papyrus.toml", "game = \"fallout4\"\n"),
+        (
+            "fallout/MyBase.psc",
+            "ScriptName MyBase extends ObjectReference\nEvent OnRitualDune()\nEndEvent\n",
+        ),
+    ] {
+        let path = dir.join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    }
+
+    let mut client = connect();
+    client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": {},
+                "workspaceFolders": [{ "uri": uri(&dir), "name": "mods" }],
+            }),
+        )
+        .await;
+    client.notify("initialized", json!({})).await;
+    // One line per project once indexed.
+    for _ in 0..2 {
+        client.wait(|m| m["method"] == "window/logMessage").await;
+    }
+
+    let text = "ScriptName Child extends MyBase\nEvent OnRitualDone()\nEndEvent\n";
+    let mut found = Vec::new();
+    for project in ["skyrim", "fallout"] {
+        let child = uri(&dir.join(project).join("Child.psc"));
+        client
+            .notify(
+                "textDocument/didOpen",
+                json!({ "textDocument": {
+                    "uri": child, "languageId": "papyrus", "version": 1, "text": text,
+                } }),
+            )
+            .await;
+        let published = client
+            .wait(|m| {
+                m["method"] == "textDocument/publishDiagnostics" && m["params"]["uri"] == child
+            })
+            .await;
+        let messages: Vec<String> = published["params"]["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|d| d["message"].as_str().unwrap().to_owned())
+            .collect();
+        found.push((project, messages));
+    }
+    assert_eq!(found[0], ("skyrim", Vec::new()));
+    assert_eq!(found[1].1.len(), 1, "{found:?}");
+    assert!(found[1].1[0].contains("`OnRitualDune`"), "{found:?}");
 
     client.request("shutdown", Value::Null).await;
     client.notify("exit", Value::Null).await;

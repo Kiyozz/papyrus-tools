@@ -49,7 +49,8 @@ pub fn is_fragment_name(path: &Path) -> bool {
         .any(|s| FRAGMENT_MARKERS.iter().any(|m| s.eq_ignore_ascii_case(m)))
 }
 
-fn is_fragment_dir(path: &Path) -> bool {
+/// True if the folder holds Creation Kit fragments.
+pub fn is_fragment_dir(path: &Path) -> bool {
     path.file_name()
         .is_some_and(|n| n.eq_ignore_ascii_case("fragments"))
 }

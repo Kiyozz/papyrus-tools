@@ -6,9 +6,11 @@
 //! papyrus lsp
 //! ```
 //!
-//! On startup, the scripts of the project folders are indexed in the
+//! On startup, the projects of the workspace folders are indexed in the
 //! background: enough to follow `extends` from one file to another and to
-//! deduce the target game when papyrus.toml does not say it.
+//! deduce the target game when papyrus.toml does not say it. A window may
+//! hold several projects, each with its own `papyrus.toml`: they are kept
+//! apart.
 
 #![forbid(unsafe_code)]
 
@@ -18,59 +20,102 @@ mod semantic;
 mod symbols;
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_lint::{ScriptSummary, Workspace};
-use papyrus_project::{Config, DiscoverOptions, decode, discover};
+use papyrus_project::{ConfigLocator, decode};
 use tower_lsp_server::jsonrpc::{Error, Result};
 use tower_lsp_server::ls_types::*;
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 
-use analysis::{Document, Settings, analyze};
+use analysis::{Analysis, Document, Settings, analyze};
 use position::{Columns, LineMap};
+
+/// What the server knows about one project: the folder of a `papyrus.toml`,
+/// or a workspace folder without one.
+///
+/// Projects are sealed: a document only sees the scripts of its own
+/// project, and only its scripts vote on its game.
+#[derive(Debug, Default)]
+struct Project {
+    /// Its scripts. Open documents replace their on-disk version there.
+    workspace: Workspace,
+    /// The target deduced from its scripts.
+    detected: Option<GameId>,
+}
 
 /// The server's shared state.
 #[derive(Debug, Default)]
 struct State {
     columns: Columns,
+    /// The workspace folders, absolute.
     folders: Vec<PathBuf>,
     documents: HashMap<Uri, Document>,
-    /// The project's scripts. Open documents replace their on-disk version
-    /// there.
-    workspace: Workspace,
-    /// The script name each open document declared in `workspace`.
+    /// The projects, by root.
+    projects: HashMap<PathBuf, Project>,
+    /// The script name each open document declared in its project.
     declared: HashMap<Uri, String>,
-    /// The target deduced from the project's scripts.
-    detected: Option<GameId>,
+    locator: ConfigLocator,
     /// The client can watch files at the server's request.
     can_watch: bool,
 }
 
 impl State {
-    /// Updates the summary of document `uri` in the index; true if it
-    /// changed, and the other documents need another look.
+    /// The root of the project `path` belongs to: the folder of the
+    /// `papyrus.toml` covering it, else the workspace folder holding it,
+    /// else its own folder.
+    fn root_of(&mut self, path: Option<&Path>) -> PathBuf {
+        let Some(path) = path else {
+            return PathBuf::new();
+        };
+        let path = std::path::absolute(path).unwrap_or_else(|_| path.to_owned());
+        if let Some(config) = self.locator.locate(&path) {
+            return config.parent().unwrap_or(&config).to_owned();
+        }
+        self.folders
+            .iter()
+            .filter(|folder| path.starts_with(folder))
+            .max_by_key(|folder| folder.as_os_str().len())
+            .cloned()
+            .or_else(|| path.parent().map(Path::to_owned))
+            .unwrap_or_default()
+    }
+
+    /// Analyzes `document` within its project.
+    fn analyze(&self, document: &Document) -> Analysis {
+        let empty = Project::default();
+        let project = self.projects.get(&document.project).unwrap_or(&empty);
+        analyze(document, &project.workspace, project.detected)
+    }
+
+    /// Updates the summary of document `uri` in its project; true if it
+    /// changed, and the other documents of the project need another look.
     fn declare(&mut self, uri: &Uri, summary: Option<ScriptSummary>) -> bool {
+        let Some(root) = self.documents.get(uri).map(|d| d.project.clone()) else {
+            return false;
+        };
         let previous = self.declared.get(uri).cloned();
+        let workspace = &mut self.projects.entry(root).or_default().workspace;
         match summary {
             Some(summary) => {
-                if self.workspace.get(&summary.name) == Some(&summary)
+                if workspace.get(&summary.name) == Some(&summary)
                     && previous.as_deref() == Some(summary.name.as_str())
                 {
                     return false;
                 }
                 if let Some(previous) = previous.filter(|p| !p.eq_ignore_ascii_case(&summary.name))
                 {
-                    self.workspace.remove(&previous);
+                    workspace.remove(&previous);
                 }
                 self.declared.insert(uri.clone(), summary.name.clone());
-                self.workspace.insert(summary);
+                workspace.insert(summary);
                 true
             }
             None => {
                 if let Some(previous) = self.declared.remove(uri) {
-                    self.workspace.remove(&previous);
+                    workspace.remove(&previous);
                     return true;
                 }
                 false
@@ -81,7 +126,7 @@ impl State {
     /// The diagnostics of `uri`.
     fn diagnostics(&self, uri: &Uri) -> Option<(Uri, Vec<Diagnostic>, i32)> {
         let document = self.documents.get(uri)?;
-        let analysis = analyze(document, &self.workspace, self.detected);
+        let analysis = self.analyze(document);
         let map = LineMap::new(&document.decoded.text, self.columns);
         Some((
             uri.clone(),
@@ -90,19 +135,22 @@ impl State {
         ))
     }
 
-    /// Reanalyzes `uri` after a change, and the other open documents if what
-    /// it declares changed.
+    /// Reanalyzes `uri` after a change, and the other open documents of its
+    /// project if what it declares changed.
     fn refresh(&mut self, uri: &Uri) -> Vec<(Uri, Vec<Diagnostic>, i32)> {
         let Some(document) = self.documents.get(uri) else {
             return Vec::new();
         };
+        let root = document.project.clone();
         let parse = papyrus_syntax::parse(&document.decoded.text, Dialect::new(GameId::Starfield));
-        let changed = self.declare(uri, ScriptSummary::of(&parse.syntax()));
-        if changed {
-            self.all()
-        } else {
-            self.diagnostics(uri).into_iter().collect()
+        if !self.declare(uri, ScriptSummary::of(&parse.syntax())) {
+            return self.diagnostics(uri).into_iter().collect();
         }
+        self.documents
+            .iter()
+            .filter(|(_, d)| d.project == root)
+            .filter_map(|(uri, _)| self.diagnostics(uri))
+            .collect()
     }
 
     /// The diagnostics of every open document.
@@ -114,42 +162,54 @@ impl State {
     }
 }
 
-/// What indexing the project found.
-struct Scan {
+/// What indexing one project found.
+struct Scanned {
+    root: PathBuf,
     summaries: Vec<ScriptSummary>,
     detected: Option<GameId>,
-    files: usize,
 }
 
-/// Indexes the scripts of `folders`, as `papyrus check` would.
-fn scan(folders: &[PathBuf]) -> Scan {
+/// Indexes the projects under `folders`, as `papyrus check` would; a folder
+/// that cannot be read is reported and skipped.
+fn scan(folders: &[PathBuf]) -> (Vec<Scanned>, Vec<String>) {
     let widest = Dialect::new(GameId::Starfield);
-    let mut summaries = Vec::new();
-    let mut verdicts = Vec::new();
-    let mut files = 0;
+    let mut scanned = Vec::new();
+    let mut errors = Vec::new();
     for folder in folders {
-        let config = Config::discover(folder).unwrap_or_default();
-        let options = DiscoverOptions {
-            include_fragments: config.include_fragments,
-        };
-        let Ok(scripts) = discover(std::slice::from_ref(folder), options) else {
-            continue;
-        };
-        for path in scripts {
-            let Ok(bytes) = std::fs::read(&path) else {
+        let projects = match papyrus_project::projects(std::slice::from_ref(folder), false) {
+            Ok(projects) => projects,
+            Err(error) => {
+                errors.push(error.to_string());
                 continue;
-            };
-            files += 1;
-            let root = papyrus_syntax::parse(&decode(&bytes).text, widest).syntax();
-            verdicts.push(papyrus_project::detect::evidence(&root).verdict());
-            summaries.extend(ScriptSummary::of(&root));
+            }
+        };
+        for project in projects {
+            let mut summaries = Vec::new();
+            let mut verdicts = Vec::new();
+            for path in &project.scripts {
+                let Ok(bytes) = std::fs::read(path) else {
+                    continue;
+                };
+                let root = papyrus_syntax::parse(&decode(&bytes).text, widest).syntax();
+                verdicts.push(papyrus_project::detect::evidence(&root).verdict());
+                summaries.extend(ScriptSummary::of(&root));
+            }
+            scanned.push(Scanned {
+                root: project.root,
+                summaries,
+                detected: papyrus_project::detect::majority(verdicts).map(|(game, _, _)| game),
+            });
         }
     }
-    Scan {
-        summaries,
-        detected: papyrus_project::detect::majority(verdicts).map(|(game, _, _)| game),
-        files,
-    }
+    (scanned, errors)
+}
+
+/// The summary of a script on disk.
+fn summary_on_disk(path: &Path) -> Option<ScriptSummary> {
+    let bytes = std::fs::read(path).ok()?;
+    let root =
+        papyrus_syntax::parse(&decode(&bytes).text, Dialect::new(GameId::Starfield)).syntax();
+    ScriptSummary::of(&root)
 }
 
 /// The server.
@@ -180,6 +240,75 @@ impl Backend {
                 .publish_diagnostics(uri, diagnostics, Some(version))
                 .await;
         }
+    }
+
+    /// Indexes the projects of the workspace folders in the background, then
+    /// republishes every open document.
+    fn rescan(&self) {
+        let folders = self.state().folders.clone();
+        if folders.is_empty() {
+            return;
+        }
+        let backend = self.clone();
+        tokio::spawn(async move {
+            let Ok((scanned, errors)) = tokio::task::spawn_blocking(move || scan(&folders)).await
+            else {
+                return;
+            };
+            let mut log: Vec<String> = errors
+                .into_iter()
+                .map(|e| format!("papyrus: {e}"))
+                .collect();
+            let batch = {
+                let mut state = backend.state();
+                let mut projects: HashMap<PathBuf, Project> = HashMap::new();
+                for project in scanned {
+                    let target = match project.detected {
+                        Some(game) => format!("inferred target {}", game.display_name()),
+                        None => "unknown target".to_owned(),
+                    };
+                    log.push(format!(
+                        "papyrus: {}: {} scripts indexed, {target}",
+                        project.root.display(),
+                        project.summaries.len()
+                    ));
+                    let mut workspace = Workspace::default();
+                    for summary in project.summaries {
+                        workspace.insert(summary);
+                    }
+                    projects.insert(
+                        project.root,
+                        Project {
+                            workspace,
+                            detected: project.detected,
+                        },
+                    );
+                }
+                // Open documents take precedence over the disk.
+                for (uri, name) in &state.declared {
+                    let Some(document) = state.documents.get(uri) else {
+                        continue;
+                    };
+                    let open = state
+                        .projects
+                        .get(&document.project)
+                        .and_then(|p| p.workspace.get(name));
+                    if let Some(open) = open {
+                        projects
+                            .entry(document.project.clone())
+                            .or_default()
+                            .workspace
+                            .insert(open.clone());
+                    }
+                }
+                state.projects = projects;
+                state.all()
+            };
+            for line in log {
+                backend.client.log_message(MessageType::INFO, line).await;
+            }
+            backend.publish(batch).await;
+        });
     }
 
     /// Runs `f` on document `uri` and the view of its lines.
@@ -218,6 +347,11 @@ impl LanguageServer for Backend {
         #[allow(deprecated)] // Clients without multiple folders.
         if folders.is_empty() {
             folders.extend(params.root_uri.as_ref().and_then(file_path));
+        }
+        for folder in &mut folders {
+            if let Ok(absolute) = std::path::absolute(&*folder) {
+                *folder = absolute;
+            }
         }
         let can_watch = params
             .capabilities
@@ -280,12 +414,9 @@ impl LanguageServer for Backend {
     }
 
     async fn initialized(&self, _: InitializedParams) {
-        let (folders, can_watch) = {
-            let state = self.state();
-            (state.folders.clone(), state.can_watch)
-        };
         // The configuration, the flags, and scripts modified outside the
         // editor: the server asks to be notified, whatever the editor.
+        let can_watch = self.state().can_watch;
         if can_watch {
             let watchers = ["**/papyrus.toml", "**/*.flg", "**/*.psc"]
                 .into_iter()
@@ -304,49 +435,12 @@ impl LanguageServer for Backend {
                 self.client
                     .log_message(
                         MessageType::WARNING,
-                        format!("papyrus : surveillance des fichiers refusée ({error})"),
+                        format!("papyrus: file watching refused ({error})"),
                     )
                     .await;
             }
         }
-        if folders.is_empty() {
-            return;
-        }
-        let backend = self.clone();
-        tokio::spawn(async move {
-            let Ok(scan) = tokio::task::spawn_blocking(move || scan(&folders)).await else {
-                return;
-            };
-            let (count, files, detected) = (scan.summaries.len(), scan.files, scan.detected);
-            let batch = {
-                let mut state = backend.state();
-                let mut workspace = Workspace::default();
-                for summary in scan.summaries {
-                    workspace.insert(summary);
-                }
-                // Open documents take precedence over the disk.
-                for name in state.declared.values() {
-                    if let Some(open) = state.workspace.get(name) {
-                        workspace.insert(open.clone());
-                    }
-                }
-                state.workspace = workspace;
-                state.detected = scan.detected;
-                state.all()
-            };
-            let target = match detected {
-                Some(game) => format!("cible déduite : {}", game.display_name()),
-                None => "cible inconnue".to_owned(),
-            };
-            backend
-                .client
-                .log_message(
-                    MessageType::INFO,
-                    format!("papyrus : {count} scripts indexés sur {files} fichiers, {target}"),
-                )
-                .await;
-            backend.publish(batch).await;
-        });
+        self.rescan();
     }
 
     async fn shutdown(&self) -> Result<()> {
@@ -357,7 +451,9 @@ impl LanguageServer for Backend {
         let item = params.text_document;
         let batch = {
             let mut state = self.state();
-            let document = Document::new(item.text, item.version, file_path(&item.uri));
+            let path = file_path(&item.uri);
+            let mut document = Document::new(item.text, item.version, path.clone());
+            document.project = state.root_of(path.as_deref());
             state.documents.insert(item.uri.clone(), document);
             state.refresh(&item.uri)
         };
@@ -399,12 +495,12 @@ impl LanguageServer for Backend {
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri;
         self.state().documents.remove(&uri);
-        // The file stays in the index: it is still part of the project.
+        // The file stays in the index: it is still part of its project.
         self.client.publish_diagnostics(uri, Vec::new(), None).await;
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
-        let batch = {
+        let (settings_changed, batch) = {
             let mut state = self.state();
             let mut settings_changed = false;
             for change in &params.changes {
@@ -422,27 +518,36 @@ impl LanguageServer for Backend {
                     && !state.documents.contains_key(&change.uri)
                 {
                     // A script modified outside the editor.
-                    let summary = std::fs::read(&path).ok().and_then(|bytes| {
-                        let root = papyrus_syntax::parse(
-                            &decode(&bytes).text,
-                            Dialect::new(GameId::Starfield),
-                        )
-                        .syntax();
-                        ScriptSummary::of(&root)
-                    });
-                    if let Some(summary) = summary {
-                        state.workspace.insert(summary);
+                    if let Some(summary) = summary_on_disk(&path) {
+                        let root = state.root_of(Some(&path));
+                        state
+                            .projects
+                            .entry(root)
+                            .or_default()
+                            .workspace
+                            .insert(summary);
                     }
                 }
             }
             if settings_changed {
-                for document in state.documents.values_mut() {
-                    document.settings = Settings::load(document.path.as_deref());
+                // A new or removed papyrus.toml moves project borders.
+                state.locator = ConfigLocator::default();
+                let uris: Vec<Uri> = state.documents.keys().cloned().collect();
+                for uri in uris {
+                    let path = state.documents[&uri].path.clone();
+                    let root = state.root_of(path.as_deref());
+                    if let Some(document) = state.documents.get_mut(&uri) {
+                        document.settings = Settings::load(path.as_deref());
+                        document.project = root;
+                    }
                 }
             }
-            state.all()
+            (settings_changed, state.all())
         };
         self.publish(batch).await;
+        if settings_changed {
+            self.rescan();
+        }
     }
 
     async fn document_symbol(
@@ -451,7 +556,7 @@ impl LanguageServer for Backend {
     ) -> Result<Option<DocumentSymbolResponse>> {
         Ok(
             self.with_document(&params.text_document.uri, |state, document, map| {
-                let analysis = analyze(document, &state.workspace, state.detected);
+                let analysis = state.analyze(document);
                 DocumentSymbolResponse::Nested(symbols::document_symbols(
                     &analysis.parse.syntax(),
                     map,
@@ -463,7 +568,7 @@ impl LanguageServer for Backend {
     async fn folding_range(&self, params: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
         Ok(
             self.with_document(&params.text_document.uri, |state, document, map| {
-                let analysis = analyze(document, &state.workspace, state.detected);
+                let analysis = state.analyze(document);
                 symbols::folding_ranges(&analysis.parse.syntax(), map)
             }),
         )
@@ -475,7 +580,7 @@ impl LanguageServer for Backend {
     ) -> Result<Option<SemanticTokensResult>> {
         Ok(
             self.with_document(&params.text_document.uri, |state, document, map| {
-                let analysis = analyze(document, &state.workspace, state.detected);
+                let analysis = state.analyze(document);
                 SemanticTokensResult::Tokens(SemanticTokens {
                     result_id: None,
                     data: semantic::tokens(&analysis.parse.syntax(), map),
@@ -487,7 +592,7 @@ impl LanguageServer for Backend {
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let uri = params.text_document.uri;
         Ok(self.with_document(&uri, |state, document, map| {
-            let analysis = analyze(document, &state.workspace, state.detected);
+            let analysis = state.analyze(document);
             let Some(range) = map.text_range(params.range) else {
                 return Vec::new();
             };
@@ -497,7 +602,7 @@ impl LanguageServer for Backend {
 
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let result = self.with_document(&params.text_document.uri, |state, document, map| {
-            let analysis = analyze(document, &state.workspace, state.detected);
+            let analysis = state.analyze(document);
             analysis::format(document, &analysis, map)
         });
         match result {

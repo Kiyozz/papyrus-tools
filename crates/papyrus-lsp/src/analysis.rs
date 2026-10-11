@@ -85,6 +85,8 @@ pub(crate) struct Document {
     pub(crate) version: i32,
     pub(crate) path: Option<PathBuf>,
     pub(crate) settings: Settings,
+    /// The root of its project.
+    pub(crate) project: PathBuf,
 }
 
 impl Document {
@@ -99,6 +101,7 @@ impl Document {
             version,
             path,
             settings,
+            project: PathBuf::new(),
         };
         document.reload_encoding();
         document
