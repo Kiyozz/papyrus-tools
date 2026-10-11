@@ -1,9 +1,9 @@
-//! Les lints sur le corpus vanilla.
+//! The lints on the vanilla corpus.
 //!
-//! Le vanilla compile : tout `PAP002` y serait un faux positif. Les `PAP004`
-//! sont de vrais événements morts, relus un à un : la liste est figée. Les `.flg`
-//! réels doivent coïncider avec les tables embarquées. Et `--fix`, appliqué
-//! en mémoire à chaque script, doit rester sûr et aller au bout.
+//! Vanilla compiles: any `PAP002` there would be a false positive. The
+//! `PAP004` findings are real dead events, reviewed one by one: the list is
+//! frozen. The real `.flg` files must match the embedded tables. And
+//! `--fix`, applied in memory to every script, must stay safe and complete.
 #![cfg(feature = "external-corpus")]
 
 use std::collections::BTreeMap;
@@ -31,8 +31,8 @@ fn flg_path(game: GameId, root: &std::path::Path) -> PathBuf {
     }
 }
 
-/// Les événements morts du vanilla : fautes de frappe, et une quête qui
-/// attend `OnCombatStateChanged`.
+/// The dead events of vanilla: typos, and a quest waiting for
+/// `OnCombatStateChanged`.
 fn dead_events(game: GameId) -> Vec<String> {
     let found: &[&str] = match game {
         GameId::Skyrim => &[
@@ -55,7 +55,7 @@ fn run_game(game: GameId) {
         return;
     };
 
-    // La table embarquée reproduit le `.flg` du jeu.
+    // The embedded table reproduces the game's `.flg`.
     let real = parse_flags(&std::fs::read_to_string(flg_path(game, &root)).expect(".flg"))
         .expect(".flg lisible");
     assert_eq!(real, vanilla_flags(Some(game)), "table de flags {game}");
@@ -71,7 +71,7 @@ fn run_game(game: GameId) {
     let levels = Levels::default();
     let flags = vanilla_flags(Some(game));
 
-    // Les scripts non natifs du jeu prolongent la chaîne `extends`.
+    // The game's non-native scripts extend the `extends` chain.
     let mut workspace = Workspace::default();
     for path in &scripts {
         let decoded = decode(&std::fs::read(path).expect("lecture"));
@@ -118,7 +118,7 @@ fn run_game(game: GameId) {
                 path.display()
             );
 
-            // Un second passage ne trouve plus rien à corriger.
+            // A second pass finds nothing left to fix.
             let decoded = decode(fixed.as_bytes());
             let root = reparse.syntax();
             let again = run(

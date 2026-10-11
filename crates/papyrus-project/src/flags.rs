@@ -1,39 +1,39 @@
-//! Les fichiers `.flg` du compilateur.
+//! The compiler's `.flg` files.
 //!
-//! Ils déclarent les flags « utilisateur » — `Hidden`, `Conditional`,
-//! `Mandatory`… — et les objets qui peuvent les porter. Le format, d'après
-//! l'en-tête des fichiers vanilla :
+//! They declare the "user" flags — `Hidden`, `Conditional`, `Mandatory`… —
+//! and the objects that can carry them. The format, from the header of the
+//! vanilla files:
 //!
 //! ```text
-//! Flag <nom> <index>                        // permis partout
-//! Flag <nom> <index> { <cibles> }           // permis sur ces objets
-//! Flag <nom> <enfant> (& <enfant>)+         // combinaison (Fallout 4+)
+//! Flag <name> <index>                       // allowed everywhere
+//! Flag <name> <index> { <targets> }         // allowed on these objects
+//! Flag <name> <child> (& <child>)+          // combination (Fallout 4+)
 //! ```
 //!
-//! Commentaires à la C (`//`, `/* */`), espaces indifférents. Les cibles sont
-//! `Script`, `Property`, `Variable`, `StructVar`, `Function` et `Group`.
+//! C-style comments (`//`, `/* */`), whitespace insensitive. The targets are
+//! `Script`, `Property`, `Variable`, `StructVar`, `Function` and `Group`.
 
 use std::fmt;
 
-/// Un objet qui peut porter un flag.
+/// An object that can carry a flag.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FlagTarget {
-    /// L'en-tête `ScriptName`.
+    /// The `ScriptName` header.
     Script,
-    /// Une property.
+    /// A property.
     Property,
-    /// Une variable de script.
+    /// A script variable.
     Variable,
-    /// Un champ de structure.
+    /// A struct field.
     StructVar,
-    /// Une fonction ou un événement.
+    /// A function or an event.
     Function,
-    /// Un groupe de properties.
+    /// A property group.
     Group,
 }
 
 impl FlagTarget {
-    /// Toutes les cibles.
+    /// All targets.
     pub const ALL: [FlagTarget; 6] = [
         FlagTarget::Script,
         FlagTarget::Property,
@@ -49,7 +49,7 @@ impl FlagTarget {
             .find(|t| t.name().eq_ignore_ascii_case(word))
     }
 
-    /// Le nom, tel qu'écrit dans un `.flg`.
+    /// The name, as written in a `.flg`.
     pub const fn name(self) -> &'static str {
         match self {
             FlagTarget::Script => "Script",
@@ -62,17 +62,17 @@ impl FlagTarget {
     }
 }
 
-/// Un flag déclaré, ses combinaisons résolues.
+/// A declared flag, its combinations resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlagDef {
-    /// Le nom, avec la casse du fichier.
+    /// The name, with the file's case.
     pub name: String,
-    /// Les objets qui peuvent le porter. Une combinaison hérite de
-    /// l'intersection de ses enfants.
+    /// The objects that can carry it. A combination inherits the
+    /// intersection of its children.
     pub targets: Vec<FlagTarget>,
 }
 
-/// Un `.flg` illisible.
+/// An unreadable `.flg`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlagsError(pub String);
 
@@ -84,7 +84,7 @@ impl fmt::Display for FlagsError {
 
 impl std::error::Error for FlagsError {}
 
-/// Retire les commentaires à la C.
+/// Strips C-style comments.
 fn strip_comments(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut rest = text;
@@ -103,7 +103,7 @@ fn strip_comments(text: &str) -> String {
     out
 }
 
-/// Découpe en mots, accolades et `&` isolés.
+/// Splits into words, braces and standalone `&`.
 fn words(text: &str) -> Vec<String> {
     let spaced = text
         .replace('{', " { ")
@@ -112,7 +112,7 @@ fn words(text: &str) -> Vec<String> {
     spaced.split_whitespace().map(str::to_owned).collect()
 }
 
-/// Lit un `.flg`.
+/// Reads a `.flg`.
 pub fn parse_flags(text: &str) -> Result<Vec<FlagDef>, FlagsError> {
     let words = words(&strip_comments(text));
     let mut words = words.iter().map(String::as_str).peekable();
@@ -153,7 +153,7 @@ pub fn parse_flags(text: &str) -> Result<Vec<FlagDef>, FlagsError> {
                 FlagTarget::ALL.to_vec()
             }
         } else {
-            // Combinaison : permise là où tous ses enfants le sont.
+            // Combination: allowed where all its children are.
             let mut children = vec![second];
             while words.peek() == Some(&"&") {
                 words.next();

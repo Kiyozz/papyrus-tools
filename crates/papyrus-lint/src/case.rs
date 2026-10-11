@@ -1,9 +1,9 @@
-//! Conversions de casse, pour les suggestions des lints de nommage.
+//! Case conversions, for the suggestions of the naming lints.
 //!
-//! Les acronymes de tête se replient d'un bloc : `HPMax` donne `hpMax`, comme
-//! en Go. Les `_` séparent des mots, qui reprennent une majuscule.
+//! Leading acronyms fold as one block: `HPMax` gives `hpMax`, as in Go.
+//! `_` separates words, which get a capital letter back.
 
-/// Découpe sur `_`, en ignorant les segments vides.
+/// Splits on `_`, ignoring empty segments.
 fn words(name: &str) -> impl Iterator<Item = &str> {
     name.split('_').filter(|w| !w.is_empty())
 }
@@ -24,12 +24,12 @@ fn capitalize(word: &str) -> String {
     format!("{}{rest}", first.to_ascii_uppercase())
 }
 
-/// Baisse la casse des majuscules de tête : `HitCount` → `hitCount`,
+/// Lowercases the leading capitals: `HitCount` → `hitCount`,
 /// `HPMax` → `hpMax`, `HP` → `hp`.
 fn lower_head(word: &str) -> String {
     let chars: Vec<char> = word.chars().collect();
     let run = chars.iter().take_while(|c| c.is_ascii_uppercase()).count();
-    // Dans `HPMax`, le `M` ouvre le mot suivant : il reste en majuscule.
+    // In `HPMax`, the `M` starts the next word: it stays uppercase.
     let keep_last = run > 1 && run < chars.len() && chars[run].is_ascii_lowercase();
     let lowered = if keep_last { run - 1 } else { run };
     chars
@@ -45,13 +45,13 @@ fn lower_head(word: &str) -> String {
         .collect()
 }
 
-/// Le nom en lowerCamelCase.
+/// The name in lowerCamelCase.
 pub fn to_lower_camel(name: &str) -> String {
     let mut words = words(name);
     let Some(first) = words.next() else {
         return name.to_owned();
     };
-    // Un premier mot tout en majuscules (`MAX_COUNT`) se replie entièrement.
+    // An all-caps first word (`MAX_COUNT`) folds entirely.
     let first = if first.len() > 1 && !first.chars().any(|c| c.is_ascii_lowercase()) {
         first.to_ascii_lowercase()
     } else {
@@ -60,7 +60,7 @@ pub fn to_lower_camel(name: &str) -> String {
     words.fold(first, |acc, w| acc + &capitalize(w))
 }
 
-/// Le nom en PascalCase.
+/// The name in PascalCase.
 pub fn to_pascal(name: &str) -> String {
     let converted: String = words(name).map(capitalize).collect();
     if converted.is_empty() {
@@ -70,12 +70,12 @@ pub fn to_pascal(name: &str) -> String {
     }
 }
 
-/// Vrai si `name` est en lowerCamelCase.
+/// True if `name` is in lowerCamelCase.
 pub(crate) fn is_lower_camel(name: &str) -> bool {
     name.starts_with(|c: char| c.is_ascii_lowercase()) && !name.contains('_')
 }
 
-/// Vrai si `name` est en PascalCase.
+/// True if `name` is in PascalCase.
 pub(crate) fn is_pascal(name: &str) -> bool {
     name.starts_with(|c: char| c.is_ascii_uppercase()) && !name.contains('_')
 }

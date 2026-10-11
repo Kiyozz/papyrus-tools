@@ -1,8 +1,7 @@
-//! Lecture des sources Papyrus : configuration, décodage et découverte des
-//! fichiers.
+//! Reading Papyrus sources: configuration, decoding and file discovery.
 //!
-//! Le seul crate de la toolchain qui touche au disque. Il ne lit que ce qu'on
-//! lui désigne : ni registre, ni chemin d'installation deviné.
+//! The only crate of the toolchain that touches the disk. It only reads what
+//! it is pointed at: no registry, no guessed installation path.
 
 #![forbid(unsafe_code)]
 

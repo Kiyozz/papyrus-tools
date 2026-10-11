@@ -1,24 +1,24 @@
-//! La grammaire de Papyrus, sur-ensemble des trois moteurs.
+//! The Papyrus grammar, superset of the three engines.
 //!
-//! Chaque fonction lit une construction et émet ses événements. Les règles qui
-//! ne valent que pour certains jeux tiennent en deux mécanismes :
+//! Each function reads one construct and emits its events. The rules that
+//! only hold for some games come down to two mechanisms:
 //!
-//! - les mots-clés récents ne sont reconnus que si la cible les réserve (voir
-//!   [`crate::token_source`]) — rien à faire ici ;
-//! - les constructions qui n'ouvrent pas sur un mot-clé, comme les namespaces,
-//!   sont toujours lues, et signalées si la cible ne les accepte pas. L'arbre
-//!   reste complet dans les deux cas.
+//! - recent keywords are only recognized if the target reserves them (see
+//!   [`crate::token_source`]) — nothing to do here;
+//! - constructs that do not start with a keyword, such as namespaces, are
+//!   always read, and reported if the target does not accept them. The tree
+//!   stays complete in both cases.
 //!
-//! # Récupération d'erreurs
+//! # Error recovery
 //!
-//! Trois niveaux, du plus fin au plus large :
+//! Three levels, from finest to widest:
 //!
-//! 1. [`Parser::expect`] signale l'absence d'un token sans rien consommer ;
-//! 2. [`eol`] ancre sur la ligne : ce qui traîne avant la fin de ligne part
-//!    dans un [`ERROR_TREE`], la ligne suivante repart de zéro ;
-//! 3. [`STMT_RECOVERY`] ancre sur les blocs : une liste d'instructions s'arrête
-//!    sur tout mot qui ferme un bloc ou ouvre une déclaration, quelle que soit
-//!    la profondeur, si bien qu'un `EndIf` oublié n'emporte pas le fichier.
+//! 1. [`Parser::expect`] reports a missing token without consuming anything;
+//! 2. [`eol`] anchors on the line: whatever lingers before the line end goes
+//!    into an [`ERROR_TREE`], and the next line starts afresh;
+//! 3. [`STMT_RECOVERY`] anchors on blocks: a statement list stops on any
+//!    word that closes a block or opens a declaration, at any depth, so a
+//!    forgotten `EndIf` does not carry away the file.
 
 mod decls;
 mod exprs;
@@ -31,10 +31,10 @@ use crate::SyntaxKind::{self, *};
 
 pub(super) use decls::source_file;
 
-/// Tokens qui peuvent ouvrir un type.
+/// Tokens that can start a type.
 ///
-/// `CustomEventName`, `ScriptEventName` et `StructVarName` sont des mots-clés
-/// *et* des types : `ScriptObject.psc` déclare
+/// `CustomEventName`, `ScriptEventName` and `StructVarName` are keywords
+/// *and* types: `ScriptObject.psc` declares
 /// `RegisterForCustomEvent(ScriptObject akSender, CustomEventName asEventName)`.
 const TYPE_START: TokenSet = TokenSet::new(&[
     INT_KW,
@@ -48,10 +48,10 @@ const TYPE_START: TokenSet = TokenSet::new(&[
     IDENT,
 ]);
 
-/// Flags de script, de déclaration et de fonction, tous jeux confondus.
+/// Script, declaration and function flags, all games combined.
 ///
-/// La grammaire ne vérifie pas qu'un flag est permis à l'endroit où il paraît :
-/// c'est l'affaire d'un lint, qui saura dire pourquoi.
+/// The grammar does not check that a flag is allowed where it appears: that
+/// is a lint's job, which can say why.
 const FLAGS: TokenSet = TokenSet::new(&[
     AUTO_KW,
     AUTOREADONLY_KW,
@@ -74,10 +74,10 @@ const FLAGS: TokenSet = TokenSet::new(&[
     PROTECTSFUNCTIONLOGIC_KW,
 ]);
 
-/// Les mots sur lesquels toute liste d'instructions s'arrête.
+/// The words on which every statement list stops.
 ///
-/// Aucun ne peut ouvrir une instruction : s'arrêter dessus ne coupe jamais du
-/// code valide, et chaque construction réclame ensuite son propre terminateur.
+/// None can start a statement: stopping on them never cuts valid code, and
+/// each construct then claims its own terminator.
 const STMT_RECOVERY: TokenSet = TokenSet::new(&[
     EOF,
     ENDFUNCTION_KW,
@@ -104,16 +104,16 @@ const STMT_RECOVERY: TokenSet = TokenSet::new(&[
     IMPORT_KW,
 ]);
 
-/// Ce que [`flag_list`] a vu et qui change la forme de la déclaration.
+/// What [`flag_list`] saw that changes the shape of the declaration.
 #[derive(Debug, Clone, Copy, Default)]
 struct Flags {
-    /// `Auto` ou `AutoReadOnly` : la property n'a pas de corps.
+    /// `Auto` or `AutoReadOnly`: the property has no body.
     auto: bool,
-    /// `Native` : la fonction n'a pas de corps.
+    /// `Native`: the function has no body.
     native: bool,
 }
 
-/// Consomme la fin de ligne, ou range ce qui traîne avant dans une erreur.
+/// Consumes the line end, or puts whatever lingers before it into an error.
 fn eol(p: &mut Parser) {
     if p.eat(NEWLINE) || p.at(EOF) {
         return;
@@ -123,10 +123,10 @@ fn eol(p: &mut Parser) {
     p.eat(NEWLINE);
 }
 
-/// Range le reste de la ligne dans un [`ERROR_TREE`].
+/// Puts the rest of the line into an [`ERROR_TREE`].
 ///
-/// S'arrête aussi sur [`STMT_RECOVERY`] : un `EndFunction` collé à du texte
-/// invalide doit encore fermer sa fonction.
+/// Also stops on [`STMT_RECOVERY`]: an `EndFunction` stuck to invalid text
+/// must still close its function.
 fn skip_line(p: &mut Parser) {
     if p.at(NEWLINE) || p.at_ts(STMT_RECOVERY) {
         return;
@@ -138,10 +138,10 @@ fn skip_line(p: &mut Parser) {
     m.complete(p, ERROR_TREE);
 }
 
-/// Signale une ligne incompréhensible et la saute entièrement.
+/// Reports an unintelligible line and skips it entirely.
 ///
-/// Consomme toujours au moins un token, ce qui garantit que la boucle
-/// appelante progresse.
+/// Always consumes at least one token, which guarantees the calling loop
+/// makes progress.
 fn error_line(p: &mut Parser, message: &str) {
     p.error(message);
     let m = p.start();
@@ -153,10 +153,10 @@ fn error_line(p: &mut Parser, message: &str) {
     p.eat(NEWLINE);
 }
 
-/// Un nom de déclaration : un identifiant simple.
+/// A declaration name: a simple identifier.
 ///
-/// Les flags n'étant réservés qu'en position de flag, ils sont admis comme
-/// noms — le vanilla écrit `Auto State Default` et `Group Mandatory`.
+/// Flags being reserved only in flag position, they are accepted as names —
+/// vanilla writes `Auto State Default` and `Group Mandatory`.
 fn name(p: &mut Parser) {
     if p.at(IDENT) || p.at_ts(FLAGS) {
         let m = p.start();
@@ -167,7 +167,7 @@ fn name(p: &mut Parser) {
     }
 }
 
-/// Un nom de script, éventuellement qualifié : `DLC01:MonScript`.
+/// A script name, possibly qualified: `DLC01:MyScript`.
 fn script_name(p: &mut Parser) {
     if !p.at(IDENT) {
         p.error("nom de script attendu");
@@ -179,7 +179,7 @@ fn script_name(p: &mut Parser) {
     m.complete(p, NAME);
 }
 
-/// `:Segment` répété, avec le diagnostic de compatibilité.
+/// Repeated `:Segment`, with the compatibility diagnostic.
 fn namespace_tail(p: &mut Parser) {
     while p.at(COLON) && p.nth(1) == IDENT {
         if !p.dialect().supports(Feature::Namespace) {
@@ -191,7 +191,7 @@ fn namespace_tail(p: &mut Parser) {
     }
 }
 
-/// Le message d'une construction que la cible ne connaît pas.
+/// The message for a construct the target does not know.
 fn incompatible(p: &Parser, feature: Feature) -> String {
     format!(
         "{} : non disponible pour {} (à partir de {})",
@@ -201,7 +201,7 @@ fn incompatible(p: &Parser, feature: Feature) -> String {
     )
 }
 
-/// Vrai si un type commence ici.
+/// True if a type starts here.
 fn at_type(p: &Parser) -> bool {
     p.at_ts(TYPE_START)
 }
@@ -217,8 +217,8 @@ fn type_ref(p: &mut Parser) {
     m.complete(p, TYPE_REF);
 }
 
-/// Un type sans suffixe de tableau, pour `new float[4]` où les crochets
-/// portent la taille.
+/// A type without array suffix, for `new float[4]` where the brackets carry
+/// the size.
 fn type_ref_without_array(p: &mut Parser) {
     let m = p.start();
     type_base(p);
@@ -237,10 +237,10 @@ fn type_base(p: &mut Parser) {
     }
 }
 
-/// Longueur, en tokens, du type qui commence au `n`-ième token — ou `None`.
+/// Length, in tokens, of the type starting at the `n`-th token — or `None`.
 ///
-/// Sert à distinguer `Actor a` (déclaration) de `a.b()` ou `a = 1`
-/// (instructions) sans rien consommer.
+/// Tells `Actor a` (declaration) from `a.b()` or `a = 1` (statements)
+/// without consuming anything.
 fn type_len(p: &Parser, n: usize) -> Option<usize> {
     let mut len = match p.nth(n) {
         INT_KW | FLOAT_KW | BOOL_KW | STRING_KW | VAR_KW | CUSTOMEVENTNAME_KW
@@ -260,8 +260,7 @@ fn type_len(p: &Parser, n: usize) -> Option<usize> {
     Some(len)
 }
 
-/// Suite de flags, éventuellement vide. `RequiresGuard(g)` porte des
-/// arguments.
+/// Sequence of flags, possibly empty. `RequiresGuard(g)` carries arguments.
 fn flag_list(p: &mut Parser) -> Flags {
     let mut flags = Flags::default();
     let list = p.start();
@@ -282,7 +281,7 @@ fn flag_list(p: &mut Parser) -> Flags {
     flags
 }
 
-/// Termine un bloc : consomme `end` et sa fin de ligne, ou signale l'oubli.
+/// Ends a block: consumes `end` and its line end, or reports it missing.
 fn block_end(p: &mut Parser, end: SyntaxKind, what: &str) {
     if p.expect(end, what) {
         eol(p);

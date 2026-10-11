@@ -1,6 +1,6 @@
 [package]
 name = "papyrus-project"
-description = "Lecture des sources Papyrus : configuration, décodage, découverte des fichiers"
+description = "Reading Papyrus sources: configuration, decoding, file discovery"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -19,5 +19,5 @@ toml.workspace = true
 workspace = true
 
 [features]
-# Mesure la détection du jeu sur les sources vanilla d'une installation locale.
+# Measures game detection on the vanilla sources of a local installation.
 external-corpus = []

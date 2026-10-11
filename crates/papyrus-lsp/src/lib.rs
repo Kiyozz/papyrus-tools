@@ -1,14 +1,14 @@
-//! Le serveur LSP de Papyrus : diagnostics, plan, repli, coloration,
-//! formatage et correctifs, pour VSCode, IntelliJ (via LSP4IJ) et tout
-//! éditeur qui parle LSP.
+//! The Papyrus language server: diagnostics, outline, folding, highlighting,
+//! formatting and fixes, for VSCode, IntelliJ (through LSP4IJ) and any
+//! editor that speaks LSP.
 //!
 //! ```sh
 //! papyrus lsp
 //! ```
 //!
-//! À l'ouverture, les scripts des dossiers du projet sont indexés en tâche de
-//! fond : de quoi suivre `extends` d'un fichier à l'autre et déduire le jeu
-//! visé quand papyrus.toml ne le dit pas.
+//! On startup, the scripts of the project folders are indexed in the
+//! background: enough to follow `extends` from one file to another and to
+//! deduce the target game when papyrus.toml does not say it.
 
 #![forbid(unsafe_code)]
 
@@ -31,27 +31,26 @@ use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 use analysis::{Document, Settings, analyze};
 use position::{Columns, LineMap};
 
-/// L'état partagé du serveur.
+/// The server's shared state.
 #[derive(Debug, Default)]
 struct State {
     columns: Columns,
     folders: Vec<PathBuf>,
     documents: HashMap<Uri, Document>,
-    /// Les scripts du projet. Ceux des documents ouverts y remplacent la
-    /// version du disque.
+    /// The project's scripts. Open documents replace their on-disk version
+    /// there.
     workspace: Workspace,
-    /// Le nom de script que chaque document ouvert a déclaré dans
-    /// `workspace`.
+    /// The script name each open document declared in `workspace`.
     declared: HashMap<Uri, String>,
-    /// La cible déduite des scripts du projet.
+    /// The target deduced from the project's scripts.
     detected: Option<GameId>,
-    /// Le client sait surveiller des fichiers à la demande du serveur.
+    /// The client can watch files at the server's request.
     can_watch: bool,
 }
 
 impl State {
-    /// Met à jour le résumé du document `uri` dans l'index ; vrai s'il a
-    /// changé, et que les autres documents sont à revoir.
+    /// Updates the summary of document `uri` in the index; true if it
+    /// changed, and the other documents need another look.
     fn declare(&mut self, uri: &Uri, summary: Option<ScriptSummary>) -> bool {
         let previous = self.declared.get(uri).cloned();
         match summary {
@@ -79,7 +78,7 @@ impl State {
         }
     }
 
-    /// Les diagnostics de `uri`.
+    /// The diagnostics of `uri`.
     fn diagnostics(&self, uri: &Uri) -> Option<(Uri, Vec<Diagnostic>, i32)> {
         let document = self.documents.get(uri)?;
         let analysis = analyze(document, &self.workspace, self.detected);
@@ -91,8 +90,8 @@ impl State {
         ))
     }
 
-    /// Réanalyse `uri` après une modification, et les autres documents
-    /// ouverts si ce qu'il déclare a changé.
+    /// Reanalyzes `uri` after a change, and the other open documents if what
+    /// it declares changed.
     fn refresh(&mut self, uri: &Uri) -> Vec<(Uri, Vec<Diagnostic>, i32)> {
         let Some(document) = self.documents.get(uri) else {
             return Vec::new();
@@ -106,7 +105,7 @@ impl State {
         }
     }
 
-    /// Les diagnostics de tous les documents ouverts.
+    /// The diagnostics of every open document.
     fn all(&self) -> Vec<(Uri, Vec<Diagnostic>, i32)> {
         self.documents
             .keys()
@@ -115,14 +114,14 @@ impl State {
     }
 }
 
-/// Ce que l'indexation du projet a trouvé.
+/// What indexing the project found.
 struct Scan {
     summaries: Vec<ScriptSummary>,
     detected: Option<GameId>,
     files: usize,
 }
 
-/// Indexe les scripts de `folders`, comme `papyrus check` le ferait.
+/// Indexes the scripts of `folders`, as `papyrus check` would.
 fn scan(folders: &[PathBuf]) -> Scan {
     let widest = Dialect::new(GameId::Starfield);
     let mut summaries = Vec::new();
@@ -153,7 +152,7 @@ fn scan(folders: &[PathBuf]) -> Scan {
     }
 }
 
-/// Le serveur.
+/// The server.
 #[derive(Debug, Clone)]
 pub struct Backend {
     client: Client,
@@ -161,7 +160,7 @@ pub struct Backend {
 }
 
 impl Backend {
-    /// Un serveur qui répond à `client`.
+    /// A server answering `client`.
     pub fn new(client: Client) -> Backend {
         Backend {
             client,
@@ -170,8 +169,8 @@ impl Backend {
     }
 
     fn state(&self) -> MutexGuard<'_, State> {
-        // Un panic sous le verrou laisse un état cohérent : chaque mise à
-        // jour est faite d'un bloc.
+        // A panic under the lock leaves a consistent state: every update is
+        // made in one block.
         self.state.lock().unwrap_or_else(|e| e.into_inner())
     }
 
@@ -183,7 +182,7 @@ impl Backend {
         }
     }
 
-    /// Exécute `f` sur le document `uri` et la vue de ses lignes.
+    /// Runs `f` on document `uri` and the view of its lines.
     fn with_document<T>(
         &self,
         uri: &Uri,
@@ -216,7 +215,7 @@ impl LanguageServer for Backend {
             .flatten()
             .filter_map(|f| file_path(&f.uri))
             .collect();
-        #[allow(deprecated)] // Les clients sans dossiers multiples.
+        #[allow(deprecated)] // Clients without multiple folders.
         if folders.is_empty() {
             folders.extend(params.root_uri.as_ref().and_then(file_path));
         }
@@ -285,9 +284,8 @@ impl LanguageServer for Backend {
             let state = self.state();
             (state.folders.clone(), state.can_watch)
         };
-        // La configuration, les flags, et les scripts modifiés hors de
-        // l'éditeur : le serveur demande à en être prévenu, quel que soit
-        // l'éditeur.
+        // The configuration, the flags, and scripts modified outside the
+        // editor: the server asks to be notified, whatever the editor.
         if can_watch {
             let watchers = ["**/papyrus.toml", "**/*.flg", "**/*.psc"]
                 .into_iter()
@@ -326,7 +324,7 @@ impl LanguageServer for Backend {
                 for summary in scan.summaries {
                     workspace.insert(summary);
                 }
-                // Les documents ouverts priment sur le disque.
+                // Open documents take precedence over the disk.
                 for name in state.declared.values() {
                     if let Some(open) = state.workspace.get(name) {
                         workspace.insert(open.clone());
@@ -368,7 +366,7 @@ impl LanguageServer for Backend {
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let uri = params.text_document.uri;
-        // Synchronisation complète : le dernier changement est le texte.
+        // Full sync: the last change is the text.
         let Some(change) = params.content_changes.into_iter().next_back() else {
             return;
         };
@@ -391,7 +389,7 @@ impl LanguageServer for Backend {
             let Some(document) = state.documents.get_mut(&uri) else {
                 return;
             };
-            // L'éditeur a pu changer l'encodage en enregistrant.
+            // The editor may have changed the encoding when saving.
             document.reload_encoding();
             state.diagnostics(&uri).into_iter().collect()
         };
@@ -401,7 +399,7 @@ impl LanguageServer for Backend {
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri;
         self.state().documents.remove(&uri);
-        // Le fichier reste dans l'index : il fait toujours partie du projet.
+        // The file stays in the index: it is still part of the project.
         self.client.publish_diagnostics(uri, Vec::new(), None).await;
     }
 
@@ -423,7 +421,7 @@ impl LanguageServer for Backend {
                 } else if extension.eq_ignore_ascii_case("psc")
                     && !state.documents.contains_key(&change.uri)
                 {
-                    // Un script modifié hors de l'éditeur.
+                    // A script modified outside the editor.
                     let summary = std::fs::read(&path).ok().and_then(|bytes| {
                         let root = papyrus_syntax::parse(
                             &decode(&bytes).text,
@@ -514,7 +512,7 @@ impl LanguageServer for Backend {
     }
 }
 
-/// Sert le protocole sur `input` et `output` jusqu'à `exit`.
+/// Serves the protocol on `input` and `output` until `exit`.
 pub async fn serve<I, O>(input: I, output: O)
 where
     I: tokio::io::AsyncRead + Unpin,
@@ -524,7 +522,7 @@ where
     Server::new(input, output, socket).serve(service).await;
 }
 
-/// Sert le protocole sur l'entrée et la sortie standard : `papyrus lsp`.
+/// Serves the protocol on standard input and output: `papyrus lsp`.
 pub fn run() -> std::io::Result<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

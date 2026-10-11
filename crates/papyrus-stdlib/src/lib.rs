@@ -1,16 +1,15 @@
-//! Les signatures des scripts natifs de chaque jeu, embarquées.
+//! The signatures of each game's native scripts, embedded.
 //!
-//! De quoi raisonner sur `extends ObjectReference` sans jeu installé : quels
-//! événements un script peut recevoir, quelles fonctions il hérite. Les
-//! tables sont générées depuis les sources vanilla par
-//! `cargo xtask stdlib`, et ne contiennent que des **signatures** — ni corps
-//! de fonction, ni docstring.
+//! Enough to reason about `extends ObjectReference` without an installed
+//! game: which events a script can receive, which functions it inherits. The
+//! tables are generated from the vanilla sources by `cargo xtask stdlib`, and
+//! only contain **signatures** — no function bodies, no docstrings.
 //!
-//! Seuls les scripts *natifs* y figurent : ceux que le moteur implémente, qui
-//! portent le flag `Native` ou déclarent des fonctions natives, et ceux qui ne
-//! font que déclarer — les types sans fonction native, comme `Activator` en
-//! Skyrim, dont le `.psc` tient en une ligne. Ce sont eux qui déclarent les
-//! types et les événements du moteur.
+//! Only *native* scripts are listed: those the engine implements, which carry
+//! the `Native` flag or declare native functions, and those that only declare
+//! — types without native functions, such as Skyrim's `Activator`, whose
+//! `.psc` is a single line. They are the ones declaring the engine's types
+//! and events.
 
 #![forbid(unsafe_code)]
 
@@ -20,46 +19,46 @@ use std::cmp::Ordering;
 
 use papyrus_dialect::GameId;
 
-/// Un paramètre.
+/// A parameter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Param {
-    /// Le nom, `akActionRef`.
+    /// The name, `akActionRef`.
     pub name: &'static str,
-    /// Le type, tel qu'écrit : `ObjectReference`, `int[]`.
+    /// The type, as written: `ObjectReference`, `int[]`.
     pub ty: &'static str,
-    /// La valeur par défaut, telle qu'écrite : `None`, `-1`.
+    /// The default value, as written: `None`, `-1`.
     pub default: Option<&'static str>,
 }
 
-/// Une fonction ou un événement.
+/// A function or an event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Function {
-    /// Le nom, avec la casse du vanilla.
+    /// The name, with the vanilla case.
     pub name: &'static str,
-    /// Le type de retour, `None` pour aucun.
+    /// The return type, `None` for none.
     pub returns: Option<&'static str>,
-    /// Les paramètres.
+    /// The parameters.
     pub params: &'static [Param],
-    /// `Global` : s'appelle sur le script, pas sur une instance.
+    /// `Global`: called on the script, not on an instance.
     pub global: bool,
-    /// `Native` : implémentée par le moteur.
+    /// `Native`: implemented by the engine.
     pub native: bool,
 }
 
-/// Un script natif.
+/// A native script.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Script {
-    /// Le nom, avec la casse du vanilla.
+    /// The name, with the vanilla case.
     pub name: &'static str,
-    /// Le script parent, `None` pour la racine.
+    /// The parent script, `None` for the root.
     pub parent: Option<&'static str>,
-    /// Les fonctions, triées par nom sans tenir compte de la casse.
+    /// The functions, sorted by name case-insensitively.
     pub functions: &'static [Function],
-    /// Les événements, triés de même.
+    /// The events, sorted the same way.
     pub events: &'static [Function],
 }
 
-/// Compare deux noms comme Papyrus : sans tenir compte de la casse.
+/// Compares two names the way Papyrus does: case-insensitively.
 fn cmp_name(a: &str, b: &str) -> Ordering {
     a.bytes()
         .map(|c| c.to_ascii_lowercase())
@@ -73,26 +72,26 @@ fn find<'a, T>(items: &'a [T], name: &str, key: impl Fn(&T) -> &str) -> Option<&
         .map(|i| &items[i])
 }
 
-/// Les scripts natifs de `game`, triés par nom.
+/// The native scripts of `game`, sorted by name.
 pub fn scripts(game: GameId) -> &'static [Script] {
     match game {
         GameId::Skyrim => generated::skyrim::SCRIPTS,
-        // Fallout 76 n'a ni Creation Kit public ni sources : ses scripts de
-        // base sont ceux de Fallout 4.
+        // Fallout 76 has neither a public Creation Kit nor sources: its base
+        // scripts are Fallout 4's.
         GameId::Fallout4 | GameId::Fallout76 => generated::fallout4::SCRIPTS,
         GameId::Starfield => generated::starfield::SCRIPTS,
     }
 }
 
-/// Le script natif `name`, sans tenir compte de la casse.
+/// The native script `name`, case-insensitively.
 pub fn script(game: GameId, name: &str) -> Option<&'static Script> {
     find(scripts(game), name, |s| s.name)
 }
 
-/// `name` et ses ancêtres natifs, du plus proche au plus lointain.
+/// `name` and its native ancestors, from closest to farthest.
 pub fn ancestors(game: GameId, name: &str) -> impl Iterator<Item = &'static Script> {
     let mut next = script(game, name);
-    // Garde-fou contre un cycle, que des tables mal générées pourraient créer.
+    // Guard against a cycle, which badly generated tables could create.
     let mut steps = 0;
     std::iter::from_fn(move || {
         let current = next?;
@@ -106,18 +105,18 @@ pub fn ancestors(game: GameId, name: &str) -> impl Iterator<Item = &'static Scri
     })
 }
 
-/// L'événement `event` que reçoit un script dérivé de `name`, en remontant
-/// la hiérarchie.
+/// The event `event` received by a script deriving from `name`, walking up
+/// the hierarchy.
 pub fn find_event(game: GameId, name: &str, event: &str) -> Option<&'static Function> {
     ancestors(game, name).find_map(|s| find(s.events, event, |f| f.name))
 }
 
-/// La fonction `function` héritée de `name`.
+/// The function `function` inherited from `name`.
 pub fn find_function(game: GameId, name: &str, function: &str) -> Option<&'static Function> {
     ancestors(game, name).find_map(|s| find(s.functions, function, |f| f.name))
 }
 
-/// Les noms connus d'un jeu, en minuscules, pour les recherches en masse.
+/// The names a game knows, lowercased, for bulk lookups.
 #[derive(Debug, Default)]
 struct Names {
     functions: std::collections::HashSet<String>,
@@ -146,12 +145,12 @@ fn names(game: GameId) -> &'static Names {
     })
 }
 
-/// Vrai si un script natif de `game` déclare une fonction `name`.
+/// True if a native script of `game` declares a function `name`.
 pub fn has_function(game: GameId, name: &str) -> bool {
     names(game).functions.contains(&name.to_ascii_lowercase())
 }
 
-/// Vrai si un script natif de `game` déclare un événement `name`.
+/// True if a native script of `game` declares an event `name`.
 pub fn has_event(game: GameId, name: &str) -> bool {
     names(game).events.contains(&name.to_ascii_lowercase())
 }

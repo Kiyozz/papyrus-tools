@@ -1,15 +1,15 @@
-//! `papyrus.toml`, la configuration d'un projet.
+//! `papyrus.toml`, the configuration of a project.
 //!
-//! Cherché en remontant depuis le chemin traité, comme `rustfmt.toml` ou
-//! `.editorconfig`. Tout y est facultatif : sans fichier, les valeurs par
-//! défaut s'appliquent, et l'option de ligne de commande l'emporte toujours.
+//! Looked up by walking up from the processed path, like `rustfmt.toml` or
+//! `.editorconfig`. Everything in it is optional: without a file the
+//! defaults apply, and the command-line option always wins.
 //!
 //! ```toml
 //! game = "skyrim"
 //! include-fragments = false
 //!
 //! [fmt]
-//! indent = 2          # ou "tab"
+//! indent = 2          # or "tab"
 //!
 //! [lints]
 //! "naming/locals" = "error"
@@ -24,17 +24,17 @@ use std::str::FromStr;
 use papyrus_dialect::GameId;
 use serde::Deserialize;
 
-/// Le nom du fichier.
+/// The file name.
 pub const FILE_NAME: &str = "papyrus.toml";
 
-/// Ce qu'un lint fait quand il trouve quelque chose.
+/// What a lint does when it finds something.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Level {
-    /// Désactivé.
+    /// Disabled.
     Allow,
-    /// Signalé comme un avertissement.
+    /// Reported as a warning.
     Warn,
-    /// Signalé comme une erreur.
+    /// Reported as an error.
     Error,
 }
 
@@ -51,39 +51,39 @@ impl FromStr for Level {
     }
 }
 
-/// Une unité d'indentation, telle qu'écrite dans la configuration.
+/// An indentation unit, as written in the configuration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IndentSetting {
-    /// Ce nombre d'espaces.
+    /// This many spaces.
     Spaces(u8),
-    /// Des tabulations.
+    /// Tabs.
     Tab,
 }
 
-/// La configuration, validée.
+/// The validated configuration.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Config {
-    /// Le fichier d'où elle vient, `None` pour les valeurs par défaut.
+    /// The file it comes from, `None` for the defaults.
     pub path: Option<PathBuf>,
-    /// Le jeu ciblé.
+    /// The target game.
     pub game: Option<GameId>,
-    /// Inclure les fragments du Creation Kit.
+    /// Include the Creation Kit fragments.
     pub include_fragments: bool,
-    /// L'indentation du formateur.
+    /// The formatter indentation.
     pub indent: Option<IndentSetting>,
-    /// Un fichier `.flg` qui remplace les flags vanilla du jeu.
+    /// A `.flg` file replacing the game's vanilla flags.
     pub flags: Option<PathBuf>,
-    /// Le niveau de chaque lint, par code (`PAP001`) ou par nom
-    /// (`encoding/lossy`). La validation des clés revient au registre.
+    /// The level of each lint, by code (`PAP001`) or by name
+    /// (`encoding/lossy`). Validating the keys is the registry's job.
     pub lints: BTreeMap<String, Level>,
 }
 
-/// Une configuration illisible.
+/// An unreadable configuration.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigError {
-    /// Le fichier fautif.
+    /// The faulty file.
     pub path: PathBuf,
-    /// Ce qui ne va pas.
+    /// What is wrong.
     pub message: String,
 }
 
@@ -95,7 +95,7 @@ impl fmt::Display for ConfigError {
 
 impl std::error::Error for ConfigError {}
 
-/// Le fichier tel qu'écrit, avant validation.
+/// The file as written, before validation.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 struct Raw {
@@ -123,7 +123,7 @@ enum RawIndent {
 }
 
 impl Config {
-    /// Lit et valide le contenu d'un `papyrus.toml`.
+    /// Reads and validates the contents of a `papyrus.toml`.
     pub fn parse(text: &str, path: &Path) -> Result<Config, ConfigError> {
         let error = |message: String| ConfigError {
             path: path.to_owned(),
@@ -156,7 +156,7 @@ impl Config {
             })
             .collect::<Result<_, ConfigError>>()?;
 
-        // Un chemin relatif s'entend depuis le fichier de configuration.
+        // A relative path is relative to the configuration file.
         let flags = raw.flags.map(|f| match path.parent() {
             Some(dir) if f.is_relative() => dir.join(f),
             _ => f,
@@ -172,8 +172,8 @@ impl Config {
         })
     }
 
-    /// La configuration qui s'applique à `start` : le premier `papyrus.toml`
-    /// trouvé en remontant, ou les valeurs par défaut.
+    /// The configuration that applies to `start`: the first `papyrus.toml`
+    /// found walking up, or the defaults.
     pub fn discover(start: &Path) -> Result<Config, ConfigError> {
         let start = std::path::absolute(start).unwrap_or_else(|_| start.to_owned());
         let dir = if start.is_dir() {
@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn les_fautes_sont_signalees() {
-        // Une faute de frappe dans une clé ne doit pas passer en silence.
+        // A typo in a key must not go unnoticed.
         assert!(parse("gmae = \"skyrim\"").is_err());
         assert!(parse("game = \"morrowind\"").is_err());
         assert!(parse("[fmt]\nindent = 0").is_err());

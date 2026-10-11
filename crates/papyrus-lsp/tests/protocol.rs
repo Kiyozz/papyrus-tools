@@ -1,5 +1,5 @@
-//! Le serveur, de bout en bout : un client JSON-RPC minimal sur un projet
-//! temporaire.
+//! The server, end to end: a minimal JSON-RPC client on a temporary
+//! project.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -38,7 +38,7 @@ impl Client {
         serde_json::from_slice(&body).unwrap()
     }
 
-    /// Le prochain message qui satisfait `wanted` ; les autres sont ignorés.
+    /// The next message satisfying `wanted`; the others are ignored.
     async fn wait(&mut self, wanted: impl Fn(&Value) -> bool) -> Value {
         let search = async {
             loop {
@@ -93,7 +93,7 @@ fn project() -> PathBuf {
 #[tokio::test]
 async fn une_session_complete() {
     let dir = project();
-    // Deux tubes, un par sens.
+    // Two pipes, one per direction.
     let (to_server, server_in) = tokio::io::duplex(1 << 16);
     let (server_out, from_server) = tokio::io::duplex(1 << 16);
     tokio::spawn(papyrus_lsp::serve(server_in, server_out));
@@ -117,7 +117,7 @@ async fn une_session_complete() {
         .await;
     assert_eq!(result["capabilities"]["positionEncoding"], "utf-8");
     client.notify("initialized", json!({})).await;
-    // Le serveur demande à surveiller la configuration et les scripts.
+    // The server asks to watch the configuration and the scripts.
     let registration = client
         .wait(|m| m["method"] == "client/registerCapability")
         .await;
@@ -130,8 +130,8 @@ async fn une_session_complete() {
     let log = log["params"]["message"].as_str().unwrap().to_owned();
     assert!(log.contains("1 scripts indexés"), "{log}");
 
-    // Un événement mal orthographié, hérité d'un script du projet, et une
-    // locale mal nommée.
+    // A misspelled event, inherited from a project script, and a badly named
+    // local.
     let child = dir.join("Child.psc");
     let child_uri = uri(&child);
     let text = "ScriptName Child extends MyBase\nEvent OnRitualDome()\nEndEvent\nFunction F()\n    int HP = 1\nEndFunction\n";
@@ -189,7 +189,7 @@ async fn une_session_complete() {
         )
         .await;
     let formatted = edits[0]["newText"].as_str().unwrap();
-    // L'indentation de papyrus.toml, ou deux espaces : pas celle de l'éditeur.
+    // The papyrus.toml indent, or two spaces: not the editor's.
     assert!(formatted.contains("\n  int HP = 1\n"), "{formatted}");
     assert!(
         formatted.starts_with("scriptname Child extends MyBase\n"),
@@ -221,7 +221,7 @@ async fn une_session_complete() {
         .await;
     assert_eq!(folds, json!([{ "startLine": 3, "endLine": 4 }]));
 
-    // Corrigé dans l'éditeur : les diagnostics suivent.
+    // Fixed in the editor: the diagnostics follow.
     client
         .notify(
             "textDocument/didChange",
@@ -237,7 +237,7 @@ async fn une_session_complete() {
     assert_eq!(published["params"]["diagnostics"], json!([]));
     assert_eq!(published["params"]["version"], 2);
 
-    // La configuration change sur le disque : les niveaux suivent.
+    // The configuration changes on disk: the levels follow.
     client
         .notify(
             "textDocument/didChange",

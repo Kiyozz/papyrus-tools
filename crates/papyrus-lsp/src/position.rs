@@ -1,13 +1,13 @@
-//! Les positions LSP, en lignes et colonnes, et les offsets de l'arbre.
+//! LSP positions, in lines and columns, and tree offsets.
 //!
-//! LSP compte les colonnes en UTF-16 par défaut. Un client qui accepte
-//! l'UTF-8 évite la conversion : c'est l'unité de l'arbre.
+//! LSP counts columns in UTF-16 by default. A client accepting UTF-8 avoids
+//! the conversion: it is the tree's unit.
 
 use line_index::{LineCol, LineIndex, WideEncoding, WideLineCol};
 use papyrus_syntax::{TextRange, TextSize};
 use tower_lsp_server::ls_types::{Position, Range};
 
-/// L'unité des colonnes, négociée à l'initialisation.
+/// The column unit, negotiated at initialization.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Columns {
     Utf8,
@@ -15,11 +15,11 @@ pub(crate) enum Columns {
     Utf16,
 }
 
-/// Convertit entre offsets et positions dans un texte.
+/// Converts between offsets and positions in a text.
 #[derive(Debug)]
 pub(crate) struct LineMap {
     index: LineIndex,
-    /// La fin de chaque ligne, sans son saut de ligne, `\r` compris.
+    /// The end of each line, without its line break, `\r` included.
     ends: Box<[TextSize]>,
     columns: Columns,
 }
@@ -64,7 +64,7 @@ impl LineMap {
         Range::new(self.position(range.start()), self.position(range.end()))
     }
 
-    /// L'offset d'une position, ramené en fin de ligne si elle la dépasse.
+    /// The offset of a position, clamped to the end of its line.
     pub(crate) fn offset(&self, position: Position) -> Option<TextSize> {
         let utf8 = match self.columns {
             Columns::Utf8 => LineCol {
@@ -90,22 +90,22 @@ impl LineMap {
         (start <= end).then(|| TextRange::new(start, end))
     }
 
-    /// La ligne (0-based) d'un offset.
+    /// The (0-based) line of an offset.
     pub(crate) fn line(&self, offset: TextSize) -> u32 {
         let offset = offset.min(self.index.len());
         match self.index.try_line_col(offset) {
             Some(utf8) => utf8.line,
-            // Au milieu d'un caractère : seule la ligne compte.
+            // In the middle of a character: only the line matters.
             None => self.ends.partition_point(|&end| end < offset) as u32,
         }
     }
 
-    /// Le début de la ligne `line`.
+    /// The start of line `line`.
     pub(crate) fn line_start(&self, line: u32) -> Option<TextSize> {
         self.index.line(line).map(|r| r.start())
     }
 
-    /// La fin de la ligne `line`, sans son saut de ligne.
+    /// The end of line `line`, without its line break.
     pub(crate) fn line_end(&self, line: u32) -> Option<TextSize> {
         self.ends.get(line as usize).copied()
     }
@@ -121,7 +121,7 @@ mod tests {
         let x = TextSize::from(text.find(" x").unwrap() as u32 + 1);
         let utf8 = LineMap::new(text, Columns::Utf8);
         let utf16 = LineMap::new(text, Columns::Utf16);
-        // `é` : 2 octets, 1 unité UTF-16 ; `𝄞` : 4 octets, 2 unités.
+        // `é`: 2 bytes, 1 UTF-16 unit; `𝄞`: 4 bytes, 2 units.
         assert_eq!(utf8.position(x), Position::new(0, 13));
         assert_eq!(utf16.position(x), Position::new(0, 10));
         assert_eq!(utf16.offset(Position::new(0, 10)), Some(x));

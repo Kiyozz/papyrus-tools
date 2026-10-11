@@ -1,37 +1,37 @@
-//! Les expressions.
+//! Expressions.
 //!
-//! Précédences, de la plus lâche à la plus serrée, d'après la grammaire de
-//! référence du Creation Kit :
+//! Precedences, from loosest to tightest, after the Creation Kit reference
+//! grammar:
 //!
-//! | Niveau | Opérateurs                   |
-//! |--------|------------------------------|
-//! | 1      | `\|\|`                       |
-//! | 2      | `&&`                         |
-//! | 3      | `==` `!=` `<` `>` `<=` `>=`  |
-//! | 4      | `+` `-`                      |
-//! | 5      | `*` `/` `%`                  |
-//! | unaire | `-` `!`                      |
-//! | cast   | `as`, `is`                   |
-//! | postfixe | `.membre`, `[i]`, `(args)` |
+//! | Level   | Operators                    |
+//! |---------|------------------------------|
+//! | 1       | `\|\|`                       |
+//! | 2       | `&&`                         |
+//! | 3       | `==` `!=` `<` `>` `<=` `>=`  |
+//! | 4       | `+` `-`                      |
+//! | 5       | `*` `/` `%`                  |
+//! | unary   | `-` `!`                      |
+//! | cast    | `as`, `is`                   |
+//! | postfix | `.member`, `[i]`, `(args)`   |
 //!
-//! Tous les binaires sont associatifs à gauche. L'unaire enveloppe le cast :
-//! `-x as Float` se lit `-(x as Float)`.
+//! All binary operators are left-associative. Unary wraps the cast:
+//! `-x as Float` reads `-(x as Float)`.
 //!
-//! Une expression ne franchit jamais une fin de ligne : `NEWLINE` n'est ni un
-//! opérateur ni le début d'un opérande. Seule la continuation `\`, qui est de
-//! la trivia, permet de l'étendre sur plusieurs lignes.
+//! An expression never crosses a line end: `NEWLINE` is neither an operator
+//! nor the start of an operand. Only the `\` continuation, which is trivia,
+//! lets it span several lines.
 
 use super::{Parser, namespace_tail, type_ref, type_ref_without_array};
 use crate::SyntaxKind::*;
 use crate::parser::CompletedMarker;
 
-/// Lit une expression. Faux si aucune ne commence ici — l'erreur est alors
-/// signalée et rien n'a été consommé.
+/// Reads an expression. False if none starts here — the error is then
+/// reported and nothing was consumed.
 pub(super) fn expr(p: &mut Parser) -> bool {
     expr_bp(p, 0).is_some()
 }
 
-/// Force de liaison d'un opérateur binaire, `None` pour tout autre token.
+/// Binding power of a binary operator, `None` for any other token.
 fn binding_power(p: &Parser) -> Option<u8> {
     Some(match p.current() {
         PIPE2 => 1,
@@ -43,7 +43,7 @@ fn binding_power(p: &Parser) -> Option<u8> {
     })
 }
 
-/// Escalade de précédence.
+/// Precedence climbing.
 fn expr_bp(p: &mut Parser, min_bp: u8) -> Option<CompletedMarker> {
     let mut lhs = unary(p)?;
     while let Some(bp) = binding_power(p) {
@@ -68,8 +68,8 @@ fn unary(p: &mut Parser) -> Option<CompletedMarker> {
     cast(p)
 }
 
-/// `x as Actor`, `x is Actor` — le second à partir de Fallout 4, ce que la
-/// promotion des mots-clés règle déjà.
+/// `x as Actor`, `x is Actor` — the latter from Fallout 4 on, which keyword
+/// promotion already handles.
 fn cast(p: &mut Parser) -> Option<CompletedMarker> {
     let mut lhs = postfix(p)?;
     while p.at(AS_KW) || p.at(IS_KW) {
@@ -109,11 +109,11 @@ fn postfix(p: &mut Parser) -> Option<CompletedMarker> {
     Some(lhs)
 }
 
-/// Le nom après un point.
+/// The name after a dot.
 ///
-/// Les mots réservés y sont acceptés : le corpus vanilla écrit `.Length`, et
-/// des membres nommés comme des mots-clés. Le risque est nul, puisque la fin
-/// de ligne n'est pas un mot-clé et arrête la lecture.
+/// Reserved words are accepted there: the vanilla corpus writes `.Length`,
+/// and members named like keywords. The risk is nil, since the line end is
+/// not a keyword and stops the read.
 fn member(p: &mut Parser) {
     let kind = p.current();
     if kind == IDENT || kind.is_keyword() {
@@ -133,8 +133,8 @@ fn atom(p: &mut Parser) -> Option<CompletedMarker> {
             m.complete(p, LITERAL)
         }
         IDENT => {
-            // Nom qualifié : `DLC04:ManagerScript.GetScript()` appelle une
-            // fonction globale d'un script rangé dans un namespace.
+            // Qualified name: `DLC04:ManagerScript.GetScript()` calls a global
+            // function of a namespaced script.
             let m = p.start();
             p.bump(IDENT);
             namespace_tail(p);
@@ -153,7 +153,7 @@ fn atom(p: &mut Parser) -> Option<CompletedMarker> {
             m.complete(p, PAREN_EXPR)
         }
         NEW_KW => {
-            // `new float[4]` : les crochets portent la taille, pas le type.
+            // `new float[4]`: the brackets carry the size, not the type.
             let m = p.start();
             p.bump(NEW_KW);
             type_ref_without_array(p);
@@ -171,13 +171,13 @@ fn atom(p: &mut Parser) -> Option<CompletedMarker> {
     Some(m)
 }
 
-/// `(a, abForce = true)`, aussi employé par `RequiresGuard(g)`.
+/// `(a, abForce = true)`, also used by `RequiresGuard(g)`.
 pub(super) fn arg_list(p: &mut Parser) {
     let m = p.start();
     p.bump(L_PAREN);
     while !p.at(R_PAREN) && !p.at(NEWLINE) && !p.at(EOF) {
         let a = p.start();
-        // Argument nommé, admis dès Skyrim : `Activate(akRef, abDefault = true)`.
+        // Named argument, allowed since Skyrim: `Activate(akRef, abDefault = true)`.
         if p.at(IDENT) && p.nth(1) == EQ {
             let n = p.start();
             p.bump(IDENT);

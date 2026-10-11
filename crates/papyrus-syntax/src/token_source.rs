@@ -1,33 +1,33 @@
-//! Application du dialecte au flux de tokens.
+//! Applying the dialect to the token stream.
 //!
-//! Premier des deux points où la cible intervient — le second étant les
-//! diagnostics de compatibilité émis par le parser sur les constructions qui
-//! n'ouvrent pas sur un mot-clé.
+//! The first of the two points where the target intervenes — the second
+//! being the compatibility diagnostics the parser emits on constructs that
+//! do not start with a keyword.
 //!
-//! Le principe : un mot n'est réservé que si la cible est assez récente. `Var`
-//! est un type en Fallout 4, un nom de variable parfaitement valide en Skyrim.
-//! Réserver systématiquement produirait des milliers de fausses erreurs sur le
-//! code existant.
+//! The principle: a word is only reserved if the target is recent enough.
+//! `Var` is a type in Fallout 4, a perfectly valid variable name in Skyrim.
+//! Reserving it systematically would produce thousands of false errors on
+//! existing code.
 
 use papyrus_dialect::{Dialect, GameId};
 
 use crate::lexer::{self, Token};
 use crate::{SyntaxKind, keywords};
 
-/// Découpe `source` en tokens et applique le dialecte.
+/// Splits `source` into tokens and applies the dialect.
 ///
-/// C'est le point d'entrée normal du lexage.
+/// This is the normal lexing entry point.
 pub fn lex_with_dialect(source: &str, dialect: Dialect) -> Vec<Token> {
     let mut tokens = lexer::lex(source);
     promote(&mut tokens, source, dialect);
     tokens
 }
 
-/// Promeut en mots-clés les identifiants réservés par la cible.
+/// Promotes the identifiers reserved by the target to keywords.
 ///
-/// Les identifiants dont le mot n'est réservé que par un jeu plus récent
-/// restent des [`SyntaxKind::IDENT`] : c'est la « rétrogradation » du plan, vue
-/// depuis un lexer qui n'a jamais promu.
+/// Identifiers whose word is only reserved by a newer game stay
+/// [`SyntaxKind::IDENT`]: that is the plan's "demotion", seen from a lexer
+/// that never promoted.
 pub fn promote(tokens: &mut [Token], source: &str, dialect: Dialect) {
     for token in tokens.iter_mut().filter(|t| t.kind == SyntaxKind::IDENT) {
         if let Some((kind, since)) = keywords::lookup(token.text(source)) {
@@ -38,11 +38,11 @@ pub fn promote(tokens: &mut [Token], source: &str, dialect: Dialect) {
     }
 }
 
-/// Si `text` est un mot réservé par un jeu plus récent que la cible, dit lequel.
+/// If `text` is a word reserved by a game newer than the target, says which.
 ///
-/// Permet d'expliquer pourquoi un mot se comporte ici comme un identifiant, et
-/// d'avertir qu'un script portera ailleurs : un nom de variable `Var` accepté
-/// par Skyrim casse à la compilation dès Fallout 4.
+/// Explains why a word behaves as an identifier here, and warns that a
+/// script will not port: a variable named `Var`, accepted by Skyrim, breaks
+/// compilation from Fallout 4 on.
 pub fn reserved_later(text: &str, dialect: Dialect) -> Option<(SyntaxKind, GameId)> {
     keywords::lookup(text).filter(|(_, since)| !dialect.game.accepts(*since))
 }
@@ -60,7 +60,7 @@ mod tests {
 
     #[test]
     fn is_est_un_mot_cle_a_partir_de_fallout4() {
-        // Vérifié au compilateur : Skyrim SE rejette `x is Actor`.
+        // Checked with the compiler: Skyrim SE rejects `x is Actor`.
         assert_eq!(kinds("is", GameId::Skyrim), [SyntaxKind::IDENT]);
         assert_eq!(kinds("is", GameId::Fallout4), [SyntaxKind::IS_KW]);
         assert_eq!(kinds("is", GameId::Fallout76), [SyntaxKind::IS_KW]);
@@ -92,8 +92,8 @@ mod tests {
 
     #[test]
     fn un_script_skyrim_peut_nommer_une_variable_var() {
-        // Le cas qui rend la rétrogradation obligatoire : ce code est valide en
-        // Skyrim, et le refuser condamnerait l'outil sur le corpus existant.
+        // The case that makes demotion mandatory: this code is valid in
+        // Skyrim, and refusing it would doom the tool on the existing corpus.
         let source = "int Var = 1";
         assert_eq!(
             kinds(source, GameId::Skyrim),
@@ -107,7 +107,7 @@ mod tests {
                 SyntaxKind::INT_NUMBER,
             ]
         );
-        // La même source vise Fallout 4 : `Var` y est un type.
+        // The same source targeting Fallout 4: `Var` is a type there.
         assert_eq!(kinds(source, GameId::Fallout4)[2], SyntaxKind::VAR_KW);
     }
 
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn seuls_les_identifiants_sont_promus() {
-        // `if` dans une chaîne ou un commentaire reste ce qu'il est.
+        // `if` in a string or a comment stays what it is.
         assert_eq!(kinds("\"if\"", GameId::Skyrim), [SyntaxKind::STRING]);
         assert_eq!(kinds("; if", GameId::Skyrim), [SyntaxKind::LINE_COMMENT]);
         assert_eq!(kinds("{if}", GameId::Skyrim), [SyntaxKind::DOC_COMMENT]);
@@ -141,12 +141,12 @@ mod tests {
             Some((SyntaxKind::LOCKGUARD_KW, GameId::Starfield))
         );
 
-        // Déjà réservé ici : ce n'est pas une rétrogradation.
+        // Already reserved here: not a demotion.
         assert_eq!(reserved_later("if", skyrim), None);
-        // Jamais réservé nulle part.
+        // Never reserved anywhere.
         assert_eq!(reserved_later("myActor", skyrim), None);
 
-        // Rien n'est rétrogradé sur la cible la plus récente.
+        // Nothing is demoted on the most recent target.
         let starfield = Dialect::new(GameId::Starfield);
         assert_eq!(reserved_later("LockGuard", starfield), None);
     }

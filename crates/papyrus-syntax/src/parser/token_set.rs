@@ -1,11 +1,11 @@
-//! Ensembles de tokens, pour la récupération d'erreurs.
+//! Token sets, for error recovery.
 //!
-//! Un `TokenSet` dit « voici les tokens sur lesquels je peux me raccrocher ».
-//! C'est ce qui empêche un `EndIf` manquant d'emporter la suite du fichier.
+//! A `TokenSet` says "here are the tokens I can latch onto". That is what
+//! keeps a missing `EndIf` from carrying away the rest of the file.
 
 use crate::SyntaxKind;
 
-/// Nombre de mots de 64 bits nécessaires pour couvrir tous les kinds.
+/// Number of 64-bit words needed to cover all kinds.
 const WORDS: usize = 4;
 
 const _: () = assert!(
@@ -13,12 +13,12 @@ const _: () = assert!(
     "trop de SyntaxKind pour le bitset : augmenter WORDS"
 );
 
-/// Un ensemble de [`SyntaxKind`], constructible en `const`.
+/// A set of [`SyntaxKind`], buildable in `const`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct TokenSet([u64; WORDS]);
 
 impl TokenSet {
-    /// Construit un ensemble à partir d'une liste de kinds.
+    /// Builds a set from a list of kinds.
     pub(crate) const fn new(kinds: &[SyntaxKind]) -> TokenSet {
         let mut bits = [0u64; WORDS];
         let mut i = 0;
@@ -30,7 +30,7 @@ impl TokenSet {
         TokenSet(bits)
     }
 
-    /// Vrai si `kind` appartient à l'ensemble.
+    /// True if `kind` belongs to the set.
     pub(crate) const fn contains(self, kind: SyntaxKind) -> bool {
         let raw = kind as usize;
         self.0[raw / 64] & (1 << (raw % 64)) != 0
@@ -51,8 +51,8 @@ mod tests {
 
     #[test]
     fn tous_les_kinds_sont_representables() {
-        // Le bitset indexe par discriminant : un kind hors borne corromprait
-        // silencieusement un autre mot.
+        // The bitset indexes by discriminant: an out-of-bounds kind would
+        // silently corrupt another word.
         for kind in SyntaxKind::ALL {
             let set = TokenSet::new(&[*kind]);
             assert!(set.contains(*kind), "{kind:?} non représentable");

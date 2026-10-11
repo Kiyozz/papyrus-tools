@@ -1,53 +1,52 @@
-//! Cibles de compilation Papyrus.
+//! Papyrus compilation targets.
 //!
-//! Papyrus n'a pas de spécification : chaque jeu embarque sa propre version du
-//! compilateur, qui ajoute des mots-clés et des constructions sans jamais en
-//! retirer. Le langage est donc une suite de sur-ensembles, ce que modélise
-//! [`GameId::rank`].
+//! Papyrus has no specification: each game ships its own compiler version,
+//! which adds keywords and constructs without ever removing any. The language
+//! is therefore a chain of supersets, which [`GameId::rank`] models.
 //!
-//! Ce crate ne connaît ni la syntaxe ni les tokens : il ne dit que « à partir de
-//! quel jeu telle chose existe ». La table qui associe les mots-clés à leur jeu
-//! d'apparition vit dans `papyrus-syntax`, qui dépend de ce crate.
+//! This crate knows neither syntax nor tokens: it only says "from which game
+//! on does this exist". The table mapping keywords to the game that introduced
+//! them lives in `papyrus-syntax`, which depends on this crate.
 
 #![forbid(unsafe_code)]
 
 use std::fmt;
 use std::str::FromStr;
 
-/// Jeu ciblé, donc version du compilateur Papyrus dont on imite le comportement.
+/// Target game, hence the Papyrus compiler version whose behavior we mimic.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum GameId {
-    /// Skyrim, toutes éditions confondues — LE, Special Edition, Anniversary.
+    /// Skyrim, all editions — LE, Special Edition, Anniversary.
     ///
-    /// Le langage y est identique ; seule la disposition des sources sur le
-    /// disque diffère, ce qui relève du layout de projet et non du dialecte.
+    /// The language is identical; only the source layout on disk differs,
+    /// which is a matter of project layout, not of dialect.
     Skyrim,
-    /// Fallout 4. Ajoute les namespaces, `Struct`, `Group`, `Var`, `Is`,
-    /// `Const`, `DebugOnly` / `BetaOnly` et les `CustomEvent`.
+    /// Fallout 4. Adds namespaces, `Struct`, `Group`, `Var`, `Is`, `Const`,
+    /// `DebugOnly` / `BetaOnly` and `CustomEvent`.
     Fallout4,
     /// Fallout 76.
     ///
-    /// Jeu de mots-clés strictement identique à celui de Fallout 4 — dans
-    /// Caprica, `FALLOUT76_MAX_KEYWORD == FALLOUT4_MAX_KEYWORD`. Aucun Creation
-    /// Kit public ni source `.psc` extractible n'existe, donc rien n'est
-    /// vérifiable : la valeur est acceptée en configuration mais ne promet rien
-    /// de plus que [`GameId::Fallout4`].
+    /// Exactly the same keyword set as Fallout 4 — in Caprica,
+    /// `FALLOUT76_MAX_KEYWORD == FALLOUT4_MAX_KEYWORD`. There is no public
+    /// Creation Kit nor extractable `.psc` source, so nothing can be verified:
+    /// the value is accepted in configuration but promises nothing more than
+    /// [`GameId::Fallout4`].
     Fallout76,
-    /// Starfield. Sur-ensemble de Fallout 4 : `Guard`, `LockGuard`,
-    /// `TryLockGuard`, `RequiresGuard`, `ProtectsFunctionLogic` et les
-    /// modificateurs d'accès `Private` / `Protected` / `SelfOnly`.
+    /// Starfield. Superset of Fallout 4: `Guard`, `LockGuard`, `TryLockGuard`,
+    /// `RequiresGuard`, `ProtectsFunctionLogic` and the `Private` /
+    /// `Protected` / `SelfOnly` access modifiers.
     ///
-    /// Par défaut, faute de configuration : c'est le sur-ensemble le plus
-    /// large, donc celui qui produit le moins de faux positifs.
+    /// The default when nothing is configured: the widest superset, hence the
+    /// one producing the fewest false positives.
     #[default]
     Starfield,
 }
 
 impl GameId {
-    /// Position dans la suite des sur-ensembles.
+    /// Position in the chain of supersets.
     ///
-    /// Fallout 76 partage le rang de Fallout 4 : les deux acceptent exactement
-    /// le même langage.
+    /// Fallout 76 shares the rank of Fallout 4: both accept exactly the same
+    /// language.
     pub const fn rank(self) -> u8 {
         match self {
             GameId::Skyrim => 0,
@@ -56,12 +55,12 @@ impl GameId {
         }
     }
 
-    /// Vrai si une construction apparue dans `since` existe dans ce jeu.
+    /// True if a construct introduced in `since` exists in this game.
     pub const fn accepts(self, since: GameId) -> bool {
         self.rank() >= since.rank()
     }
 
-    /// Nom canonique, tel qu'il s'écrit dans `papyrus.toml`.
+    /// Canonical name, as written in `papyrus.toml`.
     pub const fn as_str(self) -> &'static str {
         match self {
             GameId::Skyrim => "skyrim",
@@ -71,7 +70,7 @@ impl GameId {
         }
     }
 
-    /// Nom lisible, pour les messages de diagnostic.
+    /// Human-readable name, for diagnostic messages.
     pub const fn display_name(self) -> &'static str {
         match self {
             GameId::Skyrim => "Skyrim",
@@ -88,7 +87,7 @@ impl fmt::Display for GameId {
     }
 }
 
-/// Erreur de lecture d'un nom de jeu.
+/// Error reading a game name.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnknownGame(pub String);
 
@@ -108,8 +107,8 @@ impl FromStr for GameId {
     type Err = UnknownGame;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // Les alias couvrent les manières dont les gens désignent ces jeux dans
-        // la communauté du modding.
+        // The aliases cover the ways people refer to these games in the
+        // modding community.
         match s
             .trim()
             .to_ascii_lowercase()
@@ -125,40 +124,40 @@ impl FromStr for GameId {
     }
 }
 
-/// Construction syntaxique dont la disponibilité dépend du jeu ciblé.
+/// Syntactic construct whose availability depends on the target game.
 ///
-/// Sert au second point d'intervention du dialecte : les constructions qui
-/// n'ouvrent pas sur un mot-clé rétrogradable sont toujours parsées, et c'est un
-/// diagnostic — pas une erreur de syntaxe — qui signale qu'elles n'existent pas
-/// dans la cible. L'arbre reste donc complet et l'éditeur reste utilisable.
+/// Serves the dialect's second intervention point: constructs that do not
+/// start with a demotable keyword are always parsed, and a diagnostic — not a
+/// syntax error — reports that they do not exist in the target. The tree thus
+/// stays complete and the editor stays usable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Feature {
-    /// Nom de script qualifié, `Foo:Bar:Script`.
+    /// Qualified script name, `Foo:Bar:Script`.
     Namespace,
-    /// Déclaration `Struct` / `EndStruct`.
+    /// `Struct` / `EndStruct` declaration.
     Struct,
-    /// Bloc `Group` / `EndGroup`.
+    /// `Group` / `EndGroup` block.
     Group,
-    /// Opérateur `Is`.
+    /// `Is` operator.
     IsOperator,
-    /// `new NomDeStruct`, sans crochets.
+    /// `new StructName`, without brackets.
     NewStruct,
-    /// `Property` déclarée dans un `State` ou un `Group`.
+    /// `Property` declared in a `State` or a `Group`.
     NestedProperty,
-    /// Locale immuable, `Type x = expr Const`.
+    /// Immutable local, `Type x = expr Const`.
     ConstLocal,
-    /// Verrous : `Guard`, `LockGuard`, `TryLockGuard`.
+    /// Locks: `Guard`, `LockGuard`, `TryLockGuard`.
     Guard,
-    /// Modificateurs d'accès `Private`, `Protected`, `SelfOnly`.
+    /// `Private`, `Protected`, `SelfOnly` access modifiers.
     AccessModifier,
-    /// Événement distant, `Event ObjectReference.OnActivate(…)`.
+    /// Remote event, `Event ObjectReference.OnActivate(…)`.
     ///
-    /// Absent des 14 324 scripts de Skyrim, présent dans 695 de Fallout 4.
+    /// Absent from the 14,324 Skyrim scripts, present in 695 of Fallout 4.
     RemoteEvent,
 }
 
 impl Feature {
-    /// Jeu à partir duquel la construction existe.
+    /// Game from which the construct exists.
     pub const fn since(self) -> GameId {
         match self {
             Feature::Namespace
@@ -173,7 +172,7 @@ impl Feature {
         }
     }
 
-    /// Description courte, destinée aux messages de diagnostic.
+    /// Short description, for diagnostic messages.
     pub const fn describe(self) -> &'static str {
         match self {
             Feature::Namespace => "la syntaxe de namespace",
@@ -190,17 +189,17 @@ impl Feature {
     }
 }
 
-/// Cible complète : le jeu, plus les extensions non officielles activées.
+/// Full target: the game, plus the enabled unofficial extensions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Dialect {
-    /// Jeu ciblé.
+    /// Target game.
     pub game: GameId,
-    /// Extensions de compilateurs tiers, toutes désactivées par défaut.
+    /// Third-party compiler extensions, all disabled by default.
     pub extensions: Extensions,
 }
 
 impl Dialect {
-    /// Cible sans aucune extension.
+    /// Target without any extension.
     pub const fn new(game: GameId) -> Self {
         Dialect {
             game,
@@ -208,7 +207,7 @@ impl Dialect {
         }
     }
 
-    /// Vrai si la construction existe dans cette cible.
+    /// True if the construct exists in this target.
     pub const fn supports(self, feature: Feature) -> bool {
         self.game.accepts(feature.since())
     }
@@ -220,20 +219,20 @@ impl From<GameId> for Dialect {
     }
 }
 
-/// Extensions syntaxiques absentes des compilateurs officiels.
+/// Syntax extensions missing from the official compilers.
 ///
-/// Caprica accepte du contrôle de flux que Bethesda n'a jamais implémenté
-/// (`For`, `ForEach`, `Switch`, `Break`, `Continue`, `Do`…). Un projet compilé
-/// avec Caprica est légitime, mais son code ne compilera pas avec le Creation
-/// Kit : l'acceptation doit donc être un choix explicite.
+/// Caprica accepts control flow Bethesda never implemented (`For`, `ForEach`,
+/// `Switch`, `Break`, `Continue`, `Do`…). A project compiled with Caprica is
+/// legitimate, but its code will not compile with the Creation Kit: accepting
+/// it must therefore be an explicit choice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Extensions {
-    /// Contrôle de flux ajouté par Caprica.
+    /// Control flow added by Caprica.
     pub caprica_control_flow: bool,
 }
 
 impl Extensions {
-    /// Aucune extension : le comportement du compilateur officiel.
+    /// No extension: the official compiler's behavior.
     pub const NONE: Self = Extensions {
         caprica_control_flow: false,
     };
@@ -271,12 +270,12 @@ mod tests {
         let fo4 = Dialect::new(GameId::Fallout4);
         let sf = Dialect::new(GameId::Starfield);
 
-        // `Is` n'existe pas en Skyrim : vérifié en compilant `x is Actor`
-        // avec le PapyrusCompiler.exe de Skyrim SE, qui le rejette.
+        // `Is` does not exist in Skyrim: checked by compiling `x is Actor`
+        // with Skyrim SE's PapyrusCompiler.exe, which rejects it.
         assert!(!skyrim.supports(Feature::IsOperator));
         assert!(fo4.supports(Feature::IsOperator));
 
-        // Les verrous sont propres à Starfield.
+        // Locks are specific to Starfield.
         assert!(!fo4.supports(Feature::Guard));
         assert!(sf.supports(Feature::Guard));
     }

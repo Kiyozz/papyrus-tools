@@ -1,4 +1,4 @@
-//! Le formateur, sur des cas choisis.
+//! The formatter, on chosen cases.
 
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_fmt::{FormatError, FormatOptions, Indent, format};
@@ -30,7 +30,7 @@ fn fmt(source: &str) -> String {
     out
 }
 
-/// Un script écrit sans soin, tel qu'on en trouve.
+/// A carelessly written script, as found in the wild.
 const DESORDRE: &str = "\
 ScriptName   Foo:Bar   Extends Quest   CONDITIONAL\r
 {Documentation du script}\r

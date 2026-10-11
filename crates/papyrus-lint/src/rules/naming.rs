@@ -1,25 +1,25 @@
-//! `PAP101`–`PAP103` : les conventions de nommage, à la Go.
+//! `PAP101`–`PAP103`: naming conventions, Go style.
 //!
-//! - locales et paramètres en lowerCamelCase, préfixes hongrois compris
-//!   (`akTarget`, `aiCount` en sont) ;
-//! - variables de script, properties, champs et verrous en lowerCamelCase ;
-//! - fonctions, événements, states, structures, groupes et événements
-//!   personnalisés en PascalCase.
+//! - locals and parameters in lowerCamelCase, Hungarian prefixes included
+//!   (`akTarget`, `aiCount` qualify);
+//! - script variables, properties, fields and guards in lowerCamelCase;
+//! - functions, events, states, structs, groups and custom events in
+//!   PascalCase.
 //!
-//! # Correctifs
+//! # Fixes
 //!
-//! Papyrus est insensible à la casse : renommer `HitCount` en `hitCount` ne
-//! change rien pour le compilateur, et ne peut entrer en collision avec rien,
-//! pas même une property héritée qu'on ne voit pas. Seules les locales
-//! reçoivent un correctif, et seulement quand il ne touche qu'à la casse. Les
-//! properties n'en ont pas : les `.esp` les lient par leur nom.
+//! Papyrus is case-insensitive: renaming `HitCount` to `hitCount` changes
+//! nothing for the compiler and cannot collide with anything, not even an
+//! inherited property we cannot see. Only locals get a fix, and only when it
+//! touches nothing but case. Properties get none: `.esp` files bind them by
+//! name.
 
 use papyrus_syntax::{SyntaxKind, SyntaxNode, SyntaxToken};
 
 use crate::case::{is_lower_camel, is_pascal, to_lower_camel, to_pascal};
 use crate::{Context, Edit, Finding, Lint, NAMING_FUNCTIONS, NAMING_LOCALS, NAMING_VARIABLES};
 
-/// Ce qu'un nom désigne.
+/// What a name designates.
 #[derive(Debug, Clone, Copy)]
 enum Role {
     Local,
@@ -51,7 +51,7 @@ impl Role {
             SyntaxKind::PROPERTY_DECL => Role::Property,
             SyntaxKind::STRUCT_FIELD => Role::Field,
             SyntaxKind::GUARD_DECL => Role::Guard,
-            // `Get` et `Set` sont imposés par le langage.
+            // `Get` and `Set` are imposed by the language.
             SyntaxKind::FUNCTION_DECL if owner.parent()?.kind() == SyntaxKind::PROPERTY_DECL => {
                 return None;
             }
@@ -147,11 +147,11 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
     }
 }
 
-/// Renomme la déclaration et ses usages dans la fonction qui la contient.
+/// Renames the declaration and its uses in the enclosing function.
 ///
-/// Un usage, c'est un nom simple en position de valeur : ni un membre
-/// (`x.Foo`), ni le nom d'un argument nommé (`Foo(abX = 1)`), ni une
-/// fonction appelée (`Foo()`).
+/// A use is a simple name in value position: not a member (`x.Foo`), not the
+/// name of a named argument (`Foo(abX = 1)`), not a called function
+/// (`Foo()`).
 fn rename_in_function(decl: &SyntaxToken, new_name: &str) -> Vec<Edit> {
     let mut edits = vec![Edit {
         range: decl.text_range(),
@@ -173,7 +173,7 @@ fn rename_in_function(decl: &SyntaxToken, new_name: &str) -> Vec<Edit> {
             .filter_map(|e| e.into_token())
             .filter(|t| !t.kind().is_trivia());
         let (Some(token), None) = (tokens.next(), tokens.next()) else {
-            continue; // `A:B`, nom qualifié
+            continue; // `A:B`, qualified name
         };
         if token.kind() != SyntaxKind::IDENT || !token.text().eq_ignore_ascii_case(decl.text()) {
             continue;
@@ -193,12 +193,12 @@ fn is_value_position(name_ref: &SyntaxNode) -> bool {
         return true;
     };
     match parent.kind() {
-        // `x.Foo` : seul `x` est une valeur.
+        // `x.Foo`: only `x` is a value.
         SyntaxKind::FIELD_EXPR => parent.first_child().as_ref() == Some(name_ref),
-        // `Foo()` : `Foo` est une fonction.
+        // `Foo()`: `Foo` is a function.
         SyntaxKind::CALL_EXPR => parent.first_child().as_ref() != Some(name_ref),
-        // `Foo(abX = x)` : `abX` nomme un paramètre de l'appelée, `x` est
-        // une valeur. L'étiquette est celle que suit le `=`.
+        // `Foo(abX = x)`: `abX` names a parameter of the callee, `x` is a
+        // value. The label is the one followed by `=`.
         SyntaxKind::ARG => {
             let next = std::iter::successors(name_ref.next_sibling_or_token(), |e| {
                 e.next_sibling_or_token()

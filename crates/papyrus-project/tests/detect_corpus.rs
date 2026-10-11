@@ -1,8 +1,8 @@
-//! La détection du jeu, mesurée sur les scripts vanilla non natifs — ceux
-//! qui ressemblent le plus à du code de mod.
+//! Game detection, measured on the non-native vanilla scripts — those that
+//! look most like mod code.
 //!
-//! Seule la frontière avec Skyrim compte : prendre un script de Fallout 4
-//! pour un script de Starfield est sans conséquence.
+//! Only the border with Skyrim matters: taking a Fallout 4 script for a
+//! Starfield one is harmless.
 #![cfg(feature = "external-corpus")]
 
 use std::path::PathBuf;
@@ -34,8 +34,8 @@ fn run(game: GameId) {
         let decoded = decode(&std::fs::read(path).expect("lecture"));
         let parse = papyrus_syntax::parse(&decoded.text, Dialect::new(GameId::Starfield));
         let root = parse.syntax();
-        // Les scripts natifs sont la source des tables : les détecter
-        // serait tricher.
+        // The native scripts are the source of the tables: detecting them
+        // would be cheating.
         let name = path.file_stem().unwrap().to_string_lossy();
         if papyrus_stdlib::script(game, &name).is_some() {
             continue;

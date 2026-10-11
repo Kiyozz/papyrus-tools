@@ -1,6 +1,6 @@
 [package]
 name = "papyrus-stdlib"
-description = "Signatures des scripts natifs de chaque jeu, embarquées"
+description = "Embedded signatures of each game's native scripts"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

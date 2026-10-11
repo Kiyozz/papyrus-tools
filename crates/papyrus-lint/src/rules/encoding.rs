@@ -1,12 +1,12 @@
-//! `PAP001 encoding/lossy` — voir [`papyrus_project::encoding`].
+//! `PAP001 encoding/lossy` — see [`papyrus_project::encoding`].
 
 use papyrus_project::encoding;
 
 use crate::{Context, ENCODING_LOSSY, Finding};
 
 pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
-    // Le remède dépend du jeu : sans cible, mieux vaut se taire que mal
-    // conseiller.
+    // The remedy depends on the game: without a target, better stay quiet
+    // than give bad advice.
     let Some(game) = context.game else {
         return;
     };

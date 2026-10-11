@@ -1,36 +1,36 @@
-//! Ce que le parser produit.
+//! What the parser produces.
 //!
-//! Le parser n'assemble pas l'arbre : il émet une suite d'événements plats, et
-//! [`super::tree_builder`] s'en sert pour construire le `GreenNode` en y
-//! réinjectant la trivia. Cette séparation est ce qui rend possible
-//! `precede` — envelopper après coup un nœud déjà terminé, indispensable aux
-//! expressions associatives à gauche.
+//! The parser does not assemble the tree: it emits a flat sequence of events,
+//! which [`super::tree_builder`] uses to build the `GreenNode`, reinjecting
+//! the trivia. This separation is what makes `precede` possible — wrapping
+//! an already finished node afterwards, essential for left-associative
+//! expressions.
 
 use crate::SyntaxKind;
 
-/// Un pas de l'analyse.
+/// One step of the parse.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Event {
-    /// Ouverture d'un nœud.
+    /// Opening of a node.
     ///
-    /// `forward_parent` est le décalage, dans la liste d'événements, vers un
-    /// `Start` qui devra être ouvert *avant* celui-ci. C'est ainsi qu'un nœud
-    /// se retrouve enveloppé après avoir été terminé.
+    /// `forward_parent` is the offset, in the event list, to a `Start` that
+    /// must be opened *before* this one. That is how a node gets wrapped after
+    /// being finished.
     Start {
         kind: SyntaxKind,
         forward_parent: Option<u32>,
     },
-    /// Un token, consommé depuis l'entrée.
+    /// A token, consumed from the input.
     Token { kind: SyntaxKind },
-    /// Fermeture du nœud ouvert le plus récemment.
+    /// Closing of the most recently opened node.
     Finish,
 }
 
 impl Event {
-    /// Un `Start` réservé, dont le kind sera fixé à la complétion du marqueur.
+    /// A reserved `Start`, whose kind is set when the marker completes.
     ///
-    /// Reste tel quel si le marqueur est abandonné ; le constructeur d'arbre
-    /// l'ignore alors.
+    /// Stays as is if the marker is abandoned; the tree builder then ignores
+    /// it.
     pub(crate) const fn tombstone() -> Event {
         Event::Start {
             kind: SyntaxKind::TOMBSTONE,

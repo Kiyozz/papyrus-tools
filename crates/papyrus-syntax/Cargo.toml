@@ -1,6 +1,6 @@
 [package]
 name = "papyrus-syntax"
-description = "Lexer, parser et arbre syntaxique concret du langage Papyrus"
+description = "Lexer, parser and concrete syntax tree of the Papyrus language"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -17,9 +17,9 @@ rowan.workspace = true
 insta.workspace = true
 
 [features]
-# Fait tourner les tests sur les sources vanilla d'une installation locale.
-# Les chemins viennent de l'environnement : rien de spécifique à une machine
-# n'entre dans le dépôt.
+# Runs the tests on the vanilla sources of a local installation.
+# Paths come from the environment: nothing machine-specific enters the
+# repository.
 external-corpus = []
 
 [lints]

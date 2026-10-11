@@ -1,12 +1,13 @@
-//! L'invariant fondateur : le lexage ne perd rien.
+//! The founding invariant: lexing loses nothing.
 //!
-//! `concat(tokens) == source`, octet pour octet, y compris sur une entrée que
-//! le lexer ne comprend pas. Tout le reste — formateur, LSP — en dépend.
+//! `concat(tokens) == source`, byte for byte, even on input the lexer does
+//! not understand. Everything else — formatter, language server — depends
+//! on it.
 
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_syntax::{SyntaxKind, lex, lex_with_dialect};
 
-/// Vérifie que les tokens pavent la source sans trou ni recouvrement.
+/// Checks that the tokens tile the source without gaps or overlaps.
 #[track_caller]
 fn assert_lossless(source: &str) {
     let tokens = lex(source);
@@ -57,18 +58,18 @@ fn le_lexage_est_lossless_sur_du_code_ordinaire() {
 
 #[test]
 fn le_lexage_est_lossless_sur_une_entree_invalide() {
-    // Une source cassée doit rester reconstructible : le LSP travaille en
-    // permanence sur du code à moitié écrit.
+    // A broken source must stay rebuildable: the language server constantly
+    // works on half-written code.
     let sources = [
-        "\u{4}\u{7}",            // octets de contrôle
-        "\"chaîne non fermée\n", // guillemet orphelin
-        ";/ bloc non fermé",     // commentaire bloc ouvert
-        "{docstring non fermée", // accolade orpheline
+        "\u{4}\u{7}",            // control bytes
+        "\"chaîne non fermée\n", // stray quote
+        ";/ bloc non fermé",     // open block comment
+        "{docstring non fermée", // stray brace
         "Function #!? EndFunction",
         "int x = @@@\n",
-        "\\",                     // continuation sans fin de ligne
-        "é à ü",                  // non-ASCII hors chaîne
-        "\u{feff}ScriptName Foo", // BOM en tête
+        "\\",                     // continuation without line end
+        "é à ü",                  // non-ASCII outside a string
+        "\u{feff}ScriptName Foo", // leading BOM
     ];
     for source in sources {
         assert_lossless(source);
@@ -77,9 +78,9 @@ fn le_lexage_est_lossless_sur_une_entree_invalide() {
 
 #[test]
 fn le_commentaire_de_ligne_n_avale_pas_la_fin_de_ligne() {
-    // Le piège classique. Si le commentaire emporte le retour à la ligne, le
-    // parser perd le terminateur de la déclaration et toute la grammaire
-    // orientée ligne s'effondre.
+    // The classic trap. If the comment takes the line break, the parser
+    // loses the declaration's terminator and the whole line-oriented grammar
+    // collapses.
     assert_eq!(
         kinds("; commentaire\n"),
         [SyntaxKind::LINE_COMMENT, SyntaxKind::NEWLINE]
@@ -96,8 +97,8 @@ fn le_commentaire_de_ligne_n_avale_pas_la_fin_de_ligne() {
 
 #[test]
 fn le_commentaire_bloc_prime_sur_le_commentaire_de_ligne() {
-    // `;/ … /;` commence par `;` : sans arbitrage, le commentaire de ligne
-    // gagnerait et le reste du bloc serait lexé comme du code.
+    // `;/ … /;` starts with `;`: without arbitration, the line comment would
+    // win and the rest of the block would be lexed as code.
     assert_eq!(kinds(";/ bloc /;"), [SyntaxKind::BLOCK_COMMENT]);
     assert_eq!(kinds(";//;"), [SyntaxKind::BLOCK_COMMENT]);
     assert_eq!(
@@ -111,8 +112,8 @@ fn le_commentaire_bloc_prime_sur_le_commentaire_de_ligne() {
 
 #[test]
 fn la_continuation_de_ligne_est_un_token_a_part() {
-    // Trivia, mais le formateur doit pouvoir la retrouver pour ne pas la
-    // supprimer.
+    // Trivia, but the formatter must be able to find it so as not to remove
+    // it.
     assert_eq!(
         kinds("Foo(a, \\\n\tb)"),
         [
@@ -128,13 +129,13 @@ fn la_continuation_de_ligne_est_un_token_a_part() {
         ]
     );
     assert!(SyntaxKind::LINE_CONTINUATION.is_trivia());
-    // La fin de ligne, elle, porte du sens.
+    // The line end, for its part, carries meaning.
     assert!(!SyntaxKind::NEWLINE.is_trivia());
 }
 
 #[test]
 fn les_litteraux_numeriques_sont_non_signes() {
-    // `a-1` est une soustraction, pas un identifiant suivi d'un entier négatif.
+    // `a-1` is a subtraction, not an identifier followed by a negative integer.
     assert_eq!(
         kinds("a-1"),
         [SyntaxKind::IDENT, SyntaxKind::MINUS, SyntaxKind::INT_NUMBER]
@@ -145,11 +146,11 @@ fn les_litteraux_numeriques_sont_non_signes() {
 #[test]
 fn les_flottants_exigent_des_chiffres_des_deux_cotes() {
     assert_eq!(kinds("1.5"), [SyntaxKind::FLOAT_NUMBER]);
-    // `1.` n'est pas un flottant : entier, puis accès membre.
+    // `1.` is not a float: integer, then member access.
     assert_eq!(kinds("1."), [SyntaxKind::INT_NUMBER, SyntaxKind::DOT]);
-    // `.5` non plus.
+    // Nor is `.5`.
     assert_eq!(kinds(".5"), [SyntaxKind::DOT, SyntaxKind::INT_NUMBER]);
-    // Pas de notation exponentielle en Papyrus.
+    // No exponent notation in Papyrus.
     assert_eq!(
         kinds("1e5"),
         [SyntaxKind::INT_NUMBER, SyntaxKind::IDENT],
@@ -161,14 +162,14 @@ fn les_flottants_exigent_des_chiffres_des_deux_cotes() {
 fn les_hexadecimaux_priment_sur_les_entiers() {
     assert_eq!(kinds("0xDEADBEEF"), [SyntaxKind::HEX_NUMBER]);
     assert_eq!(kinds("0XFF"), [SyntaxKind::HEX_NUMBER]);
-    // `0x` sans chiffre : entier `0` puis identifiant `x`.
+    // `0x` without a digit: integer `0` then identifier `x`.
     assert_eq!(kinds("0x"), [SyntaxKind::INT_NUMBER, SyntaxKind::IDENT]);
 }
 
 #[test]
 fn une_chaine_non_fermee_s_arrete_a_la_fin_de_ligne() {
-    // Sans cette borne, une faute de frappe emporterait le reste du fichier —
-    // et l'éditeur afficherait tout en couleur de chaîne.
+    // Without this bound, a typo would carry away the rest of the file — and
+    // the editor would show everything in string color.
     let source = "\"oups\nint x = 1\n";
     let tokens = lex(source);
     assert_eq!(tokens[0].kind, SyntaxKind::STRING);
@@ -196,7 +197,7 @@ fn la_docstring_peut_courir_sur_plusieurs_lignes() {
 
 #[test]
 fn les_octets_invalides_consecutifs_sont_fusionnes() {
-    // Un diagnostic par octet serait illisible.
+    // One diagnostic per byte would be unreadable.
     let tokens = lex("###");
     assert_eq!(tokens.len(), 1);
     assert_eq!(tokens[0].kind, SyntaxKind::ERROR);
@@ -205,8 +206,8 @@ fn les_octets_invalides_consecutifs_sont_fusionnes() {
 
 #[test]
 fn le_dialecte_ne_change_jamais_le_decoupage() {
-    // La promotion en mots-clés réétiquette des tokens, elle n'en déplace
-    // aucun : le CST doit être le même quelle que soit la cible.
+    // Keyword promotion relabels tokens, it moves none: the CST must be the
+    // same whatever the target.
     let source = "int Var = 1\nGuard g\nif x is Actor\n";
     let reference: Vec<_> = lex(source).into_iter().map(|t| t.range).collect();
 

@@ -1,12 +1,12 @@
-//! `PAP002 flags/placement` : un flag sur un objet que le `.flg` refuse.
+//! `PAP002 flags/placement`: a flag on an object the `.flg` refuses.
 //!
-//! Le compilateur le rejette aussi, mais seulement à la compilation ; dans
-//! l'éditeur, le signaler à la frappe évite l'aller-retour.
+//! The compiler rejects it too, but only when compiling; in the editor,
+//! reporting it as you type saves the round trip.
 //!
-//! Une property `Auto` accepte aussi les flags de variable : le compilateur
-//! génère une variable cachée qui les porte. Le vanilla de Fallout 4 écrit
-//! ainsi `Auto Conditional` sur des properties, alors que le `.flg` réserve
-//! `Conditional` aux scripts et aux variables.
+//! An `Auto` property also accepts variable flags: the compiler generates a
+//! hidden variable that carries them. Fallout 4's vanilla thus writes
+//! `Auto Conditional` on properties, although the `.flg` reserves
+//! `Conditional` for scripts and variables.
 
 use papyrus_dialect::GameId;
 use papyrus_project::flags::{FlagDef, FlagTarget, parse_flags};
@@ -14,12 +14,12 @@ use papyrus_syntax::{SyntaxKind, SyntaxNode};
 
 use crate::{Context, FLAGS_PLACEMENT, Finding};
 
-/// `TESV_Papyrus_Flags.flg`, réduit à ce qui compte.
+/// `TESV_Papyrus_Flags.flg`, reduced to what matters.
 const SKYRIM: &str = "\
 Flag Hidden 0 { Script Property }
 Flag Conditional 1 { Script Variable }";
 
-/// `Institute_Papyrus_Flags.flg` et `Starfield_Papyrus_Flags.flg`, identiques.
+/// `Institute_Papyrus_Flags.flg` and `Starfield_Papyrus_Flags.flg`, identical.
 const FALLOUT4: &str = "\
 Flag Hidden 0 { Script Property StructVar }
 Flag Conditional 1 { Script Variable }
@@ -29,10 +29,10 @@ Flag CollapsedOnBase 4 { Group }
 Flag Collapsed CollapsedOnRef & CollapsedOnBase
 Flag Mandatory 5 { Property }";
 
-/// Les flags vanilla de `game`.
+/// The vanilla flags of `game`.
 ///
-/// Sans cible, ceux de Fallout 4, qui englobent ceux de Skyrim : un flag
-/// refusé là l'est partout.
+/// Without a target, Fallout 4's, which include Skyrim's: a flag refused
+/// there is refused everywhere.
 pub fn vanilla_flags(game: Option<GameId>) -> Vec<FlagDef> {
     let text = match game {
         Some(GameId::Skyrim) => SKYRIM,
@@ -41,7 +41,7 @@ pub fn vanilla_flags(game: Option<GameId>) -> Vec<FlagDef> {
     parse_flags(text).expect("table embarquée valide")
 }
 
-/// Les objets que désigne une liste de flags, et comment les nommer.
+/// The objects a flag list applies to, and how to name them.
 fn targets(list: &SyntaxNode) -> Option<(&'static [FlagTarget], &'static str)> {
     let owner = list.parent()?;
     Some(match owner.kind() {
@@ -84,7 +84,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
         let Some(token) = flag.first_token() else {
             continue;
         };
-        // Les flags du langage (`Native`, `Auto`…) ne sont pas dans le `.flg`.
+        // Language flags (`Native`, `Auto`…) are not in the `.flg`.
         let Some(def) = context
             .flags
             .iter()

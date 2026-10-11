@@ -1,6 +1,6 @@
 [package]
 name = "xtask"
-description = "Tâches de développement : génération des tables embarquées"
+description = "Development tasks: generation of the embedded tables"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

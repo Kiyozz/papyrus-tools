@@ -1,5 +1,5 @@
-//! Un document ouvert : ses réglages, son arbre, ses diagnostics, ce qu'on
-//! peut y corriger.
+//! An open document: its settings, its tree, its diagnostics, what can be
+//! fixed in it.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -17,25 +17,25 @@ use tower_lsp_server::ls_types::{
 
 use crate::position::LineMap;
 
-/// La source des diagnostics, telle que l'éditeur l'affiche.
+/// The diagnostics source, as the editor displays it.
 const SOURCE: &str = "papyrus";
 
-/// Les réglages d'un document, d'après le `papyrus.toml` qui le couvre.
+/// The settings of a document, from the `papyrus.toml` covering it.
 #[derive(Debug, Default)]
 pub(crate) struct Settings {
-    /// `game` dans papyrus.toml.
+    /// `game` in papyrus.toml.
     pub(crate) game: Option<GameId>,
-    /// Le `.flg` désigné par papyrus.toml ; sans lui, celui du jeu.
+    /// The `.flg` named by papyrus.toml; without it, the game's.
     pub(crate) flags: Option<Vec<FlagDef>>,
     pub(crate) levels: Levels,
     pub(crate) indent: Indent,
-    /// Pourquoi papyrus.toml n'a pas pu être lu : les réglages par défaut
-    /// s'appliquent, et le document le dit.
+    /// Why papyrus.toml could not be read: the defaults apply, and the
+    /// document says so.
     pub(crate) error: Option<String>,
 }
 
 impl Settings {
-    /// Les réglages qui s'appliquent à `path`.
+    /// The settings that apply to `path`.
     pub(crate) fn load(path: Option<&Path>) -> Settings {
         let Some(path) = path else {
             return Settings::default();
@@ -77,10 +77,10 @@ impl Settings {
     }
 }
 
-/// Un document ouvert dans l'éditeur.
+/// A document open in the editor.
 #[derive(Debug)]
 pub(crate) struct Document {
-    /// Le texte de l'éditeur, et l'encodage du fichier sur le disque.
+    /// The editor's text, and the encoding of the file on disk.
     pub(crate) decoded: Decoded,
     pub(crate) version: i32,
     pub(crate) path: Option<PathBuf>,
@@ -104,11 +104,11 @@ impl Document {
         document
     }
 
-    /// Relit l'encodage du fichier sur le disque, que l'éditeur ne
-    /// transmet pas.
+    /// Rereads the encoding of the file on disk, which the editor does not
+    /// send.
     ///
-    /// Un fichier ASCII, ou absent, sera enregistré en UTF-8 sans BOM dès
-    /// qu'il contiendra autre chose : c'est le défaut des éditeurs.
+    /// An ASCII file, or a missing one, will be saved as UTF-8 without BOM
+    /// as soon as it contains anything else: that is the editors' default.
     pub(crate) fn reload_encoding(&mut self) {
         let on_disk = self
             .path
@@ -122,7 +122,7 @@ impl Document {
     }
 }
 
-/// L'arbre et les diagnostics d'un document.
+/// The tree and diagnostics of a document.
 #[derive(Debug)]
 pub(crate) struct Analysis {
     pub(crate) parse: Parse,
@@ -130,11 +130,12 @@ pub(crate) struct Analysis {
     pub(crate) lints: Vec<papyrus_lint::Diagnostic>,
 }
 
-/// Analyse `document`. `detected` : la cible déduite des scripts du projet.
+/// Analyzes `document`. `detected`: the target deduced from the project's
+/// scripts.
 ///
-/// La cible vient de papyrus.toml, sinon du projet, sinon du document
-/// lui-même. Sans indice, la syntaxe de Starfield s'applique et les lints
-/// propres au jeu se taisent, comme en ligne de commande.
+/// The target comes from papyrus.toml, else from the project, else from the
+/// document itself. Without any clue, Starfield's syntax applies and
+/// game-specific lints stay quiet, as on the command line.
 pub(crate) fn analyze(
     document: &Document,
     workspace: &Workspace,
@@ -185,7 +186,7 @@ fn lint_diagnostic(lint: &papyrus_lint::Diagnostic, map: &LineMap) -> Diagnostic
     }
 }
 
-/// Les diagnostics à publier pour `document`.
+/// The diagnostics to publish for `document`.
 pub(crate) fn diagnostics(
     document: &Document,
     analysis: &Analysis,
@@ -228,7 +229,7 @@ fn text_edits(edits: &[papyrus_lint::Edit], map: &LineMap) -> Vec<TextEdit> {
         .collect()
 }
 
-/// L'indentation de la ligne qui contient `offset`.
+/// The indentation of the line containing `offset`.
 fn indentation<'a>(text: &'a str, map: &LineMap, offset: TextSize) -> (TextSize, &'a str) {
     let start = map.line_start(map.line(offset)).unwrap_or_default();
     let line = &text[usize::from(start)..];
@@ -236,8 +237,8 @@ fn indentation<'a>(text: &'a str, map: &LineMap, offset: TextSize) -> (TextSize,
     (start, &line[..width])
 }
 
-/// Les actions proposées sur `range` : correctifs sûrs, suggestions,
-/// suppression, et la correction de tout le fichier.
+/// The actions offered on `range`: safe fixes, suggestions, suppression, and
+/// fixing the whole file.
 pub(crate) fn code_actions(
     uri: &Uri,
     document: &Document,
@@ -288,8 +289,8 @@ pub(crate) fn code_actions(
         );
     }
 
-    // Tous les correctifs sûrs du fichier, d'un coup : `source.fixAll`, que
-    // les éditeurs savent appliquer à l'enregistrement.
+    // Every safe fix of the file at once: `source.fixAll`, which editors can
+    // apply on save.
     let fixable = analysis.lints.iter().any(|d| d.fix.is_some());
     if fixable && analysis.parse.ok() && !document.decoded.lossy {
         if let Some(fixed) = apply_fixes(text, &analysis.lints) {
@@ -304,13 +305,13 @@ pub(crate) fn code_actions(
     actions
 }
 
-/// Remplace tout le texte.
+/// Replaces the whole text.
 fn whole(text: &str, map: &LineMap, new_text: String) -> TextEdit {
     let end = map.position(TextSize::of(text));
     TextEdit::new(Range::new(Position::new(0, 0), end), new_text)
 }
 
-/// Le document formaté, ou `None` s'il l'est déjà.
+/// The formatted document, or `None` if it already is.
 pub(crate) fn format(
     document: &Document,
     analysis: &Analysis,
@@ -324,7 +325,7 @@ pub(crate) fn format(
     match papyrus_fmt::format(text, dialect, &options) {
         Ok(formatted) if formatted == *text => Ok(None),
         Ok(formatted) => Ok(Some(vec![whole(text, map, formatted)])),
-        // Les erreurs de syntaxe sont déjà affichées : rien à ajouter.
+        // Syntax errors are already displayed: nothing to add.
         Err(FormatError::Syntax(_)) => Ok(None),
         Err(error @ FormatError::Unsafe { .. }) => {
             Err(format!("{error} — merci de signaler ce bug"))

@@ -1,27 +1,27 @@
-//! Le vocabulaire de l'arbre syntaxique.
+//! The vocabulary of the syntax tree.
 //!
-//! `SyntaxKind` est le contrat entre le lexer, le parser, le formateur et le
-//! serveur LSP. Il est `#[repr(u16)]` parce que `rowan` stocke les nœuds sous
-//! cette forme.
+//! `SyntaxKind` is the contract between the lexer, the parser, the formatter
+//! and the language server. It is `#[repr(u16)]` because `rowan` stores nodes
+//! in that form.
 //!
-//! Les *tokens* viennent d'abord, les *nœuds* ensuite : la frontière entre les
-//! deux est le discriminant de [`SyntaxKind::SOURCE_FILE`], ce qui rend
-//! [`SyntaxKind::is_node`] gratuite.
+//! *Tokens* come first, *nodes* after: the border between the two is the
+//! discriminant of [`SyntaxKind::SOURCE_FILE`], which makes
+//! [`SyntaxKind::is_node`] free.
 
 use papyrus_dialect::GameId;
 
-/// Déclare l'énumération et la table qui permet de la reconstruire.
+/// Declares the enumeration and the table that rebuilds it.
 ///
-/// `rowan` range les kinds sous forme de `u16` ; il faut donc savoir revenir de
-/// `u16` vers `SyntaxKind`. `rust-analyzer` le fait par `transmute` ; ce crate
-/// interdit le code `unsafe`, d'où cette table générée. Écrire la liste deux
-/// fois à la main serait la garantie qu'elles finiraient par diverger.
+/// `rowan` stores kinds as `u16`; we therefore need to go back from `u16` to
+/// `SyntaxKind`. `rust-analyzer` does it with `transmute`; this crate forbids
+/// `unsafe` code, hence this generated table. Writing the list twice by hand
+/// would guarantee they eventually diverge.
 macro_rules! syntax_kinds {
     ($( $(#[$attr:meta])* $name:ident ),* $(,)?) => {
-        /// Un token ou un nœud de l'arbre Papyrus.
+        /// A token or a node of the Papyrus tree.
         ///
-        /// Les noms suivent la convention de `rust-analyzer` : majuscules pour
-        /// les éléments de l'arbre, suffixe `_KW` pour les mots-clés.
+        /// Names follow the `rust-analyzer` convention: uppercase for tree
+        /// elements, `_KW` suffix for keywords.
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
         #[repr(u16)]
         #[allow(non_camel_case_types)]
@@ -30,7 +30,7 @@ macro_rules! syntax_kinds {
         }
 
         impl SyntaxKind {
-            /// Tous les kinds, dans l'ordre de leur discriminant.
+            /// All kinds, in discriminant order.
             pub(crate) const ALL: &'static [SyntaxKind] = &[ $( SyntaxKind::$name, )* ];
         }
     };
@@ -41,44 +41,44 @@ syntax_kinds! {
 
     // ── Trivia ────────────────────────────────────────────────────────────
     //
-    // Tout ce que le parser ignore mais que l'arbre conserve, sans quoi ni le
-    // formateur ni le LSP ne peuvent fonctionner.
-    /// Espaces et tabulations. Jamais un retour à la ligne.
+    // Everything the parser ignores but the tree keeps, without which neither
+    // the formatter nor the language server can work.
+    /// Spaces and tabs. Never a line break.
     WHITESPACE,
-    /// `; commentaire jusqu'à la fin de la ligne`, retour à la ligne **exclu**.
+    /// `; comment up to the end of the line`, line break **excluded**.
     LINE_COMMENT,
-    /// `;/ commentaire bloc /;`, éventuellement sur plusieurs lignes.
+    /// `;/ block comment /;`, possibly spanning several lines.
     BLOCK_COMMENT,
-    /// `{ documentation }` attachée à une déclaration.
+    /// `{ documentation }` attached to a declaration.
     DOC_COMMENT,
-    /// `\` suivi du retour à la ligne : la déclaration continue en dessous.
+    /// `\` followed by the line break: the declaration continues below.
     ///
-    /// C'est de la trivia, mais le formateur ne doit jamais la supprimer — elle
-    /// porte la structure de la ligne logique.
+    /// It is trivia, but the formatter must never remove it — it carries the
+    /// structure of the logical line.
     LINE_CONTINUATION,
 
-    // ── Fin de ligne ──────────────────────────────────────────────────────
-    /// Retour à la ligne.
+    // ── Line end ──────────────────────────────────────────────────────────
+    /// Line break.
     ///
-    /// **N'est pas de la trivia.** Papyrus est orienté ligne : la fin de ligne
-    /// termine les déclarations comme le point-virgule ailleurs. C'est la
-    /// contrainte qui structure toute la grammaire.
+    /// **Not trivia.** Papyrus is line-oriented: the line end terminates
+    /// declarations like the semicolon elsewhere. That constraint shapes the
+    /// whole grammar.
     NEWLINE,
 
-    // ── Littéraux et identifiants ─────────────────────────────────────────
-    /// Entier décimal.
+    // ── Literals and identifiers ──────────────────────────────────────────
+    /// Decimal integer.
     INT_NUMBER,
-    /// Entier hexadécimal, `0xDEADBEEF`.
+    /// Hexadecimal integer, `0xDEADBEEF`.
     HEX_NUMBER,
-    /// Flottant. Exige des chiffres des deux côtés du point : ni `.5`, ni `1.`,
-    /// ni notation exponentielle.
+    /// Float. Requires digits on both sides of the dot: no `.5`, no `1.`, no
+    /// exponent notation.
     FLOAT_NUMBER,
-    /// Chaîne entre guillemets.
+    /// Double-quoted string.
     STRING,
-    /// Identifiant, ou mot-clé d'un jeu plus récent que la cible.
+    /// Identifier, or keyword of a game newer than the target.
     IDENT,
 
-    // ── Ponctuation ───────────────────────────────────────────────────────
+    // ── Punctuation ───────────────────────────────────────────────────────
     /// `+`
     PLUS,
     /// `-`
@@ -131,10 +131,10 @@ syntax_kinds! {
     L_BRACK,
     /// `]`
     R_BRACK,
-    /// `:` — séparateur de namespace, Fallout 4 et au-delà.
+    /// `:` — namespace separator, Fallout 4 and later.
     COLON,
 
-    // ── Mots-clés présents dès Skyrim ─────────────────────────────────────
+    // ── Keywords present since Skyrim ─────────────────────────────────────
     /// `ScriptName`
     SCRIPTNAME_KW,
     /// `Extends`
@@ -185,7 +185,7 @@ syntax_kinds! {
     GLOBAL_KW,
     /// `New`
     NEW_KW,
-    /// `As` — le cast. Présent depuis Skyrim, contrairement à `Is`.
+    /// `As` — the cast. Present since Skyrim, unlike `Is`.
     AS_KW,
     /// `Self`
     SELF_KW,
@@ -208,7 +208,7 @@ syntax_kinds! {
     /// `String`
     STRING_KW,
 
-    // ── Mots-clés ajoutés par Fallout 4 ───────────────────────────────────
+    // ── Keywords added by Fallout 4 ───────────────────────────────────────
     /// `Struct`
     STRUCT_KW,
     /// `EndStruct`
@@ -219,7 +219,7 @@ syntax_kinds! {
     ENDGROUP_KW,
     /// `Var`
     VAR_KW,
-    /// `Is` — test de type. Absent de Skyrim.
+    /// `Is` — type test. Absent from Skyrim.
     IS_KW,
     /// `Const`
     CONST_KW,
@@ -246,8 +246,8 @@ syntax_kinds! {
     /// `StructVarName`
     STRUCTVARNAME_KW,
 
-    // ── Mots-clés ajoutés par Starfield ───────────────────────────────────
-    /// `Guard` — déclaration de verrou.
+    // ── Keywords added by Starfield ───────────────────────────────────────
+    /// `Guard` — lock declaration.
     GUARD_KW,
     /// `LockGuard`
     LOCKGUARD_KW,
@@ -270,20 +270,20 @@ syntax_kinds! {
     /// `SelfOnly`
     SELFONLY_KW,
 
-    // ── Bornes ────────────────────────────────────────────────────────────
-    /// Suite d'octets que le lexer n'a pas su reconnaître.
+    // ── Bounds ────────────────────────────────────────────────────────────
+    /// A run of bytes the lexer could not recognize.
     ///
-    /// Toujours produite plutôt qu'ignorée : sans elle, l'arbre ne se
-    /// reconstruirait pas à l'identique.
+    /// Always produced rather than dropped: without it, the tree would not
+    /// rebuild identically.
     ERROR,
-    /// Fin de fichier. Jamais produite par le lexer, ajoutée par le parser.
+    /// End of file. Never produced by the lexer, added by the parser.
     EOF,
 
-    // ══ Nœuds ═════════════════════════════════════════════════════════════
+    // ══ Nodes ═════════════════════════════════════════════════════════════
     //
-    // `SOURCE_FILE` ouvre la section : tout kind à partir d'ici est un nœud.
+    // `SOURCE_FILE` opens the section: every kind from here on is a node.
 
-    /// La racine : un fichier `.psc` entier.
+    /// The root: a whole `.psc` file.
     SOURCE_FILE,
     /// `ScriptName Foo extends Bar Native Hidden`
     SCRIPT_HEADER,
@@ -292,15 +292,15 @@ syntax_kinds! {
     /// `import Foo`
     IMPORT,
 
-    /// Suite de flags. Toujours présente, éventuellement vide, pour que le
-    /// formateur ait un endroit où insérer.
+    /// Sequence of flags. Always present, possibly empty, so that the
+    /// formatter has somewhere to insert.
     FLAG_LIST,
-    /// Un flag, avec ses arguments s'il en prend : `Const`, `RequiresGuard(g)`.
+    /// A flag, with its arguments if it takes any: `Const`, `RequiresGuard(g)`.
     FLAG,
 
-    /// Nom en position de déclaration.
+    /// Name in declaration position.
     NAME,
-    /// Nom en position d'usage, `self` et `parent` compris.
+    /// Name in use position, `self` and `parent` included.
     NAME_REF,
     /// `Foo:Bar[]`, `int`, `var`
     TYPE_REF,
@@ -310,20 +310,20 @@ syntax_kinds! {
     /// `int aiCount = 3`
     PARAM,
 
-    /// Variable de script ou locale : `int x = 1`.
+    /// Script or local variable: `int x = 1`.
     VARIABLE_DECL,
-    /// `int Property Foo = 1 Auto`, forme courte ou longue.
+    /// `int Property Foo = 1 Auto`, short or long form.
     PROPERTY_DECL,
     /// `Function Foo() … EndFunction`
     FUNCTION_DECL,
-    /// `Event OnInit() … EndEvent`, y compris la forme distante
-    /// `Event ObjectReference.OnActivate(…)` de Fallout 4.
+    /// `Event OnInit() … EndEvent`, including Fallout 4's remote form
+    /// `Event ObjectReference.OnActivate(…)`.
     EVENT_DECL,
     /// `Auto State Foo … EndState`
     STATE_DECL,
     /// `Struct Foo … EndStruct`
     STRUCT_DECL,
-    /// Un champ de structure : `int Threshold`.
+    /// A struct field: `int Threshold`.
     STRUCT_FIELD,
     /// `Group Foo … EndGroup`
     GROUP_DECL,
@@ -332,13 +332,13 @@ syntax_kinds! {
     /// `Guard foo ProtectsFunctionLogic`
     GUARD_DECL,
 
-    /// Corps d'une fonction, d'un événement ou d'une branche.
+    /// Body of a function, an event or a branch.
     STMT_LIST,
-    /// Une expression employée comme instruction — presque toujours un appel.
+    /// An expression used as a statement — almost always a call.
     EXPR_STMT,
     /// `x = 1`, `x += 1`
     ASSIGN_STMT,
-    /// `Return` ou `Return expr`
+    /// `Return` or `Return expr`
     RETURN_STMT,
     /// `If … ElseIf … Else … EndIf`
     IF_STMT,
@@ -354,10 +354,10 @@ syntax_kinds! {
     TRY_LOCK_GUARD_STMT,
     /// `ElseTryLockGuard`
     ELSE_TRY_LOCK_GUARD_CLAUSE,
-    /// Les verrous pris par un `LockGuard`.
+    /// The locks taken by a `LockGuard`.
     GUARD_LIST,
 
-    /// Nombre, chaîne, `true`, `false`, `none`.
+    /// Number, string, `true`, `false`, `none`.
     LITERAL,
     /// `( expr )`
     PAREN_EXPR,
@@ -377,34 +377,34 @@ syntax_kinds! {
     NEW_EXPR,
     /// `(a, abForce = true)`
     ARG_LIST,
-    /// Un argument, nommé ou positionnel.
+    /// An argument, named or positional.
     ARG,
 
-    /// Portion que le parser n'a pas su interpréter.
+    /// A portion the parser could not interpret.
     ///
-    /// Les tokens sautés y sont rangés plutôt que perdus : l'arbre reste
-    /// reconstructible, et le formateur sait quelle zone ne pas toucher.
+    /// Skipped tokens are stored there rather than lost: the tree stays
+    /// rebuildable, and the formatter knows which area not to touch.
     ERROR_TREE,
 
-    /// Nœud ouvert puis abandonné. N'apparaît jamais dans l'arbre final.
+    /// Node opened then abandoned. Never appears in the final tree.
     TOMBSTONE,
 }
 
 impl SyntaxKind {
-    /// Reconstruit un kind depuis le `u16` que stocke `rowan`.
+    /// Rebuilds a kind from the `u16` stored by `rowan`.
     pub fn from_raw(raw: u16) -> Option<SyntaxKind> {
         Self::ALL.get(raw as usize).copied()
     }
 
-    /// Vrai pour un nœud interne, faux pour un token.
+    /// True for an inner node, false for a token.
     pub const fn is_node(self) -> bool {
         (self as u16) >= (SyntaxKind::SOURCE_FILE as u16)
     }
 
-    /// Vrai pour les tokens que le parser saute.
+    /// True for the tokens the parser skips.
     ///
-    /// [`SyntaxKind::NEWLINE`] n'en fait pas partie : la fin de ligne porte du
-    /// sens en Papyrus.
+    /// [`SyntaxKind::NEWLINE`] is not one of them: the line end carries
+    /// meaning in Papyrus.
     pub const fn is_trivia(self) -> bool {
         matches!(
             self,
@@ -416,7 +416,7 @@ impl SyntaxKind {
         )
     }
 
-    /// Vrai pour les commentaires, sous toutes leurs formes.
+    /// True for comments, in all their forms.
     pub const fn is_comment(self) -> bool {
         matches!(
             self,
@@ -424,12 +424,12 @@ impl SyntaxKind {
         )
     }
 
-    /// Jeu à partir duquel ce token est un mot-clé, ou `None` s'il n'en est pas un.
+    /// The game from which this token is a keyword, or `None` if it is not one.
     pub fn keyword_since(self) -> Option<GameId> {
         crate::keywords::since(self)
     }
 
-    /// Vrai si ce token est un mot-clé dans au moins un jeu.
+    /// True if this token is a keyword in at least one game.
     pub fn is_keyword(self) -> bool {
         self.keyword_since().is_some()
     }
@@ -456,8 +456,8 @@ mod tests {
 
     #[test]
     fn tokens_et_noeuds_ne_se_melangent_pas() {
-        // La frontière est un simple `>=` sur le discriminant ; encore
-        // faut-il qu'aucun token ne se soit glissé après elle.
+        // The border is a plain `>=` on the discriminant; provided no token
+        // slipped in after it.
         assert!(!SyntaxKind::EOF.is_node());
         assert!(!SyntaxKind::IDENT.is_node());
         assert!(SyntaxKind::SOURCE_FILE.is_node());

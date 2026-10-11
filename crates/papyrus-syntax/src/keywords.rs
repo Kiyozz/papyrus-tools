@@ -1,14 +1,14 @@
-//! La table des mots-clés — source de vérité unique de la matrice par jeu.
+//! The keyword table — single source of truth for the per-game matrix.
 //!
-//! Ajouter un mot-clé, c'est ajouter une ligne ici. Rien d'autre dans le lexer
-//! ni dans la grammaire ne connaît la liste.
+//! Adding a keyword means adding a line here. Nothing else in the lexer or
+//! the grammar knows the list.
 //!
-//! Chaque entrée porte le jeu à partir duquel le mot est réservé. Le lexer
-//! produit toujours [`SyntaxKind::IDENT`] pour un identifiant ; c'est
-//! [`crate::token_source`] qui le promeut en mot-clé, et seulement si la cible
-//! est assez récente. Sans ce filtre, les milliers de scripts Skyrim qui
-//! déclarent une variable nommée `Var`, `Struct` ou `Guard` produiraient des
-//! erreurs de syntaxe.
+//! Each entry carries the game from which the word is reserved. The lexer
+//! always produces [`SyntaxKind::IDENT`] for an identifier; it is
+//! [`crate::token_source`] that promotes it to a keyword, and only if the
+//! target is recent enough. Without this filter, the thousands of Skyrim
+//! scripts declaring a variable named `Var`, `Struct` or `Guard` would
+//! produce syntax errors.
 
 use std::cmp::Ordering;
 
@@ -16,17 +16,17 @@ use papyrus_dialect::GameId;
 
 use crate::SyntaxKind;
 
-/// Mots réservés, triés par nom.
+/// Reserved words, sorted by name.
 ///
-/// Le tri conditionne la recherche dichotomique ; un test le vérifie.
+/// The order enables binary search; a test checks it.
 ///
-/// Sources : les grammaires ANTLR par jeu de `fireundubh/OpenPapyrus`,
-/// recoupées avec le lexer de Caprica et, pour Starfield, avec les scripts
-/// vanilla. Les cas litigieux ont été tranchés en compilant un cas de test avec
-/// le `PapyrusCompiler.exe` du jeu concerné.
+/// Sources: the per-game ANTLR grammars of `fireundubh/OpenPapyrus`,
+/// cross-checked with Caprica's lexer and, for Starfield, with the vanilla
+/// scripts. Disputed cases were settled by compiling a test case with the
+/// game's `PapyrusCompiler.exe`.
 static KEYWORDS: &[(&str, SyntaxKind, GameId)] = &[
-    // `as` existe depuis Skyrim, contrairement à ce qu'indique le classement de
-    // Caprica : `akRef as Actor` compile avec le compilateur de Skyrim SE.
+    // `as` exists since Skyrim, contrary to Caprica's classification:
+    // `akRef as Actor` compiles with the Skyrim SE compiler.
     ("as", SyntaxKind::AS_KW, GameId::Skyrim),
     ("auto", SyntaxKind::AUTO_KW, GameId::Skyrim),
     ("autoreadonly", SyntaxKind::AUTOREADONLY_KW, GameId::Skyrim),
@@ -90,7 +90,7 @@ static KEYWORDS: &[(&str, SyntaxKind, GameId)] = &[
     ("if", SyntaxKind::IF_KW, GameId::Skyrim),
     ("import", SyntaxKind::IMPORT_KW, GameId::Skyrim),
     ("int", SyntaxKind::INT_KW, GameId::Skyrim),
-    // `is` est rejeté par le compilateur de Skyrim SE — vérifié.
+    // `is` is rejected by the Skyrim SE compiler — verified.
     ("is", SyntaxKind::IS_KW, GameId::Fallout4),
     ("length", SyntaxKind::LENGTH_KW, GameId::Skyrim),
     ("lockguard", SyntaxKind::LOCKGUARD_KW, GameId::Starfield),
@@ -139,22 +139,22 @@ static KEYWORDS: &[(&str, SyntaxKind, GameId)] = &[
     ("while", SyntaxKind::WHILE_KW, GameId::Skyrim),
 ];
 
-// Non réservés, volontairement :
+// Deliberately not reserved:
 //
-// - `Internal` — décrit par la grammaire ANTLR de Starfield comme un
-//   modificateur d'accès, mais absent des 5 033 scripts vanilla. Le réserver
-//   casserait tout script déclarant une variable `internal` sans rien apporter.
-// - `For`, `ForEach`, `Switch`, `Break`, `Continue`, `Do` — extensions propres
-//   à Caprica, jamais acceptées par un compilateur Bethesda. Elles viendront
-//   avec `Extensions::caprica_control_flow`.
-// - `ScriptObject`, `GlobalVariable`, `Form`, `Actor`… — des types du moteur,
-//   résolus par le système de types et non par la grammaire.
+// - `Internal` — described by Starfield's ANTLR grammar as an access
+//   modifier, but absent from the 5,033 vanilla scripts. Reserving it would
+//   break any script declaring an `internal` variable, for no gain.
+// - `For`, `ForEach`, `Switch`, `Break`, `Continue`, `Do` — Caprica-only
+//   extensions, never accepted by a Bethesda compiler. They will come with
+//   `Extensions::caprica_control_flow`.
+// - `ScriptObject`, `GlobalVariable`, `Form`, `Actor`… — engine types,
+//   resolved by the type system, not by the grammar.
 
-/// Compare un nom de la table, déjà en minuscules, à un texte de casse quelconque.
+/// Compares a table name, already lowercase, with text of any case.
 ///
-/// Papyrus est insensible à la casse partout, y compris sur les identifiants.
-/// Les identifiants étant restreints à l'ASCII par le lexer, l'octet à octet
-/// suffit.
+/// Papyrus is case-insensitive everywhere, identifiers included. Since the
+/// lexer restricts identifiers to ASCII, a byte-by-byte comparison is
+/// enough.
 fn cmp_ignore_ascii_case(probe_lower: &str, target: &str) -> Ordering {
     let mut probe = probe_lower.bytes();
     let mut target = target.bytes();
@@ -171,10 +171,10 @@ fn cmp_ignore_ascii_case(probe_lower: &str, target: &str) -> Ordering {
     }
 }
 
-/// Cherche `text` dans la table, sans tenir compte de la casse.
+/// Looks `text` up in the table, case-insensitively.
 ///
-/// Renvoie le token et le jeu depuis lequel le mot est réservé. Le filtrage par
-/// dialecte n'a pas lieu ici : voir [`crate::token_source::promote`].
+/// Returns the token and the game from which the word is reserved. Dialect
+/// filtering does not happen here: see [`crate::token_source::promote`].
 pub fn lookup(text: &str) -> Option<(SyntaxKind, GameId)> {
     KEYWORDS
         .binary_search_by(|(name, _, _)| cmp_ignore_ascii_case(name, text))
@@ -185,10 +185,10 @@ pub fn lookup(text: &str) -> Option<(SyntaxKind, GameId)> {
         })
 }
 
-/// Jeu depuis lequel `kind` est un mot-clé, ou `None` si c'en est pas un.
+/// The game from which `kind` is a keyword, or `None` if it is not one.
 ///
-/// Recherche linéaire : n'est appelée que pour construire des diagnostics,
-/// jamais dans le chemin chaud du lexage.
+/// Linear search: only called to build diagnostics, never on the lexing hot
+/// path.
 pub fn since(kind: SyntaxKind) -> Option<GameId> {
     KEYWORDS
         .iter()
@@ -196,10 +196,10 @@ pub fn since(kind: SyntaxKind) -> Option<GameId> {
         .map(|(_, _, since)| *since)
 }
 
-/// Orthographe canonique d'un mot-clé, telle qu'écrite par Bethesda.
+/// Canonical spelling of a keyword, as Bethesda writes it.
 ///
-/// Servira au formateur pour `keyword-case = "bethesda"`. La table stocke les
-/// noms en minuscules, qui sont la forme de recherche.
+/// Will serve the formatter for `keyword-case = "bethesda"`. The table stores
+/// lowercase names, which are the lookup form.
 pub fn canonical_lower(kind: SyntaxKind) -> Option<&'static str> {
     KEYWORDS
         .iter()
@@ -207,7 +207,7 @@ pub fn canonical_lower(kind: SyntaxKind) -> Option<&'static str> {
         .map(|(name, _, _)| *name)
 }
 
-/// Nombre de mots réservés, tous jeux confondus.
+/// Number of reserved words, all games combined.
 pub fn count() -> usize {
     KEYWORDS.len()
 }
@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn les_prefixes_ne_matchent_pas() {
-        // La comparaison doit distinguer un mot de son préfixe.
+        // The comparison must tell a word from its prefix.
         assert_eq!(lookup("self"), Some((SyntaxKind::SELF_KW, GameId::Skyrim)));
         assert_eq!(
             lookup("selfonly"),

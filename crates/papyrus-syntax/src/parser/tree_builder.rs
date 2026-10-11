@@ -1,14 +1,14 @@
-//! Des événements vers l'arbre `rowan`.
+//! From events to the `rowan` tree.
 //!
-//! Le parser n'a vu que les tokens significatifs ; ce module rejoue ses
-//! événements sur la liste complète et réinsère la trivia au passage.
+//! The parser only saw the significant tokens; this module replays its
+//! events over the full list and reinserts the trivia along the way.
 //!
-//! # Où va la trivia
+//! # Where trivia goes
 //!
-//! Dans le nœud **parent**, avant l'ouverture de l'enfant. Un nœud commence
-//! donc exactement sur son premier token significatif et finit sur son dernier,
-//! ce que veulent les diagnostics et la sélection dans l'éditeur. La trivia
-//! qui suit le dernier token du fichier va dans la racine.
+//! Into the **parent** node, before the child opens. A node thus starts
+//! exactly on its first significant token and ends on its last, which is
+//! what diagnostics and editor selection want. Trivia following the last
+//! token of the file goes into the root.
 
 use std::mem;
 
@@ -19,7 +19,7 @@ use crate::SyntaxKind;
 use crate::lexer::Token;
 use crate::syntax_node::Papyrus;
 
-/// Construit l'arbre à partir des événements du parser.
+/// Builds the tree from the parser's events.
 pub(super) fn build(source: &str, tokens: &[Token], mut events: Vec<Event>) -> GreenNode {
     let mut builder = TreeBuilder {
         source,
@@ -36,8 +36,8 @@ pub(super) fn build(source: &str, tokens: &[Token], mut events: Vec<Event>) -> G
                 kind,
                 forward_parent,
             } => {
-                // Remonte la chaîne des parents ajoutés après coup par
-                // `precede`, puis les ouvre du plus externe au plus interne.
+                // Walks up the chain of parents added afterwards by
+                // `precede`, then opens them from outermost to innermost.
                 parents.push(kind);
                 let mut index = i;
                 let mut next = forward_parent;
@@ -71,7 +71,7 @@ pub(super) fn build(source: &str, tokens: &[Token], mut events: Vec<Event>) -> G
 struct TreeBuilder<'a> {
     source: &'a str,
     tokens: &'a [Token],
-    /// Index dans `tokens`, trivia comprise.
+    /// Index into `tokens`, trivia included.
     pos: usize,
     depth: usize,
     inner: GreenNodeBuilder<'static>,
@@ -79,8 +79,8 @@ struct TreeBuilder<'a> {
 
 impl TreeBuilder<'_> {
     fn start_node(&mut self, kind: SyntaxKind) {
-        // La racine prend tout, y compris la trivia de tête : rien ne doit
-        // rester hors de l'arbre.
+        // The root takes everything, leading trivia included: nothing may
+        // stay outside the tree.
         if self.depth > 0 {
             self.eat_trivia();
         }
@@ -98,9 +98,9 @@ impl TreeBuilder<'_> {
     fn finish_node(&mut self) {
         self.depth -= 1;
         if self.depth == 0 {
-            // Filet de sécurité : ce que le parser n'aurait pas consommé entre
-            // dans la racine plutôt que d'être perdu. En temps normal, il ne
-            // reste ici que la trivia finale.
+            // Safety net: whatever the parser did not consume goes into the
+            // root rather than being lost. Normally only the final trivia is
+            // left here.
             while let Some(&token) = self.tokens.get(self.pos) {
                 debug_assert!(
                     token.kind.is_trivia(),

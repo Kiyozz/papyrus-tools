@@ -1,18 +1,17 @@
-//! Le parser : des tokens vers un arbre syntaxique concret.
+//! The parser: from tokens to a concrete syntax tree.
 //!
-//! Construit sur le modèle de `rust-analyzer`. La grammaire ne voit que les
-//! tokens significatifs et émet des [`Event`] plats ; [`tree_builder`] les
-//! rejoue en réinjectant la trivia pour obtenir un arbre `rowan` qui reproduit
-//! la source octet pour octet.
+//! Built after `rust-analyzer`. The grammar only sees significant tokens and
+//! emits flat [`Event`]s; [`tree_builder`] replays them, reinjecting the
+//! trivia, to obtain a `rowan` tree that reproduces the source byte for byte.
 //!
-//! # Garanties
+//! # Guarantees
 //!
-//! - **Toujours un arbre.** Une source invalide donne un arbre complet,
-//!   parsemé de nœuds [`SyntaxKind::ERROR_TREE`], et une liste d'erreurs.
-//! - **Sans perte.** `parse(src).syntax().to_string() == src`, quelle que soit
-//!   l'entrée.
-//! - **Récupération locale.** Une erreur ne déborde pas de sa ligne, ni un bloc
-//!   mal fermé de sa déclaration.
+//! - **Always a tree.** An invalid source gives a complete tree, dotted with
+//!   [`SyntaxKind::ERROR_TREE`] nodes, and a list of errors.
+//! - **Lossless.** `parse(src).syntax().to_string() == src`, whatever the
+//!   input.
+//! - **Local recovery.** An error does not spill over its line, nor a badly
+//!   closed block over its declaration.
 
 mod event;
 mod grammar;
@@ -33,7 +32,7 @@ use crate::{SyntaxKind, lex_with_dialect, reserved_later};
 use event::Event;
 use token_set::TokenSet;
 
-/// Un passage que le parser n'a pas su lire.
+/// A passage the parser could not read.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
     message: String,
@@ -41,12 +40,12 @@ pub struct ParseError {
 }
 
 impl ParseError {
-    /// Ce qui ne va pas, en une phrase.
+    /// What is wrong, in one sentence.
     pub fn message(&self) -> &str {
         &self.message
     }
 
-    /// Où, en octets dans la source.
+    /// Where, in bytes in the source.
     pub fn range(&self) -> TextRange {
         self.range
     }
@@ -58,7 +57,7 @@ impl fmt::Display for ParseError {
     }
 }
 
-/// Le résultat d'une analyse : un arbre, toujours, et les erreurs rencontrées.
+/// The result of a parse: a tree, always, and the errors encountered.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Parse {
     green: GreenNode,
@@ -66,40 +65,40 @@ pub struct Parse {
 }
 
 impl Parse {
-    /// La racine de l'arbre, de kind [`SyntaxKind::SOURCE_FILE`].
+    /// The root of the tree, of kind [`SyntaxKind::SOURCE_FILE`].
     pub fn syntax(&self) -> SyntaxNode {
         SyntaxNode::new_root(self.green.clone())
     }
 
-    /// L'arbre vert, immuable et partageable entre threads.
+    /// The green tree, immutable and shareable between threads.
     pub fn green(&self) -> &GreenNode {
         &self.green
     }
 
-    /// Les erreurs, dans l'ordre de la source.
+    /// The errors, in source order.
     pub fn errors(&self) -> &[ParseError] {
         &self.errors
     }
 
-    /// Vrai si la source a été lue sans erreur.
+    /// True if the source was read without errors.
     pub fn ok(&self) -> bool {
         self.errors.is_empty()
     }
 }
 
-/// Analyse `source` pour la cible `dialect`.
+/// Parses `source` for the `dialect` target.
 ///
-/// C'est le point d'entrée normal du parsing.
+/// This is the normal parsing entry point.
 pub fn parse(source: &str, dialect: Dialect) -> Parse {
     let tokens = lex_with_dialect(source, dialect);
     parse_tokens(source, &tokens, dialect)
 }
 
-/// Analyse des tokens déjà produits par [`lex_with_dialect`].
+/// Parses tokens already produced by [`lex_with_dialect`].
 ///
 /// # Panics
 ///
-/// Si `tokens` n'est pas le découpage de `source`.
+/// If `tokens` is not the tokenization of `source`.
 pub fn parse_tokens(source: &str, tokens: &[Token], dialect: Dialect) -> Parse {
     let mut p = Parser::new(source, tokens, dialect);
     grammar::source_file(&mut p);
@@ -110,21 +109,21 @@ pub fn parse_tokens(source: &str, tokens: &[Token], dialect: Dialect) -> Parse {
     Parse { green, errors }
 }
 
-/// Pas d'analyse autorisés sans consommer de token.
+/// Parse steps allowed without consuming a token.
 ///
-/// Toute boucle de la grammaire doit avancer ; si elle tourne sur place, c'est
-/// un bug, et mieux vaut le voir que geler l'éditeur.
+/// Every grammar loop must advance; if one spins in place, it is a bug, and
+/// better to see it than to freeze the editor.
 const FUEL: u32 = 256;
 
-/// L'état du parser : position dans les tokens significatifs, événements
-/// émis, erreurs.
+/// The parser state: position in the significant tokens, emitted events,
+/// errors.
 #[derive(Debug)]
 pub(crate) struct Parser<'t> {
-    /// Le texte, pour expliquer les erreurs.
+    /// The text, to explain errors.
     source: &'t str,
-    /// Kinds des tokens significatifs, trivia retirée, suivis de `EOF`.
+    /// Kinds of the significant tokens, trivia removed, followed by `EOF`.
     kinds: Vec<SyntaxKind>,
-    /// Plages correspondantes, pour situer les erreurs.
+    /// The matching ranges, to locate errors.
     ranges: Vec<TextRange>,
     pos: usize,
     events: Vec<Event>,
@@ -156,12 +155,12 @@ impl<'t> Parser<'t> {
         }
     }
 
-    /// La cible de l'analyse.
+    /// The target of the parse.
     pub(crate) fn dialect(&self) -> Dialect {
         self.dialect
     }
 
-    /// Le `n`-ième token significatif à venir, `EOF` au-delà de la fin.
+    /// The `n`-th upcoming significant token, `EOF` past the end.
     pub(crate) fn nth(&self, n: usize) -> SyntaxKind {
         let fuel = self.fuel.get();
         assert!(fuel != 0, "parser bloqué à l'index {}", self.pos);
@@ -173,22 +172,22 @@ impl<'t> Parser<'t> {
             .unwrap_or(SyntaxKind::EOF)
     }
 
-    /// Le token courant.
+    /// The current token.
     pub(crate) fn current(&self) -> SyntaxKind {
         self.nth(0)
     }
 
-    /// Vrai si le token courant est `kind`.
+    /// True if the current token is `kind`.
     pub(crate) fn at(&self, kind: SyntaxKind) -> bool {
         self.nth(0) == kind
     }
 
-    /// Vrai si le token courant appartient à `set`.
+    /// True if the current token belongs to `set`.
     pub(crate) fn at_ts(&self, set: TokenSet) -> bool {
         set.contains(self.nth(0))
     }
 
-    /// Consomme le token courant s'il est `kind`.
+    /// Consumes the current token if it is `kind`.
     pub(crate) fn eat(&mut self, kind: SyntaxKind) -> bool {
         if !self.at(kind) {
             return false;
@@ -197,7 +196,7 @@ impl<'t> Parser<'t> {
         true
     }
 
-    /// Consomme le token courant, qui doit être `kind`.
+    /// Consumes the current token, which must be `kind`.
     pub(crate) fn bump(&mut self, kind: SyntaxKind) {
         assert!(
             self.eat(kind),
@@ -206,7 +205,7 @@ impl<'t> Parser<'t> {
         );
     }
 
-    /// Consomme le token courant, quel qu'il soit. Sans effet sur `EOF`.
+    /// Consumes the current token, whatever it is. No effect on `EOF`.
     pub(crate) fn bump_any(&mut self) {
         let kind = self.current();
         if kind != SyntaxKind::EOF {
@@ -214,7 +213,7 @@ impl<'t> Parser<'t> {
         }
     }
 
-    /// Consomme `kind` ou signale son absence, sans rien consommer d'autre.
+    /// Consumes `kind` or reports it missing, consuming nothing else.
     pub(crate) fn expect(&mut self, kind: SyntaxKind, what: &str) -> bool {
         if self.eat(kind) {
             return true;
@@ -223,18 +222,18 @@ impl<'t> Parser<'t> {
         false
     }
 
-    /// Signale une erreur sur le token courant.
+    /// Reports an error on the current token.
     ///
-    /// Une seule par token : quand une expression manque, la fin de ligne qui
-    /// n'arrive pas n'est qu'une conséquence, inutile de la signaler aussi.
+    /// Only one per token: when an expression is missing, the line end that
+    /// does not come is only a consequence, no need to report it too.
     pub(crate) fn error(&mut self, message: impl Into<String>) {
         let range = self.current_range();
         if self.errors.last().is_some_and(|e| e.range == range) {
             return;
         }
         let mut message = message.into();
-        // `x is Actor` en Skyrim, `Guard g` en Fallout 4 : l'erreur tombe sur
-        // un mot que la cible ne réserve pas. Autant dire pourquoi.
+        // `x is Actor` in Skyrim, `Guard g` in Fallout 4: the error falls on a
+        // word the target does not reserve. Might as well say why.
         if self.current() == SyntaxKind::IDENT {
             let text = &self.source[range];
             if let Some((_, since)) = reserved_later(text, self.dialect) {
@@ -247,7 +246,7 @@ impl<'t> Parser<'t> {
         self.error_at(range, message);
     }
 
-    /// Signale une erreur sur une plage donnée.
+    /// Reports an error on a given range.
     pub(crate) fn error_at(&mut self, range: TextRange, message: impl Into<String>) {
         self.errors.push(ParseError {
             message: message.into(),
@@ -255,12 +254,12 @@ impl<'t> Parser<'t> {
         });
     }
 
-    /// Plage du token courant.
+    /// Range of the current token.
     pub(crate) fn current_range(&self) -> TextRange {
         self.ranges[self.pos.min(self.ranges.len() - 1)]
     }
 
-    /// Ouvre un nœud dont le kind sera fixé à la complétion.
+    /// Opens a node whose kind is set on completion.
     pub(crate) fn start(&mut self) -> Marker {
         let pos = self.events.len() as u32;
         self.events.push(Event::tombstone());
@@ -274,7 +273,7 @@ impl<'t> Parser<'t> {
     }
 }
 
-/// Un nœud ouvert, en attente de son kind.
+/// An open node, waiting for its kind.
 #[derive(Debug)]
 #[must_use = "un marqueur doit être complété ou abandonné"]
 pub(crate) struct Marker {
@@ -282,7 +281,7 @@ pub(crate) struct Marker {
 }
 
 impl Marker {
-    /// Ferme le nœud et lui donne son kind.
+    /// Closes the node and gives it its kind.
     pub(crate) fn complete(self, p: &mut Parser, kind: SyntaxKind) -> CompletedMarker {
         match &mut p.events[self.pos as usize] {
             Event::Start { kind: slot, .. } => *slot = kind,
@@ -292,7 +291,7 @@ impl Marker {
         CompletedMarker { pos: self.pos }
     }
 
-    /// Renonce au nœud ; ses enfants remontent dans le parent.
+    /// Gives up the node; its children move up into the parent.
     pub(crate) fn abandon(self, p: &mut Parser) {
         if self.pos as usize == p.events.len() - 1 {
             p.events.pop();
@@ -300,17 +299,17 @@ impl Marker {
     }
 }
 
-/// Un nœud fermé, qu'on peut encore envelopper.
+/// A closed node, which can still be wrapped.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct CompletedMarker {
     pos: u32,
 }
 
 impl CompletedMarker {
-    /// Ouvre un nœud qui contiendra celui-ci.
+    /// Opens a node that will contain this one.
     ///
-    /// C'est ce qui permet de lire `a + b` de gauche à droite : on découvre
-    /// qu'`a` est l'opérande gauche d'une addition après l'avoir terminé.
+    /// This is what allows reading `a + b` left to right: we find out that
+    /// `a` is the left operand of an addition after finishing it.
     pub(crate) fn precede(self, p: &mut Parser) -> Marker {
         let parent = p.start();
         match &mut p.events[self.pos as usize] {

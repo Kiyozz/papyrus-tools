@@ -1,8 +1,8 @@
-//! La coloration sémantique : ce que chaque identifiant désigne, d'après sa
-//! place dans l'arbre.
+//! Semantic highlighting: what each identifier designates, from its place in
+//! the tree.
 //!
-//! Sans résolution des noms, un nom en position de valeur est une variable ;
-//! une property ou un paramètre utilisés ne sont pas distingués d'une locale.
+//! Without name resolution, a name in value position is a variable; a used
+//! property or parameter is not told apart from a local.
 
 use papyrus_syntax::{SyntaxKind, SyntaxNode, SyntaxToken, TextRange};
 use tower_lsp_server::ls_types::{
@@ -11,7 +11,7 @@ use tower_lsp_server::ls_types::{
 
 use crate::position::LineMap;
 
-/// Les types de tokens, dans l'ordre de leur indice.
+/// The token types, in index order.
 const TYPES: &[SemanticTokenType] = &[
     SemanticTokenType::KEYWORD,
     SemanticTokenType::COMMENT,
@@ -50,7 +50,7 @@ enum Kind {
 const DECLARATION: u32 = 1 << 0;
 const DOCUMENTATION: u32 = 1 << 1;
 
-/// La légende annoncée au client.
+/// The legend announced to the client.
 pub(crate) fn legend() -> SemanticTokensLegend {
     SemanticTokensLegend {
         token_types: TYPES.to_vec(),
@@ -61,14 +61,14 @@ pub(crate) fn legend() -> SemanticTokensLegend {
     }
 }
 
-/// Le token significatif qui suit `node`.
+/// The significant token following `node`.
 fn next_significant(node: &SyntaxNode) -> Option<SyntaxKind> {
     std::iter::successors(node.next_sibling_or_token(), |e| e.next_sibling_or_token())
         .map(|e| e.kind())
         .find(|k| !k.is_trivia())
 }
 
-/// Ce que désigne un nom en position d'usage.
+/// What a name in use position designates.
 fn usage(name_ref: &SyntaxNode) -> Kind {
     let Some(parent) = name_ref.parent() else {
         return Kind::Variable;
@@ -76,7 +76,7 @@ fn usage(name_ref: &SyntaxNode) -> Kind {
     let first = parent.first_child().as_ref() == Some(name_ref);
     match parent.kind() {
         SyntaxKind::CALL_EXPR if first => Kind::Function,
-        // `x.Foo` ou `x.Foo()`
+        // `x.Foo` or `x.Foo()`
         SyntaxKind::FIELD_EXPR if !first => {
             let called = parent.parent().is_some_and(|p| {
                 p.kind() == SyntaxKind::CALL_EXPR && p.first_child().as_ref() == Some(&parent)
@@ -88,7 +88,7 @@ fn usage(name_ref: &SyntaxNode) -> Kind {
     }
 }
 
-/// Ce que déclare un nom.
+/// What a name declares.
 fn declaration(name: &SyntaxNode) -> Option<Kind> {
     Some(match name.parent()?.kind() {
         SyntaxKind::SCRIPT_HEADER => Kind::Class,
@@ -117,7 +117,7 @@ fn classify(token: &SyntaxToken) -> Option<(Kind, u32)> {
     if kind != SyntaxKind::IDENT && !kind.is_keyword() {
         return None;
     }
-    // Un mot-clé peut servir de nom : `Auto State Default`.
+    // A keyword can serve as a name: `Auto State Default`.
     let parent = token.parent()?;
     match parent.kind() {
         SyntaxKind::NAME => declaration(&parent).map(|k| (k, DECLARATION)),
@@ -129,8 +129,8 @@ fn classify(token: &SyntaxToken) -> Option<(Kind, u32)> {
     }
 }
 
-/// Les tokens de `root`, encodés comme LSP les attend : chacun relatif au
-/// précédent, et coupé à chaque fin de ligne.
+/// The tokens of `root`, encoded as LSP expects: each relative to the
+/// previous one, and split at every line end.
 pub(crate) fn tokens(root: &SyntaxNode, map: &LineMap) -> Vec<SemanticToken> {
     let mut out = Vec::new();
     let (mut last_line, mut last_start) = (0, 0);
@@ -169,7 +169,7 @@ pub(crate) fn tokens(root: &SyntaxNode, map: &LineMap) -> Vec<SemanticToken> {
             push(range, kind, modifiers);
             continue;
         }
-        // Un commentaire sur plusieurs lignes : un morceau par ligne.
+        // A comment spanning several lines: one piece per line.
         for line in first..=last {
             let start = map
                 .line_start(line)
@@ -190,7 +190,7 @@ mod tests {
     use crate::position::Columns;
     use papyrus_dialect::{Dialect, GameId};
 
-    /// `(texte, type, modificateurs)` de chaque token, positions décodées.
+    /// `(text, type, modifiers)` of each token, positions decoded.
     fn decode(text: &str) -> Vec<(String, &'static str, u32)> {
         let parse = papyrus_syntax::parse(text, Dialect::new(GameId::Fallout4));
         let map = LineMap::new(text, Columns::Utf8);
@@ -251,7 +251,7 @@ EndFunction
         assert_eq!(expect("Kill"), Some(("method", 0)));
         assert_eq!(expect("abForce"), Some(("parameter", 0)));
         assert_eq!(expect("true"), Some(("keyword", 0)));
-        // Les usages : la variable `target`, l'appel `Run`.
+        // The uses: the variable `target`, the call `Run`.
         let uses: Vec<_> = found
             .iter()
             .filter(|(w, _, m)| (w == "target" || w == "Run") && *m == 0)

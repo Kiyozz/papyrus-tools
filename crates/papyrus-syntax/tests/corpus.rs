@@ -1,9 +1,8 @@
-//! Lexage et parsing du corpus vanilla — le critère de sortie de la v0.1.
+//! Lexing and parsing the vanilla corpus — the exit criterion of v0.1.
 //!
-//! Ces tests ne tournent qu'avec la feature `external-corpus`, et lisent les
-//! chemins dans l'environnement. Aucune installation de jeu n'est requise pour
-//! construire ou tester le projet, et aucun chemin propre à une machine
-//! n'entre dans le dépôt.
+//! These tests only run with the `external-corpus` feature, and read their
+//! paths from the environment. No game installation is required to build or
+//! test the project, and no machine-specific path enters the repository.
 //!
 //! ```sh
 //! PAPYRUS_CORPUS_SKYRIM=".../Data/Source/Scripts" \
@@ -19,7 +18,7 @@ use std::path::{Path, PathBuf};
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_syntax::{SyntaxKind, lex_with_dialect, parse_tokens};
 
-/// Variable d'environnement portant les sources d'un jeu.
+/// Environment variable holding a game's sources.
 fn corpus_var(game: GameId) -> &'static str {
     match game {
         GameId::Skyrim => "PAPYRUS_CORPUS_SKYRIM",
@@ -28,10 +27,10 @@ fn corpus_var(game: GameId) -> &'static str {
     }
 }
 
-/// Tous les `.psc` sous `root`, sous-dossiers compris.
+/// Every `.psc` under `root`, subfolders included.
 ///
-/// Fallout 4 et Starfield rangent leurs sources en sous-dossiers (`Base`,
-/// `User`, `DLC*`, `Fragments`…), le parcours doit donc être récursif.
+/// Fallout 4 and Starfield store their sources in subfolders (`Base`,
+/// `User`, `DLC*`, `Fragments`…), so the walk must be recursive.
 fn collect_scripts(root: &Path, out: &mut Vec<PathBuf>) {
     let Ok(entries) = fs::read_dir(root) else {
         return;
@@ -53,14 +52,14 @@ struct Stats {
     files: usize,
     tokens: usize,
     bytes: usize,
-    /// Tokens `ERROR` du lexer.
+    /// `ERROR` tokens from the lexer.
     lex_errors: Vec<String>,
-    /// Erreurs du parser, toutes comptées, les premières détaillées.
+    /// Parser errors, all counted, the first ones detailed.
     parse_errors: Vec<String>,
     parse_error_count: usize,
 }
 
-/// `fichier:ligne:colonne`, colonnes en octets à partir de 1.
+/// `file:line:column`, columns in bytes starting at 1.
 fn locate(path: &Path, source: &str, offset: usize) -> String {
     let before = &source[..offset];
     let line = before.matches('\n').count() + 1;
@@ -68,7 +67,7 @@ fn locate(path: &Path, source: &str, offset: usize) -> String {
     format!("{}:{line}:{column}", path.display())
 }
 
-/// La ligne qui contient `offset`, sans sa fin de ligne.
+/// The line containing `offset`, without its line end.
 fn line_at(source: &str, offset: usize) -> &str {
     let start = source[..offset].rfind('\n').map_or(0, |i| i + 1);
     let end = source[offset..]
@@ -103,14 +102,14 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
 
     for path in &scripts {
         let raw = fs::read(path).expect("lecture");
-        // Le décodage réel — Windows-1252 pour Skyrim, UTF-8 pour les autres —
-        // viendra avec `papyrus-project`. Ici, n'importe quel `&str` valide
-        // suffit à éprouver le lexer.
+        // Real decoding — Windows-1252 for Skyrim, UTF-8 for the others —
+        // will come with `papyrus-project`. Here, any valid `&str` is enough
+        // to exercise the lexer.
         let source = String::from_utf8_lossy(&raw);
 
         let tokens = lex_with_dialect(&source, dialect);
 
-        // L'invariant : les tokens pavent la source sans trou.
+        // The invariant: the tokens tile the source without gaps.
         let mut offset = 0usize;
         for token in &tokens {
             assert_eq!(
@@ -148,8 +147,8 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
             }
         }
 
-        // Le parsing : l'arbre doit reproduire la source, et la lire sans
-        // erreur puisque ces scripts compilent.
+        // Parsing: the tree must reproduce the source, and read it without
+        // errors since these scripts compile.
         let parse = parse_tokens(&source, &tokens, dialect);
         assert_eq!(
             parse.syntax().to_string(),
@@ -157,8 +156,8 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
             "l'arbre de {} ne reproduit pas la source",
             path.display()
         );
-        // Une erreur sans message serait un bug : tout ERROR_TREE doit
-        // venir avec la sienne.
+        // An error without a message would be a bug: every ERROR_TREE must
+        // come with its own.
         let silent = parse
             .syntax()
             .descendants()

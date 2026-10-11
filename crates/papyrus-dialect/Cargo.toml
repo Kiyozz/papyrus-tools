@@ -1,6 +1,6 @@
 [package]
 name = "papyrus-dialect"
-description = "Cibles de compilation Papyrus (Skyrim, Fallout 4, Starfield) et fonctionnalités associées"
+description = "Papyrus compilation targets (Skyrim, Fallout 4, Starfield) and their features"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

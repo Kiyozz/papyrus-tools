@@ -1,11 +1,10 @@
-//! Syntaxe du langage Papyrus : lexer, parser et arbre syntaxique concret.
+//! Syntax of the Papyrus language: lexer, parser and concrete syntax tree.
 //!
-//! Ce crate ne fait aucune entrée-sortie et ne dépend d'aucune base de données.
-//! [`parse`] est une fonction pure du texte et de la cible, ce qui la rend
-//! cacheable telle quelle et permettra d'introduire l'incrémentalité plus tard
-//! sans toucher à l'architecture.
+//! This crate does no I/O and depends on no database. [`parse`] is a pure
+//! function of the text and the target, which makes it cacheable as is and
+//! will allow adding incrementality later without touching the architecture.
 //!
-//! # Exemple
+//! # Example
 //!
 //! ```
 //! use papyrus_dialect::{Dialect, GameId};
@@ -18,7 +17,7 @@
 //! let root = parse.syntax();
 //! assert_eq!(root.kind(), SyntaxKind::SOURCE_FILE);
 //!
-//! // L'arbre reproduit la source à l'identique.
+//! // The tree reproduces the source exactly.
 //! assert_eq!(root.to_string(), source);
 //! ```
 

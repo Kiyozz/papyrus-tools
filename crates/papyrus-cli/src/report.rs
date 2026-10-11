@@ -1,4 +1,4 @@
-//! L'affichage des diagnostics.
+//! Diagnostic rendering.
 
 use std::ops::Range;
 use std::path::Path;
@@ -6,14 +6,14 @@ use std::path::Path;
 use ariadne::{Color, Config, IndexType, Label, Report, ReportKind, Source};
 use papyrus_syntax::TextRange;
 
-/// Gravité d'un diagnostic.
+/// Severity of a diagnostic.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Severity {
     Error,
     Warning,
 }
 
-/// Un problème situé dans un fichier.
+/// A problem located in a file.
 #[derive(Debug, Clone)]
 pub(crate) struct Diagnostic {
     pub(crate) severity: Severity,
@@ -22,7 +22,7 @@ pub(crate) struct Diagnostic {
     pub(crate) range: TextRange,
 }
 
-/// Affiche les diagnostics et les compte.
+/// Prints diagnostics and counts them.
 #[derive(Debug)]
 pub(crate) struct Reporter {
     color: bool,
@@ -39,7 +39,7 @@ impl Reporter {
         }
     }
 
-    /// Vrai si rien n'a été signalé.
+    /// True if nothing was reported.
     pub(crate) fn is_clean(&self) -> bool {
         self.errors == 0 && self.warnings == 0
     }
@@ -66,7 +66,7 @@ impl Reporter {
                 )
                 .with_code(&diagnostic.code)
                 .with_message(&diagnostic.message)
-                // Sans texte, ariadne ne souligne pas : le label dit « ici ».
+                // Without text, ariadne does not underline: the label says « ici ».
                 .with_label(
                     Label::new((name.as_str(), span))
                         .with_message("ici")
@@ -77,7 +77,7 @@ impl Reporter {
         }
     }
 
-    /// Un fichier laissé de côté, et pourquoi.
+    /// A file left aside, and why.
     pub(crate) fn skip(&mut self, path: &Path, reason: &str) {
         self.errors += 1;
         eprintln!("ignoré : {} — {reason}", path.display());
@@ -96,8 +96,8 @@ impl Reporter {
     }
 }
 
-/// La plage en octets, élargie d'un caractère si elle est vide (fin de
-/// fichier) : un label vide ne s'affiche pas.
+/// The byte range, widened by one character when empty (end of file): an
+/// empty label is not displayed.
 fn span(range: TextRange, source: &str) -> Range<usize> {
     let start = usize::from(range.start());
     let end = usize::from(range.end());

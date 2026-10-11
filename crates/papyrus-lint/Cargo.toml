@@ -1,6 +1,6 @@
 [package]
 name = "papyrus-lint"
-description = "Lints du langage Papyrus"
+description = "Papyrus lints"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -17,7 +17,7 @@ papyrus-stdlib.workspace = true
 insta.workspace = true
 
 [features]
-# Fait tourner les lints sur les sources vanilla d'une installation locale.
+# Runs the lints on the vanilla sources of a local installation.
 external-corpus = []
 
 [lints]

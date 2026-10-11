@@ -1,6 +1,6 @@
 [package]
 name = "papyrus-fmt"
-description = "Formateur canonique du langage Papyrus"
+description = "Canonical formatter for the Papyrus language"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -16,7 +16,7 @@ papyrus-project.workspace = true
 insta.workspace = true
 
 [features]
-# Vérifie l'idempotence sur les sources vanilla d'une installation locale.
+# Checks idempotence on the vanilla sources of a local installation.
 external-corpus = []
 
 [lints]

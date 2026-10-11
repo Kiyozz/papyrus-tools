@@ -1,22 +1,21 @@
-//! Deviner le jeu d'un script quand personne ne l'a dit.
+//! Guessing the game of a script when nobody said it.
 //!
-//! Deux sortes d'indices, lus sur un arbre parsé avec le dialecte le plus
-//! large :
+//! Two kinds of clues, read on a tree parsed with the widest dialect:
 //!
-//! - **la syntaxe**, qui est certaine : `LockGuard` n'existe qu'en Starfield,
-//!   une structure, un `Is` ou un namespace demandent au moins Fallout 4. Elle
-//!   fixe un jeu minimal ;
-//! - **les noms**, qui votent : un type, une fonction native ou un événement
-//!   du moteur que certains jeux seulement connaissent (`OnUpdate` est propre
-//!   à Skyrim, `StartTimer` n'existe pas avant Fallout 4). Les tables de
-//!   `papyrus-stdlib` disent qui les connaît.
+//! - **syntax**, which is certain: `LockGuard` only exists in Starfield, a
+//!   struct, an `Is` or a namespace require at least Fallout 4. It sets a
+//!   minimum game;
+//! - **names**, which vote: a type, a native function or an engine event
+//!   only some games know (`OnUpdate` is specific to Skyrim, `StartTimer`
+//!   does not exist before Fallout 4). The `papyrus-stdlib` tables say who
+//!   knows them.
 //!
-//! Un script peut ne rien trahir : le verdict est alors `None`, et c'est au
-//! projet de trancher, à la majorité de ses fichiers décisifs.
+//! A script may give nothing away: the verdict is then `None`, and the
+//! project decides, by the majority of its decisive files.
 //!
-//! Confondre Fallout 4 et Starfield est sans conséquence — mêmes flags, même
-//! lecture de l'encodage, et le dialecte de Starfield englobe celui de
-//! Fallout 4. Seule compte la frontière avec Skyrim.
+//! Mistaking Fallout 4 for Starfield is harmless — same flags, same reading
+//! of the encoding, and Starfield's dialect includes Fallout 4's. Only the
+//! border with Skyrim matters.
 
 use std::collections::HashSet;
 
@@ -24,24 +23,23 @@ use papyrus_dialect::GameId;
 use papyrus_stdlib::{has_event, has_function, script};
 use papyrus_syntax::{SyntaxKind, SyntaxNode};
 
-/// Les jeux qu'un indice peut désigner, dans l'ordre de leur rang.
+/// The games a clue can point to, in rank order.
 const GAMES: [GameId; 3] = [GameId::Skyrim, GameId::Fallout4, GameId::Starfield];
 
-/// Ce qu'un script trahit de son jeu.
+/// What a script gives away about its game.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Evidence {
-    /// Le jeu minimal qu'impose la syntaxe.
+    /// The minimum game the syntax requires.
     pub minimum: GameId,
-    /// Les voix des noms, par jeu, dans l'ordre de [`GAMES`].
+    /// The name votes, per game, in rank order: Skyrim, Fallout 4, Starfield.
     pub votes: [u32; 3],
 }
 
 impl Evidence {
-    /// Le jeu désigné, s'il l'est sans ambiguïté.
+    /// The designated game, if unambiguous.
     ///
-    /// Une égalité entre Fallout 4 et Starfield se résout en faveur de
-    /// Starfield, sans conséquence : seule une égalité qui implique Skyrim
-    /// reste indécise.
+    /// A tie between Fallout 4 and Starfield resolves to Starfield, harmlessly:
+    /// only a tie involving Skyrim stays undecided.
     pub fn verdict(&self) -> Option<GameId> {
         let candidates: Vec<(GameId, u32)> = GAMES
             .into_iter()
@@ -50,7 +48,7 @@ impl Evidence {
             .collect();
         let best = candidates.iter().map(|(_, v)| *v).max().unwrap_or(0);
         if best == 0 {
-            // Aucun nom ne vote : seule une syntaxe de Starfield tranche.
+            // No name votes: only Starfield syntax decides.
             return (self.minimum == GameId::Starfield).then_some(GameId::Starfield);
         }
         let leaders: Vec<GameId> = candidates
@@ -58,8 +56,8 @@ impl Evidence {
             .filter(|(_, v)| *v == best)
             .map(|(g, _)| *g)
             .collect();
-        // Une voix d'avance ne suffit pas : un script Skyrim peut déclarer un
-        // `Event OnStart()` que son moteur n'émet jamais. Il en faut deux.
+        // A one-vote lead is not enough: a Skyrim script may declare an
+        // `Event OnStart()` its engine never sends. Two are needed.
         let runner_up = candidates
             .iter()
             .filter(|(_, v)| *v < best)
@@ -77,11 +75,11 @@ impl Evidence {
     }
 }
 
-/// Les membres implicites de tout script.
+/// The implicit members of every script.
 ///
-/// Fallout 4 et Starfield les déclarent dans `ScriptObject.psc` ; Skyrim les
-/// connaît sans les déclarer nulle part. Leur absence des tables de Skyrim ne
-/// prouve donc rien : ils ne votent pas.
+/// Fallout 4 and Starfield declare them in `ScriptObject.psc`; Skyrim knows
+/// them without declaring them anywhere. Their absence from Skyrim's tables
+/// therefore proves nothing: they do not vote.
 const UNIVERSAL: [&str; 5] = [
     "OnInit",
     "OnBeginState",
@@ -94,7 +92,7 @@ fn is_universal(name: &str) -> bool {
     UNIVERSAL.iter().any(|u| u.eq_ignore_ascii_case(name))
 }
 
-/// Le texte significatif d'un nœud, sans trivia.
+/// The significant text of a node, without trivia.
 fn compact(node: &SyntaxNode) -> String {
     node.descendants_with_tokens()
         .filter_map(|e| e.into_token())
@@ -103,7 +101,7 @@ fn compact(node: &SyntaxNode) -> String {
         .collect()
 }
 
-/// Le jeu minimal qu'impose la syntaxe de `root`.
+/// The minimum game the syntax of `root` requires.
 fn minimum(root: &SyntaxNode) -> GameId {
     let mut minimum = GameId::Skyrim;
     for element in root.descendants_with_tokens() {
@@ -147,7 +145,7 @@ fn minimum(root: &SyntaxNode) -> GameId {
                 | SyntaxKind::COLLAPSEDONBASE_KW,
                 Some(SyntaxKind::FLAG),
             ) => GameId::Fallout4,
-            // `Event Actor.OnDeath(…)` : un événement distant.
+            // `Event Actor.OnDeath(…)`: a remote event.
             (SyntaxKind::TYPE_REF, Some(SyntaxKind::EVENT_DECL)) => GameId::Fallout4,
             _ => continue,
         };
@@ -161,8 +159,8 @@ fn minimum(root: &SyntaxNode) -> GameId {
     minimum
 }
 
-/// Les noms que déclare le script lui-même : un appel à l'un d'eux ne dit
-/// rien du jeu.
+/// The names the script declares itself: a call to one of them says nothing
+/// about the game.
 fn declared(root: &SyntaxNode) -> HashSet<String> {
     root.descendants()
         .filter(|n| n.kind() == SyntaxKind::FUNCTION_DECL)
@@ -171,23 +169,21 @@ fn declared(root: &SyntaxNode) -> HashSet<String> {
         .collect()
 }
 
-/// Un nom qui a voté, et les jeux qui le connaissent, dans l'ordre de
-/// [`GAMES`].
+/// A name that voted, and the games that know it, in rank order.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Vote {
-    /// Le nom, tel qu'écrit.
+    /// The name, as written.
     pub name: String,
-    /// Qui le connaît : Skyrim, Fallout 4, Starfield.
+    /// Who knows it: Skyrim, Fallout 4, Starfield.
     pub known: [bool; 3],
 }
 
-/// Les noms de `root` qui votent : ceux que certains jeux seulement
-/// connaissent.
+/// The names of `root` that vote: those only some games know.
 pub fn explain(root: &SyntaxNode) -> Vec<Vote> {
     let own = declared(root);
     let mut votes = Vec::new();
     let mut vote = |name: String, known: [bool; 3]| {
-        // Un nom que tous connaissent, ou qu'aucun ne connaît, ne dit rien.
+        // A name everyone knows, or nobody knows, says nothing.
         let some = known.iter().any(|k| *k);
         let all = known.iter().all(|k| *k);
         if some && !all {
@@ -197,8 +193,8 @@ pub fn explain(root: &SyntaxNode) -> Vec<Vote> {
 
     for node in root.descendants() {
         match node.kind() {
-            // Un type : `Actor`, `SpaceshipReference`. Les noms qualifiés
-            // (`DLC01:Foo`) sont ceux de scripts du projet.
+            // A type: `Actor`, `SpaceshipReference`. Qualified names
+            // (`DLC01:Foo`) belong to project scripts.
             SyntaxKind::TYPE_REF => {
                 let name = compact(&node);
                 let name = name.trim_end_matches("[]");
@@ -206,7 +202,7 @@ pub fn explain(root: &SyntaxNode) -> Vec<Vote> {
                     vote(name.to_owned(), GAMES.map(|g| script(g, name).is_some()));
                 }
             }
-            // Un événement du moteur : `OnUpdate`, `OnTimer`.
+            // An engine event: `OnUpdate`, `OnTimer`.
             SyntaxKind::EVENT_DECL => {
                 if let Some(name) = node.children().find(|c| c.kind() == SyntaxKind::NAME) {
                     let name = compact(&name);
@@ -216,7 +212,7 @@ pub fn explain(root: &SyntaxNode) -> Vec<Vote> {
                     }
                 }
             }
-            // Une fonction appelée : `RegisterForSingleUpdate()`,
+            // A called function: `RegisterForSingleUpdate()`,
             // `Game.GetPlayer()`.
             SyntaxKind::CALL_EXPR => {
                 let Some(callee) = node.first_child() else {
@@ -241,8 +237,8 @@ pub fn explain(root: &SyntaxNode) -> Vec<Vote> {
     votes
 }
 
-/// Ce que `root` trahit de son jeu. L'arbre doit venir du dialecte le plus
-/// large, celui de Starfield.
+/// What `root` gives away about its game. The tree must come from the widest
+/// dialect, Starfield's.
 pub fn evidence(root: &SyntaxNode) -> Evidence {
     let mut votes = [0u32; 3];
     for vote in explain(root) {
@@ -256,10 +252,10 @@ pub fn evidence(root: &SyntaxNode) -> Evidence {
     }
 }
 
-/// Le jeu d'un projet : la majorité des verdicts décisifs de ses fichiers.
+/// The game of a project: the majority of its files' decisive verdicts.
 ///
-/// Rend aussi le nombre de fichiers qui l'ont désigné, et de fichiers
-/// décisifs en tout.
+/// Also returns the number of files that designated it, and of decisive
+/// files overall.
 pub fn majority(
     verdicts: impl IntoIterator<Item = Option<GameId>>,
 ) -> Option<(GameId, usize, usize)> {
@@ -275,7 +271,7 @@ pub fn majority(
     let (slot, &best) = counts
         .iter()
         .enumerate()
-        // À égalité, le plus récent : son dialecte englobe les autres.
+        // On a tie, the most recent: its dialect includes the others.
         .max_by_key(|(slot, count)| (**count, *slot))?;
     (best > 0).then_some((GAMES[slot], best, decided))
 }
@@ -312,7 +308,7 @@ mod tests {
 
     #[test]
     fn la_syntaxe_ecarte_skyrim_malgre_les_noms() {
-        // `OnUpdate` vote Skyrim, mais une structure l'exclut.
+        // `OnUpdate` votes Skyrim, but a struct rules it out.
         let source = "ScriptName T extends Quest\nStruct S\n\tint x\nEndStruct\nEvent OnUpdate()\nEndEvent\n";
         assert_ne!(detect(source), Some(GameId::Skyrim));
     }
@@ -325,7 +321,7 @@ mod tests {
 
     #[test]
     fn un_appel_a_une_fonction_du_script_ne_vote_pas() {
-        // `StartTimer` déclarée ici n'est pas celle du moteur.
+        // `StartTimer` declared here is not the engine's.
         let source = "ScriptName T extends Quest\nFunction StartTimer(float x)\nEndFunction\nEvent OnInit()\n\tStartTimer(1.0)\nEndEvent\n";
         assert_eq!(detect(source), None);
     }

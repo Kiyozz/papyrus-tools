@@ -1,11 +1,11 @@
-//! `; papyrus: allow(...)`, la suppression dans le code.
+//! `; papyrus: allow(...)`, in-code suppression.
 //!
-//! En fin de ligne, le commentaire couvre sa ligne. Seul sur sa ligne, il
-//! couvre la prochaine ligne de code — commentaires et lignes vides sautés.
+//! At the end of a line, the comment covers its line. Alone on its line, it
+//! covers the next code line — comments and blank lines skipped.
 //!
-//! Un nom que le registre ne connaît pas est relevé, pour que
-//! [`crate::ALLOW_UNKNOWN`] le signale : une faute de frappe ne doit pas
-//! désactiver une suppression en silence.
+//! A name the registry does not know is recorded, so that
+//! [`crate::ALLOW_UNKNOWN`] reports it: a typo must not silently disable a
+//! suppression.
 
 use std::collections::BTreeSet;
 use std::ops::Range;
@@ -14,31 +14,31 @@ use papyrus_syntax::{SyntaxKind, TextRange, TextSize, lex};
 
 use crate::{LINTS, Lint, find};
 
-/// Les lignes où chaque lint est autorisé.
+/// The lines where each lint is allowed.
 #[derive(Debug, Default)]
 pub(crate) struct Suppressions {
-    /// `(code, ligne)`, lignes comptées depuis 0.
+    /// `(code, line)`, lines counted from 0.
     allowed: BTreeSet<(&'static str, usize)>,
-    /// Début de chaque ligne, en octets.
+    /// Start of each line, in bytes.
     line_starts: Vec<usize>,
-    /// Les noms que le registre ne connaît pas, et où ils sont écrits.
+    /// The names the registry does not know, and where they are written.
     pub(crate) unknown: Vec<(TextRange, String)>,
 }
 
-/// Un nom écrit dans `allow(...)`.
+/// A name written in `allow(...)`.
 #[derive(Debug)]
 enum Key {
     Known(&'static Lint),
-    /// Un nom inconnu, et sa plage dans le commentaire.
+    /// An unknown name, and its range in the comment.
     Unknown(Range<usize>),
 }
 
-/// Les noms d'une directive, si le commentaire en est une.
+/// The names of a directive, if the comment is one.
 fn directive(comment: &str) -> Option<Vec<Key>> {
     let body = comment.strip_prefix(';')?.trim();
     let body = body.strip_prefix("papyrus:")?.trim();
     let list = body.strip_prefix("allow(")?.split(')').next()?;
-    // `list` est une tranche de `comment` : son décalage s'en déduit.
+    // `list` is a slice of `comment`: its offset follows.
     let mut offset = list.as_ptr() as usize - comment.as_ptr() as usize;
 
     let mut keys = Vec::new();
@@ -49,7 +49,7 @@ fn directive(comment: &str) -> Option<Vec<Key>> {
         if key.is_empty() {
             continue;
         }
-        // `all` couvre tout.
+        // `all` covers everything.
         if key.eq_ignore_ascii_case("all") {
             keys.extend(LINTS.iter().map(|l| Key::Known(l)));
         } else {
@@ -97,7 +97,7 @@ impl Suppressions {
             }
             let line = this.line_of(token.range.start());
 
-            // Du code avant le commentaire, sur la même ligne ?
+            // Code before the comment, on the same line?
             let trailing = tokens[..i]
                 .iter()
                 .rev()
@@ -125,7 +125,7 @@ impl Suppressions {
         self.line_starts.partition_point(|&start| start <= offset) - 1
     }
 
-    /// Vrai si `lint` est autorisé à `offset`.
+    /// True if `lint` is allowed at `offset`.
     pub(crate) fn covers(&self, lint: &Lint, offset: TextSize) -> bool {
         self.allowed.contains(&(lint.code, self.line_of(offset)))
     }
@@ -177,7 +177,7 @@ mod tests {
         ] {
             assert!(directive(comment).is_none(), "{comment}");
         }
-        // Les espaces sont libres.
+        // Spaces are free.
         assert_eq!(directive(";papyrus:allow( PAP101 )").unwrap().len(), 1);
     }
 
@@ -189,7 +189,7 @@ mod tests {
         let (range, text) = &s.unknown[0];
         assert_eq!(text, "naming/lokals");
         assert_eq!(&source[*range], "naming/lokals");
-        // Le nom connu, lui, fait son effet.
+        // The known name, for its part, takes effect.
         assert!(s.covers(&NAMING_LOCALS, offset_of(source, "HP")));
     }
 }

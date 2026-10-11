@@ -1,4 +1,4 @@
-//! Le fichier, son en-tête et les déclarations de portée script.
+//! The file, its header and the script-level declarations.
 
 use papyrus_dialect::Feature;
 
@@ -9,9 +9,9 @@ use super::{
 use crate::SyntaxKind::*;
 use crate::parser::Marker;
 
-/// La racine : en-tête, puis déclarations jusqu'à la fin du fichier.
+/// The root: header, then declarations up to the end of the file.
 ///
-/// Ne s'arrête qu'à `EOF` : un token laissé de côté casserait le round-trip.
+/// Only stops at `EOF`: a token left aside would break the round trip.
 pub(crate) fn source_file(p: &mut Parser) {
     let m = p.start();
     while p.eat(NEWLINE) {}
@@ -45,7 +45,7 @@ fn script_header(p: &mut Parser) {
     m.complete(p, SCRIPT_HEADER);
 }
 
-/// Une déclaration de portée script. Consomme toujours au moins un token.
+/// A script-level declaration. Always consumes at least one token.
 fn item(p: &mut Parser) {
     match p.current() {
         IMPORT_KW => import(p),
@@ -62,12 +62,12 @@ fn item(p: &mut Parser) {
     }
 }
 
-/// Vrai si la ligne est un type suivi de `kw` : `int Function`, `Actor Property`.
+/// True if the line is a type followed by `kw`: `int Function`, `Actor Property`.
 fn at_typed(p: &Parser, kw: crate::SyntaxKind) -> bool {
     type_len(p, 0).is_some_and(|len| p.nth(len) == kw)
 }
 
-/// Une déclaration ouverte par un type : property, fonction ou variable.
+/// A declaration opened by a type: property, function or variable.
 fn typed_item(p: &mut Parser) {
     let m = p.start();
     type_ref(p);
@@ -93,7 +93,7 @@ fn import(p: &mut Parser) {
     m.complete(p, IMPORT);
 }
 
-/// Variable de script ou locale : `Actor a = None Conditional`.
+/// Script or local variable: `Actor a = None Conditional`.
 pub(super) fn variable_decl(p: &mut Parser) {
     let m = p.start();
     type_ref(p);
@@ -105,14 +105,14 @@ fn variable_rest(p: &mut Parser, m: Marker) {
     if p.eat(EQ) {
         exprs::expr(p);
     }
-    // `Conditional`, `Hidden`, `RequiresGuard(g)` — Starfield en met même sur
-    // les variables.
+    // `Conditional`, `Hidden`, `RequiresGuard(g)` — Starfield even puts them
+    // on variables.
     flag_list(p);
     eol(p);
     m.complete(p, VARIABLE_DECL);
 }
 
-/// Une fonction, avec ou sans type de retour.
+/// A function, with or without a return type.
 fn function(p: &mut Parser) {
     let m = p.start();
     if !p.at(FUNCTION_KW) {
@@ -127,7 +127,7 @@ fn function_rest(p: &mut Parser, m: Marker) {
     param_list(p);
     let flags = flag_list(p);
     eol(p);
-    // Une fonction native n'a ni corps ni `EndFunction`.
+    // A native function has neither body nor `EndFunction`.
     if !flags.native {
         stmts::stmt_list(p);
         block_end(p, ENDFUNCTION_KW, "`EndFunction`");
@@ -135,7 +135,7 @@ fn function_rest(p: &mut Parser, m: Marker) {
     m.complete(p, FUNCTION_DECL);
 }
 
-/// `Event OnInit()`, ou la forme distante de Fallout 4 :
+/// `Event OnInit()`, or Fallout 4's remote form:
 /// `Event ObjectReference.OnActivate(ObjectReference akSender, …)`.
 fn event(p: &mut Parser) {
     let m = p.start();
@@ -194,11 +194,11 @@ fn param(p: &mut Parser) {
     m.complete(p, PARAM);
 }
 
-/// Une property, courte ou longue.
+/// A property, short or long.
 ///
-/// La forme se décide aux flags et non à leur position : Starfield écrit
-/// `Mandatory Const Auto` aussi bien que `Auto Const Mandatory`. Sans `Auto`
-/// ni `AutoReadOnly`, la property a un corps qui se termine par `EndProperty`.
+/// The form is decided by the flags, not by their position: Starfield writes
+/// `Mandatory Const Auto` as well as `Auto Const Mandatory`. Without `Auto`
+/// or `AutoReadOnly`, the property has a body ending with `EndProperty`.
 fn property_rest(p: &mut Parser, m: Marker) {
     p.bump(PROPERTY_KW);
     name(p);
@@ -219,8 +219,8 @@ fn property_rest(p: &mut Parser, m: Marker) {
             if p.at(FUNCTION_KW) || at_typed(p, FUNCTION_KW) {
                 function(p);
             } else if p.at_ts(STMT_RECOVERY) || type_len(p, 0).is_some() {
-                // Sans doute la déclaration suivante : `EndProperty` a été
-                // oublié, inutile d'avaler le reste du fichier.
+                // Most likely the next declaration: `EndProperty` was
+                // forgotten, no need to swallow the rest of the file.
                 break;
             } else {
                 error_line(p, "`Function` ou `EndProperty` attendu");
@@ -231,7 +231,7 @@ fn property_rest(p: &mut Parser, m: Marker) {
     m.complete(p, PROPERTY_DECL);
 }
 
-/// `Auto State Foo … EndState` : seulement des fonctions et des événements.
+/// `Auto State Foo … EndState`: only functions and events.
 fn state(p: &mut Parser) {
     let m = p.start();
     p.eat(AUTO_KW);
@@ -292,7 +292,7 @@ fn struct_decl(p: &mut Parser) {
     m.complete(p, STRUCT_DECL);
 }
 
-/// `Group Foo CollapsedOnRef … EndGroup` : seulement des properties.
+/// `Group Foo CollapsedOnRef … EndGroup`: only properties.
 fn group(p: &mut Parser) {
     let m = p.start();
     p.bump(GROUP_KW);

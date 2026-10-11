@@ -1,4 +1,4 @@
-//! Le plan du document et ses zones repliables.
+//! The document outline and its folding ranges.
 
 use papyrus_syntax::{SyntaxKind, SyntaxNode, SyntaxToken, TextRange};
 use tower_lsp_server::ls_types::{DocumentSymbol, FoldingRange, FoldingRangeKind, SymbolKind};
@@ -9,7 +9,7 @@ fn child(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxNode> {
     node.children().find(|c| c.kind() == kind)
 }
 
-/// Le texte significatif d'un nœud, espaces réduits à un seul.
+/// The significant text of a node, whitespace collapsed to a single space.
 fn text(node: &SyntaxNode) -> String {
     node.text()
         .to_string()
@@ -18,7 +18,7 @@ fn text(node: &SyntaxNode) -> String {
         .join(" ")
 }
 
-/// L'étendue d'un nœud sans la trivia ni la fin de ligne qui le bordent.
+/// The extent of a node without the surrounding trivia and line break.
 fn trimmed(node: &SyntaxNode) -> TextRange {
     let significant = |t: &SyntaxToken| !t.kind().is_trivia() && t.kind() != SyntaxKind::NEWLINE;
     let tokens = || {
@@ -32,7 +32,7 @@ fn trimmed(node: &SyntaxNode) -> TextRange {
     }
 }
 
-/// Le genre de symbole d'une déclaration, et le détail à afficher.
+/// The symbol kind of a declaration, and the detail to display.
 fn describe(node: &SyntaxNode) -> Option<(SymbolKind, Option<String>)> {
     let type_ref = || child(node, SyntaxKind::TYPE_REF).map(|t| text(&t));
     Some(match node.kind() {
@@ -61,12 +61,12 @@ fn describe(node: &SyntaxNode) -> Option<(SymbolKind, Option<String>)> {
     })
 }
 
-#[allow(deprecated)] // `DocumentSymbol::deprecated`, que le type impose.
+#[allow(deprecated)] // `DocumentSymbol::deprecated`, required by the type.
 fn symbol(node: &SyntaxNode, map: &LineMap) -> Option<DocumentSymbol> {
     let (kind, detail) = describe(node)?;
     let name_node = child(node, SyntaxKind::NAME)?;
     let mut name = text(&name_node);
-    // `Event Actor.OnDeath` : le script écouté fait partie du nom.
+    // `Event Actor.OnDeath`: the listened script is part of the name.
     if node.kind() == SyntaxKind::EVENT_DECL {
         if let Some(remote) = child(node, SyntaxKind::TYPE_REF) {
             name = format!("{}.{name}", text(&remote));
@@ -88,8 +88,8 @@ fn symbol(node: &SyntaxNode, map: &LineMap) -> Option<DocumentSymbol> {
     })
 }
 
-/// Les déclarations contenues dans `node` : celles d'un state, d'une
-/// structure, d'un groupe. Le corps des fonctions n'en fait pas partie.
+/// The declarations contained in `node`: those of a state, a struct, a
+/// group. Function bodies are not part of it.
 fn members(node: &SyntaxNode, map: &LineMap) -> Vec<DocumentSymbol> {
     if matches!(
         node.kind(),
@@ -100,7 +100,7 @@ fn members(node: &SyntaxNode, map: &LineMap) -> Vec<DocumentSymbol> {
     node.children().filter_map(|c| symbol(&c, map)).collect()
 }
 
-/// Le plan du document : le script, et ses déclarations dedans.
+/// The document outline: the script, and its declarations inside it.
 #[allow(deprecated)]
 pub(crate) fn document_symbols(root: &SyntaxNode, map: &LineMap) -> Vec<DocumentSymbol> {
     let items = members(root, map);
@@ -125,7 +125,7 @@ pub(crate) fn document_symbols(root: &SyntaxNode, map: &LineMap) -> Vec<Document
     }]
 }
 
-// ── Repli ─────────────────────────────────────────────────────────────────
+// ── Folding ───────────────────────────────────────────────────────────────
 
 fn fold(
     map: &LineMap,
@@ -143,9 +143,9 @@ fn fold(
         .filter(|_| map.line_start(end).is_some())
 }
 
-/// Les zones repliables : les blocs, jusqu'à la ligne qui précède leur mot
-/// de fin, chaque branche d'un `If` à part ; les commentaires sur plusieurs
-/// lignes ; les suites d'`Import`.
+/// The folding ranges: blocks, up to the line before their closing word,
+/// each branch of an `If` on its own; comments spanning several lines; runs
+/// of `Import`.
 pub(crate) fn folding_ranges(root: &SyntaxNode, map: &LineMap) -> Vec<FoldingRange> {
     let mut out = Vec::new();
     for node in root.descendants() {
@@ -170,8 +170,8 @@ pub(crate) fn folding_ranges(root: &SyntaxNode, map: &LineMap) -> Vec<FoldingRan
         }
         let range = trimmed(&node);
         let start = map.line(range.start());
-        // Une branche s'arrête où commence la suivante ; un bloc, à son mot
-        // de fin, qui reste visible.
+        // A branch stops where the next one starts; a block, at its closing
+        // word, which stays visible.
         let next_clause = node.children().find(|c| {
             matches!(
                 c.kind(),
@@ -189,8 +189,8 @@ pub(crate) fn folding_ranges(root: &SyntaxNode, map: &LineMap) -> Vec<FoldingRan
                     | SyntaxKind::ELSE_TRY_LOCK_GUARD_CLAUSE
             ) =>
             {
-                // La clause s'arrête avant la suivante, ou avant le mot de
-                // fin du bloc parent.
+                // The clause stops before the next one, or before the closing
+                // word of the parent block.
                 let next = std::iter::successors(node.next_sibling(), |n| n.next_sibling())
                     .next()
                     .map(|n| trimmed(&n).start());
@@ -205,8 +205,8 @@ pub(crate) fn folding_ranges(root: &SyntaxNode, map: &LineMap) -> Vec<FoldingRan
         out.extend(fold(map, start, stop.saturating_sub(1), None));
     }
 
-    // Commentaires : un bloc ou une docstring sur plusieurs lignes, ou une
-    // suite de commentaires de ligne.
+    // Comments: a block or a docstring spanning several lines, or a run of
+    // line comments.
     let mut run: Option<(u32, u32)> = None;
     let mut imports: Option<(u32, u32)> = None;
     for element in root.descendants_with_tokens() {
@@ -346,7 +346,7 @@ EndEvent
                 (7, 8),   // ElseIf
                 (9, 10),  // Else
                 (13, 14), // ; un ; deux
-                (15, 17), // State ; un événement vide n'a rien à replier
+                (15, 17), // State; an empty event has nothing to fold
             ]
         );
     }

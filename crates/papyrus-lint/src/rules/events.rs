@@ -1,27 +1,28 @@
-//! `PAP004 events/unknown` : un événement que le moteur n'appellera jamais.
+//! `PAP004 events/unknown`: an event the engine will never call.
 //!
-//! Le compilateur accepte `Event OnActivatee()` sans broncher : c'est une
-//! déclaration comme une autre, simplement jamais appelée. Rien ne le signale,
-//! ni à la compilation ni en jeu.
+//! The compiler accepts `Event OnActivatee()` without a word: it is a
+//! declaration like any other, simply never called. Nothing reports it,
+//! neither at compile time nor in game.
 //!
-//! Le moteur envoie un événement, par son nom, à tous les scripts de l'objet
-//! qui le reçoit : un script `extends ObjectReference` posé sur un acteur
-//! reçoit `OnDeath`, que seul `Actor` déclare. Un script reçoit donc les
-//! événements de sa chaîne `extends`, ceux des types qui en dérivent, et ceux
-//! que relaient les alias et les effets magiques : un `ReferenceAlias` reçoit
-//! ceux de sa référence, un `ActiveMagicEffect` ceux de son acteur.
+//! The engine sends an event, by name, to every script on the object that
+//! receives it: an `extends ObjectReference` script attached to an actor
+//! receives `OnDeath`, which only `Actor` declares. A script therefore
+//! receives the events of its `extends` chain, those of the types deriving
+//! from it, and those relayed by aliases and magic effects: a
+//! `ReferenceAlias` receives its reference's, an `ActiveMagicEffect` its
+//! actor's.
 //!
-//! Le lint ne parle que lorsqu'il est sûr de lui :
+//! The lint only speaks when it is sure:
 //!
-//! - la chaîne `extends` est connue jusqu'à sa racine, par les scripts natifs
-//!   du jeu ou par ceux du projet ;
-//! - le nom ressemble à un événement que le script reçoit — une faute de
-//!   frappe —, ou c'est un événement du moteur qu'aucun objet portant ce
-//!   script ne recevra, comme `OnCombatStateChanged` sur une quête.
+//! - the `extends` chain is known down to its root, through the game's
+//!   native scripts or the project's own;
+//! - the name looks like an event the script receives — a typo —, or it is
+//!   an engine event no object carrying this script will receive, such as
+//!   `OnCombatStateChanged` on a quest.
 //!
-//! Un nom sans rapport avec aucun événement connu peut être le callback d'un
-//! `RegisterForModEvent`, ou un événement que le script s'envoie lui-même : il
-//! est laissé tranquille. Un nom écrit dans une chaîne du script l'est aussi.
+//! A name unrelated to any known event may be a `RegisterForModEvent`
+//! callback, or an event the script sends itself: it is left alone. So is a
+//! name written in a string of the script.
 
 use std::collections::HashSet;
 
@@ -31,10 +32,10 @@ use papyrus_syntax::{SyntaxKind, SyntaxNode};
 use crate::workspace::compact;
 use crate::{Context, EVENTS_UNKNOWN, Edit, Finding, Suggestion, distance};
 
-/// Les événements que tout script reçoit, déclarés nulle part.
+/// The events every script receives, declared nowhere.
 const UNIVERSAL: &[&str] = &["OnInit", "OnBeginState", "OnEndState"];
 
-/// Les scripts qui reçoivent les événements d'un autre objet.
+/// The scripts that receive the events of another object.
 const RELAYS: &[(&str, &str)] = &[
     ("ActiveMagicEffect", "Actor"),
     ("ReferenceAlias", "ObjectReference"),
@@ -49,8 +50,8 @@ fn is_a(game: GameId, script: &str, ancestor: &str) -> bool {
     papyrus_stdlib::ancestors(game, script).any(|a| a.name.eq_ignore_ascii_case(ancestor))
 }
 
-/// Les événements de `native`, de ses ancêtres et des scripts qui en
-/// dérivent.
+/// The events of `native`, of its ancestors and of the scripts deriving from
+/// it.
 fn family(game: GameId, native: &str, events: &mut Vec<String>) {
     for script in papyrus_stdlib::ancestors(game, native) {
         events.extend(script.events.iter().map(|e| e.name.to_owned()));
@@ -62,8 +63,8 @@ fn family(game: GameId, native: &str, events: &mut Vec<String>) {
     }
 }
 
-/// Les événements qui peuvent atteindre un script dérivé de `start`, ou
-/// `None` si un maillon de la chaîne est inconnu.
+/// The events that can reach a script deriving from `start`, or `None` if a
+/// link of the chain is unknown.
 fn reachable(context: &Context<'_>, game: GameId, start: &str) -> Option<Vec<String>> {
     let mut events = Vec::new();
     let mut first_native = None;
@@ -74,8 +75,8 @@ fn reachable(context: &Context<'_>, game: GameId, start: &str) -> Option<Vec<Str
         if steps > 64 {
             return None;
         }
-        // Le projet peut fournir sa version d'un script natif, celle d'un
-        // script extender par exemple : les deux comptent.
+        // The project may provide its own version of a native script, a
+        // script extender's for instance: both count.
         let user = context.workspace.get(&name);
         let native = papyrus_stdlib::script(game, &name);
         if user.is_none() && native.is_none() {
@@ -90,7 +91,7 @@ fn reachable(context: &Context<'_>, game: GameId, start: &str) -> Option<Vec<Str
         current = user
             .and_then(|u| u.parent.clone())
             .or_else(|| native.and_then(|n| n.parent).map(str::to_owned));
-        // Depuis Fallout 4, tout script dérive de `ScriptObject`.
+        // Since Fallout 4, every script derives from `ScriptObject`.
         if current.is_none() && game.rank() >= 1 && !name.eq_ignore_ascii_case("ScriptObject") {
             current = Some("ScriptObject".to_owned());
         }
@@ -106,8 +107,7 @@ fn reachable(context: &Context<'_>, game: GameId, start: &str) -> Option<Vec<Str
     Some(events)
 }
 
-/// L'événement connu le plus proche de `name`, s'il l'est assez pour une
-/// faute de frappe.
+/// The known event closest to `name`, if close enough to be a typo.
 fn closest<'a>(name: &str, known: &'a [String]) -> Option<&'a str> {
     known
         .iter()
@@ -117,9 +117,8 @@ fn closest<'a>(name: &str, known: &'a [String]) -> Option<&'a str> {
         .map(|(_, candidate)| candidate.as_str())
 }
 
-/// Les scripts natifs qui déclarent l'événement `name` sans l'hériter, à la
-/// façon d'une énumération : « `Actor`, `ActiveMagicEffect` et
-/// `ReferenceAlias` ».
+/// The native scripts that declare the event `name` without inheriting it,
+/// as an enumeration: « `Actor`, `ActiveMagicEffect` et `ReferenceAlias` ».
 fn owners(game: GameId, name: &str) -> Option<String> {
     let owners: Vec<String> = papyrus_stdlib::scripts(game)
         .iter()
@@ -137,7 +136,7 @@ fn owners(game: GameId, name: &str) -> Option<String> {
     }
 }
 
-/// Le contenu des chaînes du script, en minuscules.
+/// The contents of the script's strings, lowercased.
 fn string_contents(root: &SyntaxNode) -> HashSet<String> {
     root.descendants_with_tokens()
         .filter_map(|e| e.into_token())
@@ -154,7 +153,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
     let Some(header) = child(root, SyntaxKind::SCRIPT_HEADER) else {
         return;
     };
-    // Un script du moteur déclare ses événements ; il ne les reçoit pas.
+    // An engine script declares its events; it does not receive them.
     let own_name = child(&header, SyntaxKind::NAME).map(|n| compact(&n));
     if own_name.is_some_and(|n| papyrus_stdlib::script(game, &n).is_some()) {
         return;
@@ -178,7 +177,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             continue;
         }
 
-        // `Event Actor.OnDeath` : les événements d'un autre script.
+        // `Event Actor.OnDeath`: the events of another script.
         let (target, known) = match child(&event, SyntaxKind::TYPE_REF) {
             Some(remote) => {
                 let target = compact(&remote);

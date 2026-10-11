@@ -1,4 +1,4 @@
-//! Les règles.
+//! The rules.
 
 mod encoding;
 mod events;

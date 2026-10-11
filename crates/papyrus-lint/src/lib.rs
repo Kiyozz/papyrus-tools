@@ -1,10 +1,10 @@
-//! Les lints de Papyrus.
+//! Papyrus lints.
 //!
-//! Un lint ne signale que ce que le compilateur laisse passer, ou ce qu'il ne
-//! dit qu'au moment de compiler — jamais ce qu'une information absente
-//! empêche de trancher. Chaque lint a un code stable (`PAP101`) et un nom
-//! lisible (`naming/locals`), utilisables l'un comme l'autre dans
-//! `papyrus.toml` et dans les commentaires de suppression :
+//! A lint only reports what the compiler lets through, or only says at
+//! compile time — never what missing information prevents from deciding.
+//! Each lint has a stable code (`PAP101`) and a readable name
+//! (`naming/locals`), usable interchangeably in `papyrus.toml` and in
+//! suppression comments:
 //!
 //! ```papyrus
 //! int HP = 0 ; papyrus: allow(naming/locals)
@@ -31,20 +31,20 @@ pub use case::{to_lower_camel, to_pascal};
 pub use rules::vanilla_flags;
 pub use workspace::{ScriptSummary, Workspace};
 
-/// Ce qu'on sait d'un lint.
+/// What we know about a lint.
 #[derive(Debug)]
 pub struct Lint {
-    /// Code stable, `PAP101`.
+    /// Stable code, `PAP101`.
     pub code: &'static str,
-    /// Nom lisible, `naming/locals`.
+    /// Readable name, `naming/locals`.
     pub name: &'static str,
-    /// Niveau sans configuration.
+    /// Level without configuration.
     pub default: Level,
-    /// Ce que le lint vérifie, en une phrase.
+    /// What the lint checks, in one sentence.
     pub description: &'static str,
 }
 
-/// `PAP001` : texte que le compilateur de la cible corrompra.
+/// `PAP001`: text the target's compiler will corrupt.
 pub static ENCODING_LOSSY: Lint = Lint {
     code: "PAP001",
     name: "encoding/lossy",
@@ -52,7 +52,7 @@ pub static ENCODING_LOSSY: Lint = Lint {
     description: "chaîne ou docstring que le compilateur de la cible corrompra sans le dire",
 };
 
-/// `PAP002` : flag posé sur un objet que le `.flg` n'autorise pas.
+/// `PAP002`: flag set on an object the `.flg` does not allow.
 pub static FLAGS_PLACEMENT: Lint = Lint {
     code: "PAP002",
     name: "flags/placement",
@@ -60,7 +60,7 @@ pub static FLAGS_PLACEMENT: Lint = Lint {
     description: "flag que le fichier .flg du jeu n'autorise pas sur cet objet",
 };
 
-/// `PAP003` : nom inconnu dans `; papyrus: allow(...)`.
+/// `PAP003`: unknown name in `; papyrus: allow(...)`.
 pub static ALLOW_UNKNOWN: Lint = Lint {
     code: "PAP003",
     name: "allow/unknown",
@@ -68,7 +68,7 @@ pub static ALLOW_UNKNOWN: Lint = Lint {
     description: "nom de lint inconnu dans `; papyrus: allow(...)`, qui ne supprime donc rien",
 };
 
-/// `PAP004` : événement que le moteur n'appellera jamais.
+/// `PAP004`: event the engine will never call.
 pub static EVENTS_UNKNOWN: Lint = Lint {
     code: "PAP004",
     name: "events/unknown",
@@ -76,7 +76,7 @@ pub static EVENTS_UNKNOWN: Lint = Lint {
     description: "événement que le script ne reçoit pas, faute de frappe le plus souvent",
 };
 
-/// `PAP101` : locales et paramètres en lowerCamelCase.
+/// `PAP101`: locals and parameters in lowerCamelCase.
 pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
     name: "naming/locals",
@@ -84,7 +84,7 @@ pub static NAMING_LOCALS: Lint = Lint {
     description: "locales et paramètres en lowerCamelCase",
 };
 
-/// `PAP102` : variables de script, properties et champs en lowerCamelCase.
+/// `PAP102`: script variables, properties and fields in lowerCamelCase.
 pub static NAMING_VARIABLES: Lint = Lint {
     code: "PAP102",
     name: "naming/variables",
@@ -92,7 +92,7 @@ pub static NAMING_VARIABLES: Lint = Lint {
     description: "variables de script, properties et champs de structure en lowerCamelCase",
 };
 
-/// `PAP103` : fonctions, événements et types en PascalCase.
+/// `PAP103`: functions, events and types in PascalCase.
 pub static NAMING_FUNCTIONS: Lint = Lint {
     code: "PAP103",
     name: "naming/functions",
@@ -100,7 +100,7 @@ pub static NAMING_FUNCTIONS: Lint = Lint {
     description: "fonctions, événements, states, structures et groupes en PascalCase",
 };
 
-/// Tous les lints, dans l'ordre de leur code.
+/// All lints, in code order.
 pub static LINTS: &[&Lint] = &[
     &ENCODING_LOSSY,
     &FLAGS_PLACEMENT,
@@ -111,7 +111,7 @@ pub static LINTS: &[&Lint] = &[
     &NAMING_FUNCTIONS,
 ];
 
-/// Le lint désigné par `key`, code ou nom, sans tenir compte de la casse.
+/// The lint designated by `key`, code or name, case-insensitively.
 pub fn find(key: &str) -> Option<&'static Lint> {
     LINTS
         .iter()
@@ -119,7 +119,7 @@ pub fn find(key: &str) -> Option<&'static Lint> {
         .find(|l| l.code.eq_ignore_ascii_case(key) || l.name.eq_ignore_ascii_case(key))
 }
 
-/// Distance d'édition, sans tenir compte de la casse.
+/// Edit distance, case-insensitive.
 pub(crate) fn distance(a: &str, b: &str) -> usize {
     let a: Vec<u8> = a.bytes().map(|c| c.to_ascii_lowercase()).collect();
     let b: Vec<u8> = b.bytes().map(|c| c.to_ascii_lowercase()).collect();
@@ -136,8 +136,7 @@ pub(crate) fn distance(a: &str, b: &str) -> usize {
     row[b.len()]
 }
 
-/// Le nom de lint le plus proche de `key`, s'il l'est assez pour être une
-/// faute de frappe.
+/// The lint name closest to `key`, if close enough to be a typo.
 pub fn closest(key: &str) -> Option<&'static str> {
     LINTS
         .iter()
@@ -148,7 +147,7 @@ pub fn closest(key: &str) -> Option<&'static str> {
         .map(|(_, candidate)| candidate)
 }
 
-/// « lint `x` inconnu », avec une suggestion si possible.
+/// « lint `x` inconnu », with a suggestion when possible.
 fn unknown_message(key: &str) -> String {
     match closest(key) {
         Some(name) => format!("lint `{key}` inconnu — vouliez-vous dire `{name}` ?"),
@@ -156,7 +155,7 @@ fn unknown_message(key: &str) -> String {
     }
 }
 
-/// Le niveau de chaque lint.
+/// The level of each lint.
 #[derive(Debug, Clone)]
 pub struct Levels(BTreeMap<&'static str, Level>);
 
@@ -167,7 +166,7 @@ impl Default for Levels {
 }
 
 impl Levels {
-    /// Les niveaux par défaut, modifiés par la section `[lints]`.
+    /// The default levels, modified by the `[lints]` section.
     pub fn from_config(lints: &BTreeMap<String, Level>) -> Result<Levels, String> {
         let mut levels = Levels::default();
         for (key, level) in lints {
@@ -177,65 +176,65 @@ impl Levels {
         Ok(levels)
     }
 
-    /// Le niveau de `lint`.
+    /// The level of `lint`.
     pub fn get(&self, lint: &Lint) -> Level {
         self.0.get(lint.code).copied().unwrap_or(lint.default)
     }
 }
 
-/// Un remplacement de texte.
+/// A text replacement.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Edit {
-    /// Ce qui est remplacé.
+    /// What is replaced.
     pub range: TextRange,
-    /// Le nouveau texte.
+    /// The new text.
     pub text: String,
 }
 
-/// Un correctif proposé, jamais appliqué d'office : il change le sens du
-/// code.
+/// A suggested fix, never applied automatically: it changes the meaning of
+/// the code.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Suggestion {
-    /// Ce qu'il fait : « Renommer en `OnActivate` ».
+    /// What it does: « Renommer en `OnActivate` ».
     pub title: String,
-    /// Les remplacements.
+    /// The replacements.
     pub edits: Vec<Edit>,
 }
 
-/// Un problème trouvé par un lint.
+/// A problem found by a lint.
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
-    /// Le lint qui l'a trouvé.
+    /// The lint that found it.
     pub lint: &'static Lint,
-    /// Avertissement ou erreur, selon la configuration.
+    /// Warning or error, depending on the configuration.
     pub level: Level,
-    /// Où.
+    /// Where.
     pub range: TextRange,
-    /// Quoi, et comment y remédier.
+    /// What, and how to fix it.
     pub message: String,
-    /// Le correctif, quand il est sûr.
+    /// The fix, when it is safe.
     pub fix: Option<Vec<Edit>>,
-    /// Un correctif à proposer, quand il ne l'est pas.
+    /// A fix to suggest, when it is not.
     pub suggestion: Option<Suggestion>,
 }
 
-/// Ce dont les lints ont besoin.
+/// What the lints need.
 #[derive(Debug)]
 pub struct Context<'a> {
-    /// Le fichier tel que décodé.
+    /// The file as decoded.
     pub decoded: &'a Decoded,
-    /// L'arbre de `decoded.text`.
+    /// The tree of `decoded.text`.
     pub root: &'a SyntaxNode,
-    /// La cible, si elle est connue. Les lints qui en dépendent se taisent
-    /// sans elle.
+    /// The target, if known. The lints that depend on it stay quiet without
+    /// it.
     pub game: Option<GameId>,
-    /// Les flags du `.flg` en vigueur.
+    /// The flags of the `.flg` in effect.
     pub flags: &'a [FlagDef],
-    /// Les autres scripts du projet.
+    /// The other scripts of the project.
     pub workspace: &'a Workspace,
 }
 
-/// Ce que les règles produisent, avant niveaux et suppressions.
+/// What the rules produce, before levels and suppressions.
 pub(crate) struct Finding {
     pub(crate) lint: &'static Lint,
     pub(crate) range: TextRange,
@@ -244,13 +243,13 @@ pub(crate) struct Finding {
     pub(crate) suggestion: Option<Suggestion>,
 }
 
-/// Lance les lints actifs et retire ce que le code a explicitement autorisé.
+/// Runs the active lints and drops what the code explicitly allowed.
 pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
     let mut findings = Vec::new();
     rules::run(context, &mut findings);
 
     let allowed = suppress::Suppressions::collect(&context.decoded.text);
-    // Un `allow(...)` mal orthographié ne supprime rien : autant le dire.
+    // A misspelled `allow(...)` suppresses nothing: better say so.
     for (range, key) in &allowed.unknown {
         findings.push(Finding {
             lint: &ALLOW_UNKNOWN,
@@ -284,11 +283,11 @@ pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
     diagnostics
 }
 
-/// Applique les correctifs de `diagnostics` à `source`.
+/// Applies the fixes of `diagnostics` to `source`.
 ///
-/// Les correctifs ne changent que la casse : le résultat est vérifié token
-/// par token, sans tenir compte de la casse, et `None` signale qu'il diffère.
-/// Ce serait un bug ; le fichier doit alors rester intact.
+/// Fixes only change case: the result is checked token by token, ignoring
+/// case, and `None` signals that it differs. That would be a bug; the file
+/// must then stay untouched.
 pub fn apply_fixes(source: &str, diagnostics: &[Diagnostic]) -> Option<String> {
     let mut edits: Vec<&Edit> = diagnostics
         .iter()
@@ -304,7 +303,7 @@ pub fn apply_fixes(source: &str, diagnostics: &[Diagnostic]) -> Option<String> {
     let mut cursor = 0;
     for edit in edits {
         let start = usize::from(edit.range.start());
-        // Deux correctifs sur la même plage : le premier gagne.
+        // Two fixes on the same range: the first one wins.
         if start < cursor {
             continue;
         }

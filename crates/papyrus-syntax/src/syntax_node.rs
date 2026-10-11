@@ -1,15 +1,15 @@
-//! Le pont vers `rowan`.
+//! The bridge to `rowan`.
 //!
-//! `rowan` ne connaît que des `u16` ; ce module lui apprend à les relire comme
-//! des [`SyntaxKind`]. Les alias qui suivent évitent de répéter le paramètre de
-//! type dans tout le reste de la toolchain.
+//! `rowan` only knows `u16`s; this module teaches it to read them back as
+//! [`SyntaxKind`]s. The aliases below avoid repeating the type parameter
+//! throughout the rest of the toolchain.
 
 use crate::SyntaxKind;
 
-/// Le langage, au sens de `rowan`.
+/// The language, in the `rowan` sense.
 ///
-/// Type fantôme : il n'existe aucune valeur de `Papyrus`, seulement son
-/// implémentation de [`rowan::Language`].
+/// Phantom type: there is no value of `Papyrus`, only its
+/// [`rowan::Language`] implementation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Papyrus {}
 
@@ -25,13 +25,13 @@ impl rowan::Language for Papyrus {
     }
 }
 
-/// Un nœud de l'arbre Papyrus.
+/// A node of the Papyrus tree.
 pub type SyntaxNode = rowan::SyntaxNode<Papyrus>;
-/// Un token de l'arbre Papyrus.
+/// A token of the Papyrus tree.
 pub type SyntaxToken = rowan::SyntaxToken<Papyrus>;
-/// Un nœud ou un token.
+/// A node or a token.
 pub type SyntaxElement = rowan::SyntaxElement<Papyrus>;
-/// Itérateur sur les enfants d'un nœud, tokens compris.
+/// Iterator over the children of a node, tokens included.
 pub type SyntaxElementChildren = rowan::SyntaxElementChildren<Papyrus>;
-/// Itérateur sur les enfants nœuds d'un nœud.
+/// Iterator over the child nodes of a node.
 pub type SyntaxNodeChildren = rowan::SyntaxNodeChildren<Papyrus>;

@@ -1,15 +1,15 @@
-//! La forme de l'arbre.
+//! The shape of the tree.
 //!
-//! Les snapshots montrent les nœuds et les tokens significatifs ; la trivia
-//! est omise pour la lisibilité, sa conservation étant vérifiée à part. `⏎`
-//! marque une fin de ligne, qui est un token à part entière.
+//! The snapshots show nodes and significant tokens; trivia is omitted for
+//! readability, its preservation being checked separately. `⏎` marks a line
+//! end, which is a token of its own.
 
 use std::fmt::Write;
 
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_syntax::{NodeOrToken, Parse, SyntaxKind, SyntaxNode, parse};
 
-/// L'arbre, une ligne par élément, suivi des erreurs.
+/// The tree, one line per element, followed by the errors.
 fn render(parse: &Parse, source: &str) -> String {
     fn walk(node: &SyntaxNode, depth: usize, out: &mut String) {
         writeln!(out, "{:indent$}{:?}", "", node.kind(), indent = depth * 2).unwrap();
@@ -51,7 +51,7 @@ fn render(parse: &Parse, source: &str) -> String {
     out
 }
 
-/// Parse pour `game`, vérifie le round-trip, rend l'arbre.
+/// Parses for `game`, checks the round trip, returns the tree.
 #[track_caller]
 fn tree(source: &str, game: GameId) -> String {
     let parse = parse(source, Dialect::new(game));
@@ -59,7 +59,7 @@ fn tree(source: &str, game: GameId) -> String {
     render(&parse, source)
 }
 
-/// Comme [`tree`], dans une fonction, pour tester des instructions.
+/// Like [`tree`], inside a function, to test statements.
 #[track_caller]
 fn body(stmts: &str, game: GameId) -> String {
     tree(
@@ -78,8 +78,8 @@ fn en_tete_complet() {
 
 #[test]
 fn precedence_des_operateurs() {
-    // `*` lie plus fort que `+`, `&&` plus fort que `||`, et l'unaire
-    // enveloppe le cast.
+    // `*` binds tighter than `+`, `&&` tighter than `||`, and unary wraps the
+    // cast.
     insta::assert_snapshot!(body(
         "x = a + b * c\ny = a || b && c\nz = -w as Float",
         GameId::Skyrim
@@ -88,8 +88,8 @@ fn precedence_des_operateurs() {
 
 #[test]
 fn declaration_affectation_ou_appel() {
-    // Les trois commencent par un identifiant ; seule la première est un type
-    // suivi d'un nom.
+    // All three start with an identifier; only the first is a type followed
+    // by a name.
     insta::assert_snapshot!(body(
         "Actor[] list = new Actor[4]\nlist[0] = Game.GetPlayer()\nDebug.Trace(list.Length, aiSeverity = 2)",
         GameId::Skyrim
@@ -106,7 +106,7 @@ fn if_elseif_else() {
 
 #[test]
 fn property_courte_et_longue() {
-    // La forme se décide aux flags, pas à leur position.
+    // The form is decided by the flags, not by their position.
     insta::assert_snapshot!(tree(
         "ScriptName T\n\
          Keyword Property K Mandatory Const Auto\n\
@@ -182,7 +182,7 @@ fn appel_statique_qualifie() {
     ));
 }
 
-// ── Dialectes ─────────────────────────────────────────────────────────────
+// ── Dialects ──────────────────────────────────────────────────────────────
 
 #[test]
 fn un_script_skyrim_peut_nommer_une_variable_var() {
@@ -228,8 +228,8 @@ EndEvent
 
 #[test]
 fn les_namespaces_sont_signales_en_skyrim() {
-    // Le second point d'intervention du dialecte : la construction est lue,
-    // l'arbre est complet, et la cible est dite incompatible.
+    // The dialect's second intervention point: the construct is read, the
+    // tree is complete, and the target is reported as incompatible.
     let source = "ScriptName T\nFoo:Bar Property P Auto\n";
     let skyrim = parse(source, Dialect::new(GameId::Skyrim));
     assert_eq!(skyrim.errors().len(), 1, "{:?}", skyrim.errors());
@@ -243,7 +243,7 @@ fn les_namespaces_sont_signales_en_skyrim() {
     assert!(parse(source, Dialect::new(GameId::Fallout4)).ok());
 }
 
-// ── Récupération ──────────────────────────────────────────────────────────
+// ── Recovery ──────────────────────────────────────────────────────────────
 
 #[test]
 fn une_ligne_invalide_reste_sur_sa_ligne() {
@@ -273,9 +273,9 @@ fn un_script_sans_en_tete_est_signale() {
     assert!(parse.errors()[0].message().contains("ScriptName"));
 }
 
-// ── Sans perte ────────────────────────────────────────────────────────────
+// ── Lossless ──────────────────────────────────────────────────────────────
 
-/// Un script qui couvre l'essentiel de la grammaire, commentaires compris.
+/// A script covering most of the grammar, comments included.
 const COMPLET: &str = "\u{feff}ScriptName Foo:Bar extends Quest Conditional ; en-tête\n\
 {Documentation}\n\
 import Utility\n\
@@ -310,8 +310,8 @@ fn le_script_complet_se_lit_sans_erreur() {
 
 #[test]
 fn chaque_prefixe_du_script_se_reconstruit() {
-    // Le LSP parse du code à moitié tapé : chaque troncature doit donner un
-    // arbre complet, sans panique.
+    // The language server parses half-typed code: every truncation must give
+    // a complete tree, without panicking.
     for (end, _) in COMPLET.char_indices() {
         let prefix = &COMPLET[..end];
         let parse = parse(prefix, Dialect::new(GameId::Fallout4));
@@ -325,7 +325,7 @@ fn chaque_prefixe_du_script_se_reconstruit() {
 
 #[test]
 fn chaque_ligne_retiree_garde_l_arbre_complet() {
-    // Une ligne manquante, c'est un `EndIf` ou un `EndFunction` oublié.
+    // A missing line is a forgotten `EndIf` or `EndFunction`.
     let lines: Vec<&str> = COMPLET.split_inclusive('\n').collect();
     for skip in 0..lines.len() {
         let source: String = lines
@@ -363,8 +363,8 @@ fn les_entrees_invalides_restent_sans_perte() {
 
 #[test]
 fn un_noeud_commence_sur_son_premier_token() {
-    // La trivia de tête va au parent : la plage d'une fonction ne commence
-    // pas sur l'indentation ou le commentaire qui la précède.
+    // Leading trivia goes to the parent: a function's range does not start on
+    // the indentation or the comment preceding it.
     let source = "ScriptName T\n; avant\n\tFunction F()\nEndFunction\n";
     let root = parse(source, Dialect::default()).syntax();
     let function = root

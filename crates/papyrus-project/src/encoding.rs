@@ -1,47 +1,46 @@
-//! Décodage des `.psc`, et le lint `PAP001 encoding/lossy`.
+//! Decoding of `.psc` files, and the `PAP001 encoding/lossy` lint.
 //!
-//! # Ce que font les compilateurs
+//! # What the compilers do
 //!
-//! Mesuré sur les trois `PapyrusCompiler.exe` officiels :
+//! Measured on the three official `PapyrusCompiler.exe`:
 //!
-//! - **Skyrim** lit en Windows-1252, et ne reconnaît l'UTF-8 qu'à son BOM.
-//!   Sans BOM, `é` (`C3 A9`) devient `Ã©` dans le `.pex`.
-//! - **Fallout 4 et Starfield** lisent en UTF-8 strict, et remplacent tout
-//!   octet Windows-1252 par U+FFFD. La perte est irréversible.
+//! - **Skyrim** reads Windows-1252, and only recognizes UTF-8 by its BOM.
+//!   Without a BOM, `é` (`C3 A9`) becomes `Ã©` in the `.pex`.
+//! - **Fallout 4 and Starfield** read strict UTF-8, and replace any
+//!   Windows-1252 byte with U+FFFD. The loss is irreversible.
 //!
-//! Dans les deux cas le compilateur affiche « Compilation succeeded ». D'où le
-//! lint : personne d'autre ne le dira.
+//! In both cases the compiler prints "Compilation succeeded". Hence the
+//! lint: nobody else will say it.
 //!
-//! # Ce qui compte
+//! # What matters
 //!
-//! Seul le texte qui finit dans le `.pex` : les chaînes et les docstrings. Un
-//! accent dans un commentaire ne fait de tort à personne, et le signaler
-//! serait du bruit.
+//! Only the text that ends up in the `.pex`: strings and docstrings. An
+//! accent in a comment harms nobody, and reporting it would be noise.
 
 use encoding_rs::WINDOWS_1252;
 use papyrus_dialect::GameId;
 use papyrus_syntax::{SyntaxKind, TextRange, TextSize, lex};
 
-/// Le code du lint.
+/// The lint code.
 pub const ENCODING_LOSSY: &str = "PAP001";
 
 const BOM: &[u8] = b"\xEF\xBB\xBF";
 
-/// L'encodage dans lequel un fichier a été lu.
+/// The encoding a file was read with.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SourceEncoding {
-    /// ASCII pur : se lit pareil partout, aucun risque.
+    /// Pure ASCII: reads the same everywhere, no risk.
     Ascii,
-    /// UTF-8 valide, sans BOM.
+    /// Valid UTF-8, without BOM.
     Utf8,
-    /// UTF-8 valide, précédé d'un BOM.
+    /// Valid UTF-8, preceded by a BOM.
     Utf8Bom,
-    /// Pas de l'UTF-8 valide : lu en Windows-1252, qui accepte tout octet.
+    /// Not valid UTF-8: read as Windows-1252, which accepts any byte.
     Windows1252,
 }
 
 impl SourceEncoding {
-    /// Nom lisible, pour les messages.
+    /// Human-readable name, for messages.
     pub const fn display_name(self) -> &'static str {
         match self {
             SourceEncoding::Ascii => "ASCII",
@@ -52,20 +51,20 @@ impl SourceEncoding {
     }
 }
 
-/// Un fichier décodé.
+/// A decoded file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Decoded {
-    /// Le texte. Un BOM éventuel y reste, en tête, sous forme de U+FEFF : le
-    /// lexer le traite en trivia, et le réécrire tel quel préserve le fichier.
+    /// The text. A BOM, if any, stays at its head as U+FEFF: the lexer treats
+    /// it as trivia, and rewriting it as is preserves the file.
     pub text: String,
-    /// L'encodage détecté.
+    /// The detected encoding.
     pub encoding: SourceEncoding,
-    /// Vrai si le décodage a dû remplacer des octets. Réécrire `text`
-    /// perdrait alors de l'information : le formateur doit s'abstenir.
+    /// True if decoding had to replace bytes. Rewriting `text` would then
+    /// lose information: the formatter must abstain.
     pub lossy: bool,
 }
 
-/// Décode un `.psc`, quel qu'il soit. Ne peut pas échouer.
+/// Decodes any `.psc`. Cannot fail.
 pub fn decode(bytes: &[u8]) -> Decoded {
     if bytes.is_ascii() {
         return Decoded {
@@ -86,16 +85,16 @@ pub fn decode(bytes: &[u8]) -> Decoded {
             },
             lossy: false,
         },
-        // Un BOM suivi d'octets invalides : le fichier se dit UTF-8 mais ne
-        // l'est pas. On le lit comme tel, en marquant la perte.
+        // A BOM followed by invalid bytes: the file claims to be UTF-8 but is
+        // not. It is read as such, flagging the loss.
         Err(_) if has_bom => Decoded {
             text: String::from_utf8_lossy(bytes).into_owned(),
             encoding: SourceEncoding::Utf8Bom,
             lossy: true,
         },
         Err(_) => {
-            // Windows-1252 donne un caractère à chacun des 256 octets : rien
-            // n'est remplacé.
+            // Windows-1252 maps each of the 256 bytes to a character: nothing
+            // is replaced.
             let (text, lossy) = WINDOWS_1252.decode_without_bom_handling(bytes);
             Decoded {
                 text: text.into_owned(),
@@ -106,10 +105,10 @@ pub fn decode(bytes: &[u8]) -> Decoded {
     }
 }
 
-/// Réencode `text` comme l'était le fichier d'origine.
+/// Re-encodes `text` as the original file was.
 ///
-/// `None` si un caractère n'y est pas représentable — un caractère ajouté que
-/// Windows-1252 ne connaît pas, par exemple.
+/// `None` if a character cannot be represented — an added character
+/// Windows-1252 does not know, for instance.
 pub fn encode(text: &str, encoding: SourceEncoding) -> Option<Vec<u8>> {
     match encoding {
         SourceEncoding::Ascii | SourceEncoding::Utf8 | SourceEncoding::Utf8Bom => {
@@ -122,18 +121,18 @@ pub fn encode(text: &str, encoding: SourceEncoding) -> Option<Vec<u8>> {
     }
 }
 
-/// Un texte que le compilateur de la cible va corrompre sans le dire.
+/// A text the target's compiler will silently corrupt.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EncodingIssue {
-    /// Le premier caractère touché.
+    /// The first affected character.
     pub range: TextRange,
-    /// L'explication, avec le remède.
+    /// The explanation, with the remedy.
     pub message: String,
-    /// Nombre de chaînes et docstrings touchées.
+    /// Number of affected strings and docstrings.
     pub affected: usize,
 }
 
-/// Le lint `PAP001` : ce fichier, compilé pour `game`, perdra-t-il du texte ?
+/// The `PAP001` lint: will this file, compiled for `game`, lose text?
 pub fn check(decoded: &Decoded, game: GameId) -> Option<EncodingIssue> {
     let at_risk = match decoded.encoding {
         SourceEncoding::Utf8 => game == GameId::Skyrim,
@@ -289,7 +288,7 @@ mod tests {
 
     #[test]
     fn un_accent_en_commentaire_ne_compte_pas() {
-        // Le commentaire n'est pas compilé : aucun octet n'atteint le `.pex`.
+        // The comment is not compiled: no byte reaches the `.pex`.
         let decoded = decode("; café\n;/ été /;\nint x\n".as_bytes());
         assert_eq!(check(&decoded, GameId::Skyrim), None);
 

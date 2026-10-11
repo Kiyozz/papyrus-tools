@@ -1,10 +1,10 @@
-//! Les règles, sur des cas choisis.
+//! The rules, on chosen cases.
 
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_lint::{Context, Levels, ScriptSummary, Workspace, apply_fixes, run, vanilla_flags};
 use papyrus_project::{Level, decode};
 
-/// `(code, texte visé)` de chaque diagnostic.
+/// `(code, targeted text)` of each diagnostic.
 fn lint(source: &str, game: Option<GameId>) -> Vec<(&'static str, String)> {
     diagnostics(source, game)
         .into_iter()
@@ -40,7 +40,7 @@ fn fixed(source: &str) -> String {
     apply_fixes(source, &diagnostics(source, None)).expect("correctif sûr")
 }
 
-// ── Nommage ───────────────────────────────────────────────────────────────
+// ── Naming ────────────────────────────────────────────────────────────────
 
 #[test]
 fn le_style_go_ne_declenche_rien() {
@@ -109,7 +109,7 @@ fn le_message_explique_l_absence_de_correctif() {
     assert!(d[0].fix.is_none());
 }
 
-// ── Correctif ─────────────────────────────────────────────────────────────
+// ── Fix ───────────────────────────────────────────────────────────────────
 
 #[test]
 fn le_correctif_renomme_la_locale_et_ses_usages() {
@@ -182,7 +182,7 @@ fn un_renommage_au_dela_de_la_casse_n_a_pas_de_correctif() {
     assert!(d[0].message.contains("à la main"));
 }
 
-// ── Suppression et niveaux ────────────────────────────────────────────────
+// ── Suppression and levels ────────────────────────────────────────────────
 
 #[test]
 fn allow_dans_le_code() {
@@ -245,21 +245,21 @@ EndGroup
 
 #[test]
 fn une_property_auto_accepte_les_flags_de_variable() {
-    // Le vanilla de Fallout 4 l'écrit : la variable cachée porte le flag.
+    // Fallout 4's vanilla writes it: the hidden variable carries the flag.
     let source = "ScriptName t\nActorValue Property pod Auto Conditional Const\n";
     assert_eq!(lint(source, Some(GameId::Fallout4)), []);
 }
 
 #[test]
 fn skyrim_n_a_pas_hidden_sur_les_champs() {
-    // Différence réelle entre les deux `.flg` ; en Skyrim il n'y a de toute
-    // façon pas de structures, donc on la vérifie sur la table.
+    // A real difference between the two `.flg` files; Skyrim has no structs
+    // anyway, so it is checked on the table.
     let skyrim = vanilla_flags(Some(GameId::Skyrim));
     let hidden = skyrim.iter().find(|d| d.name == "Hidden").unwrap();
     assert_eq!(hidden.targets.len(), 2);
 }
 
-// ── Encodage ──────────────────────────────────────────────────────────────
+// ── Encoding ──────────────────────────────────────────────────────────────
 
 #[test]
 fn l_encodage_n_est_verifie_qu_avec_une_cible() {
@@ -273,9 +273,9 @@ fn un_nom_inconnu_dans_allow_est_signale_avec_une_suggestion() {
     let source =
         "ScriptName T\nFunction F()\n\tint HP ; papyrus: allow(naming/lokals)\nEndFunction\n";
     let found = diagnostics(source, None);
-    // La suppression ratée laisse passer le lint visé…
+    // The failed suppression lets the targeted lint through…
     assert!(found.iter().any(|d| d.lint.code == "PAP101"));
-    // … et la faute est signalée, à sa place.
+    // … and the typo is reported, where it is.
     let unknown = found
         .iter()
         .find(|d| d.lint.code == "PAP003")
@@ -295,7 +295,7 @@ fn la_configuration_suggere_aussi() {
     assert!(error.contains("vouliez-vous dire"), "{error}");
 }
 
-// ── Événements ────────────────────────────────────────────────────────────
+// ── Events ────────────────────────────────────────────────────────────────
 
 fn events(source: &str, game: Option<GameId>, workspace: &Workspace) -> Vec<String> {
     diagnostics_in(source, game, workspace)
@@ -315,7 +315,7 @@ fn un_evenement_mal_orthographie_est_signale() {
         .expect("PAP004");
     assert_eq!(&source[event.range], "OnActivatee");
     assert!(event.message.contains("`OnActivate`"), "{}", event.message);
-    // Renommer change le sens du code : proposé, jamais appliqué d'office.
+    // Renaming changes the meaning of the code: suggested, never applied.
     assert!(event.fix.is_none());
     let suggestion = event.suggestion.as_ref().expect("suggestion");
     assert_eq!(suggestion.edits[0].text, "OnActivate");
@@ -323,13 +323,13 @@ fn un_evenement_mal_orthographie_est_signale() {
 
 #[test]
 fn un_script_recoit_les_evenements_des_types_derives() {
-    // Posé sur un acteur, un script `extends ObjectReference` reçoit `OnDeath`.
+    // Attached to an actor, an `extends ObjectReference` script receives `OnDeath`.
     let source = "ScriptName T extends ObjectReference\nEvent OnDeath(Actor akKiller)\nEndEvent\n";
     assert_eq!(
         events(source, Some(GameId::Skyrim), &Workspace::default()),
         Vec::<String>::new()
     );
-    // Un effet magique reçoit ceux de son acteur.
+    // A magic effect receives its actor's.
     let source = "ScriptName T extends ActiveMagicEffect\nEvent OnEnterBleedout()\nEndEvent\n";
     assert_eq!(
         events(source, Some(GameId::Skyrim), &Workspace::default()),
@@ -350,15 +350,15 @@ fn un_evenement_qu_aucun_objet_porteur_ne_recoit_est_signale() {
 fn sans_certitude_le_lint_se_tait() {
     let none = Vec::<String>::new();
     let typo = "ScriptName T extends ObjectReference\nEvent OnActivatee()\nEndEvent\n";
-    // Sans cible.
+    // No target.
     assert_eq!(events(typo, None, &Workspace::default()), none);
-    // Parent inconnu.
+    // Unknown parent.
     let source = "ScriptName T extends MyBase\nEvent OnActivatee()\nEndEvent\n";
     assert_eq!(
         events(source, Some(GameId::Skyrim), &Workspace::default()),
         none
     );
-    // Callback d'un événement de mod.
+    // Callback of a mod event.
     let source = "ScriptName T extends ObjectReference\nEvent OnInit()\n\
                   RegisterForModEvent(\"MyMod_Done\", \"OnActivatee\")\nEndEvent\n\
                   Event OnActivatee(string eventName, string strArg, float numArg, Form sender)\nEndEvent\n";
@@ -366,7 +366,7 @@ fn sans_certitude_le_lint_se_tait() {
         events(source, Some(GameId::Skyrim), &Workspace::default()),
         none
     );
-    // Nom sans rapport avec aucun événement connu.
+    // Name unrelated to any known event.
     let source = "ScriptName T extends ObjectReference\nEvent OnMyModReady()\nEndEvent\n";
     assert_eq!(
         events(source, Some(GameId::Skyrim), &Workspace::default()),

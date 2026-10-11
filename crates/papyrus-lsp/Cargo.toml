@@ -1,6 +1,6 @@
 [package]
 name = "papyrus-lsp"
-description = "Serveur LSP pour Papyrus : diagnostics, symboles, formatage"
+description = "Papyrus language server: diagnostics, symbols, formatting"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

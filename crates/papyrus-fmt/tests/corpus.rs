@@ -1,7 +1,7 @@
-//! Le formateur sur le corpus vanilla — critère de sortie de la v0.2.
+//! The formatter on the vanilla corpus — exit criterion of v0.2.
 //!
-//! Sur chaque script : le formatage aboutit, son garde-fou ne se déclenche
-//! jamais, et reformater le résultat ne change plus rien.
+//! On every script: formatting succeeds, its safeguard never fires, and
+//! reformatting the result changes nothing.
 //!
 //! ```sh
 //! PAPYRUS_CORPUS_SKYRIM=… PAPYRUS_CORPUS_FALLOUT4=… PAPYRUS_CORPUS_STARFIELD=… \
@@ -28,7 +28,7 @@ fn run(game: GameId) {
         eprintln!("· {} ignoré", game.display_name());
         return;
     };
-    // Fragments compris : ce sont aussi des scripts valides.
+    // Fragments included: they are valid scripts too.
     let scripts = discover(
         &[PathBuf::from(root)],
         DiscoverOptions {

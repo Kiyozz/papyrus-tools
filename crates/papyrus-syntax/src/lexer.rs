@@ -1,49 +1,49 @@
-//! Découpage du texte en tokens.
+//! Splitting text into tokens.
 //!
-//! Le lexer ne connaît pas la cible : il reconnaît le sur-ensemble de tous les
-//! jeux et produit [`SyntaxKind::IDENT`] pour tout identifiant, mots réservés
-//! compris. C'est [`crate::token_source`] qui promeut ensuite les identifiants
-//! en mots-clés selon le dialecte. Le lexage reste ainsi une fonction pure du
-//! texte, donc partageable entre cibles et cacheable.
+//! The lexer does not know the target: it recognizes the superset of all
+//! games and produces [`SyntaxKind::IDENT`] for every identifier, reserved
+//! words included. [`crate::token_source`] then promotes identifiers to
+//! keywords according to the dialect. Lexing thus stays a pure function of
+//! the text, shareable between targets and cacheable.
 //!
 //! # Invariant
 //!
-//! La concaténation des tokens reproduit la source octet pour octet, y compris
-//! sur une entrée invalide. Tout ce que le lexer ne reconnaît pas devient
-//! [`SyntaxKind::ERROR`] plutôt que d'être ignoré. Sans cet invariant, ni le
-//! formateur ni le serveur LSP ne peuvent fonctionner.
+//! Concatenating the tokens reproduces the source byte for byte, even on
+//! invalid input. Anything the lexer does not recognize becomes
+//! [`SyntaxKind::ERROR`] instead of being dropped. Without this invariant,
+//! neither the formatter nor the language server can work.
 
 use logos::{Lexer, Logos};
 use text_size::{TextRange, TextSize};
 
 use crate::SyntaxKind;
 
-/// Un token, et l'endroit du texte qu'il occupe.
+/// A token, and the part of the text it covers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {
-    /// Nature du token.
+    /// Kind of the token.
     pub kind: SyntaxKind,
-    /// Plage occupée dans le texte source, en octets.
+    /// Range covered in the source text, in bytes.
     pub range: TextRange,
 }
 
 impl Token {
-    /// Texte couvert par ce token.
+    /// Text covered by this token.
     ///
     /// # Panics
     ///
-    /// Si `source` n'est pas le texte dont ce token est issu.
+    /// If `source` is not the text this token comes from.
     pub fn text<'a>(&self, source: &'a str) -> &'a str {
         &source[self.range]
     }
 }
 
-/// Découpe `text` en tokens, sans tenir compte d'un quelconque dialecte.
+/// Splits `text` into tokens, regardless of any dialect.
 ///
 /// # Panics
 ///
-/// Si `text` dépasse 4 Gio — la limite de `TextSize`. Aucun script Papyrus
-/// n'en approche.
+/// If `text` exceeds 4 GiB — the limit of `TextSize`. No Papyrus script
+/// comes close.
 pub fn lex(text: &str) -> Vec<Token> {
     assert!(text.len() <= u32::MAX as usize, "source de plus de 4 Gio");
 
@@ -57,8 +57,8 @@ pub fn lex(text: &str) -> Vec<Token> {
             Err(()) => SyntaxKind::ERROR,
         };
 
-        // Les octets non reconnus se suivent souvent. Les fusionner évite de
-        // noyer l'utilisateur sous un diagnostic par octet.
+        // Unrecognized bytes often come in runs. Merging them avoids drowning
+        // the user in one diagnostic per byte.
         if kind == SyntaxKind::ERROR {
             if let Some(last) = tokens.last_mut() {
                 if last.kind == SyntaxKind::ERROR && usize::from(last.range.end()) == span.start {
@@ -81,55 +81,53 @@ pub fn lex(text: &str) -> Vec<Token> {
     tokens
 }
 
-/// Forme du commentaire reconnue par [`comment`].
+/// Comment shape recognized by [`comment`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CommentKind {
     Line,
     Block,
 }
 
-/// Tokens bruts, avant toute prise en compte du dialecte.
+/// Raw tokens, before any dialect is taken into account.
 ///
-/// Les mots-clés n'y figurent pas : ce sont des [`Raw::Ident`] jusqu'à la
-/// promotion.
+/// Keywords are not among them: they are [`Raw::Ident`] until promotion.
 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq)]
 enum Raw {
     // ── Trivia ────────────────────────────────────────────────────────────
     #[regex(r"[ \t\x0C]+")]
-    // Un BOM UTF-8 est un espace insécable de largeur nulle : le traiter comme
-    // de la trivia le conserve dans l'arbre sans perturber la grammaire. Il
-    // compte, puisque le compilateur de Skyrim s'en sert pour reconnaître
-    // l'UTF-8.
+    // A UTF-8 BOM is a zero-width no-break space: treating it as trivia keeps
+    // it in the tree without disturbing the grammar. It matters, since the
+    // Skyrim compiler uses it to recognize UTF-8.
     #[token("\u{feff}")]
     Whitespace,
 
-    /// `;` ordinaire ou `;/ … /;` — la distinction se fait dans le callback,
-    /// faute de quoi le commentaire de ligne avalerait l'ouverture du bloc.
+    /// Plain `;` or `;/ … /;` — the distinction is made in the callback,
+    /// otherwise the line comment would swallow the block opener.
     #[token(";", comment)]
     Comment(CommentKind),
 
     #[token("{", doc_comment)]
     DocComment,
 
-    /// `\` suivi de la fin de ligne. Trivia que le formateur ne doit jamais
-    /// supprimer : elle porte la structure de la ligne logique.
+    /// `\` followed by the line end. Trivia the formatter must never remove:
+    /// it carries the structure of the logical line.
     #[regex(r"\\[ \t]*\r?\n")]
     LineContinuation,
 
-    // ── Fin de ligne, significative ───────────────────────────────────────
+    // ── Line end, significant ─────────────────────────────────────────────
     #[regex(r"\r\n|\r|\n")]
     Newline,
 
-    // ── Littéraux ─────────────────────────────────────────────────────────
+    // ── Literals ──────────────────────────────────────────────────────────
     #[regex(r"0[xX][0-9a-fA-F]+", priority = 4)]
     HexNumber,
 
-    /// Des chiffres des deux côtés du point sont exigés : `1.` se lexe en
-    /// entier suivi d'un point, et `.5` en point suivi d'un entier.
+    /// Digits are required on both sides of the dot: `1.` lexes as an integer
+    /// followed by a dot, and `.5` as a dot followed by an integer.
     #[regex(r"[0-9]+\.[0-9]+", priority = 3)]
     FloatNumber,
 
-    /// Toujours non signé : dans `a-1`, le `-` est un opérateur.
+    /// Always unsigned: in `a-1`, the `-` is an operator.
     #[regex(r"[0-9]+", priority = 2)]
     IntNumber,
 
@@ -139,7 +137,7 @@ enum Raw {
     #[regex(r"[A-Za-z_][A-Za-z0-9_]*")]
     Ident,
 
-    // ── Ponctuation ───────────────────────────────────────────────────────
+    // ── Punctuation ───────────────────────────────────────────────────────
     #[token("+=")]
     PlusEq,
     #[token("-=")]
@@ -241,19 +239,19 @@ impl Raw {
     }
 }
 
-/// Consomme un commentaire, à partir du `;` déjà lu.
+/// Consumes a comment, starting from the already read `;`.
 ///
-/// Un `;/` ouvre un bloc qui court jusqu'à `/;`, même sur plusieurs lignes.
-/// Sinon le commentaire s'arrête **avant** la fin de ligne : celle-ci est un
-/// token à part entière, que le parser attend.
+/// A `;/` opens a block running up to `/;`, even across lines. Otherwise the
+/// comment stops **before** the line end: that is a token of its own, which
+/// the parser expects.
 fn comment(lex: &mut Lexer<'_, Raw>) -> CommentKind {
     let rest = lex.remainder();
 
     if let Some(after_slash) = rest.strip_prefix('/') {
         match after_slash.find("/;") {
             Some(offset) => lex.bump(1 + offset + 2),
-            // Bloc non refermé : on avale la fin du fichier plutôt que de
-            // relexer du texte de commentaire comme du code.
+            // Unclosed block: swallow the rest of the file rather than relex
+            // comment text as code.
             None => lex.bump(rest.len()),
         }
         CommentKind::Block
@@ -264,9 +262,9 @@ fn comment(lex: &mut Lexer<'_, Raw>) -> CommentKind {
     }
 }
 
-/// Consomme une docstring `{ … }`, à partir de l'accolade déjà lue.
+/// Consumes a `{ … }` docstring, starting from the already read brace.
 ///
-/// Les accolades ne s'imbriquent pas en Papyrus : la première fermante termine.
+/// Braces do not nest in Papyrus: the first closing one ends it.
 fn doc_comment(lex: &mut Lexer<'_, Raw>) {
     let rest = lex.remainder();
     match rest.find('}') {
@@ -275,10 +273,10 @@ fn doc_comment(lex: &mut Lexer<'_, Raw>) {
     }
 }
 
-/// Consomme une chaîne, à partir du guillemet déjà lu.
+/// Consumes a string, starting from the already read quote.
 ///
-/// Une chaîne non refermée s'arrête à la fin de la ligne : sans cette borne,
-/// une simple faute de frappe emporterait le reste du fichier.
+/// An unclosed string stops at the end of the line: without this bound, a
+/// single typo would carry away the rest of the file.
 fn string(lex: &mut Lexer<'_, Raw>) {
     let rest = lex.remainder();
     let mut escaped = false;

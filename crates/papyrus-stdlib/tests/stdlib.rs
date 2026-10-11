@@ -1,4 +1,4 @@
-//! Les tables générées disent-elles vrai ?
+//! Do the generated tables tell the truth?
 
 use papyrus_dialect::GameId;
 use papyrus_stdlib::{ancestors, find_event, find_function, script, scripts};
@@ -47,8 +47,8 @@ fn actor_herite_d_objectreference() {
 
 #[test]
 fn un_evenement_herite_se_retrouve() {
-    // `OnActivate` est déclaré sur ObjectReference ; un script qui étend
-    // Actor le reçoit.
+    // `OnActivate` is declared on ObjectReference; a script extending Actor
+    // receives it.
     for game in GAMES {
         let event = find_event(game, "Actor", "onactivate").expect("OnActivate");
         assert_eq!(event.name, "OnActivate", "{game}");
@@ -77,7 +77,7 @@ fn fallout76_reprend_fallout4() {
 #[test]
 fn les_index_de_noms_distinguent_les_jeux() {
     use papyrus_stdlib::{has_event, has_function};
-    // Skyrim met à jour par `OnUpdate`, Fallout 4 et Starfield par des timers.
+    // Skyrim updates through `OnUpdate`, Fallout 4 and Starfield through timers.
     assert!(has_event(GameId::Skyrim, "onupdate"));
     assert!(!has_event(GameId::Fallout4, "OnUpdate"));
     assert!(has_function(GameId::Skyrim, "RegisterForSingleUpdate"));

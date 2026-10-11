@@ -1,15 +1,15 @@
-//! Les instructions, dans les corps de fonction et d'événement.
+//! Statements, in function and event bodies.
 
 use super::{Parser, STMT_RECOVERY, TokenSet, block_end, decls, eol, exprs, type_len};
 use crate::SyntaxKind::*;
 
-/// Opérateurs d'affectation, simples et composés.
+/// Assignment operators, plain and compound.
 const ASSIGN_OPS: TokenSet = TokenSet::new(&[EQ, PLUS_EQ, MINUS_EQ, STAR_EQ, SLASH_EQ, PERCENT_EQ]);
 
-/// Une suite d'instructions, jusqu'au premier mot de [`STMT_RECOVERY`].
+/// A sequence of statements, up to the first word of [`STMT_RECOVERY`].
 ///
-/// C'est à l'appelant de consommer le terminateur qu'il attend ; s'il trouve
-/// autre chose, l'erreur est la sienne, et la liste n'a rien avalé de trop.
+/// The caller consumes the terminator it expects; if it finds something
+/// else, the error is its own, and the list swallowed nothing extra.
 pub(super) fn stmt_list(p: &mut Parser) {
     let m = p.start();
     while !p.at_ts(STMT_RECOVERY) {
@@ -21,7 +21,7 @@ pub(super) fn stmt_list(p: &mut Parser) {
     m.complete(p, STMT_LIST);
 }
 
-/// Une instruction. Consomme toujours au moins un token.
+/// A statement. Always consumes at least one token.
 fn stmt(p: &mut Parser) {
     match p.current() {
         RETURN_KW => return_stmt(p),
@@ -29,14 +29,14 @@ fn stmt(p: &mut Parser) {
         WHILE_KW => while_stmt(p),
         LOCKGUARD_KW => lock_guard_stmt(p),
         TRYLOCKGUARD_KW => try_lock_guard_stmt(p),
-        // `Actor a`, `int[] t`, `Foo:Bar b` — un type suivi d'un nom. `a.b()`,
-        // `a = 1` et `t[0] = 1` n'ont pas cette forme.
+        // `Actor a`, `int[] t`, `Foo:Bar b` — a type followed by a name.
+        // `a.b()`, `a = 1` and `t[0] = 1` do not have this shape.
         _ if type_len(p, 0).is_some_and(|len| p.nth(len) == IDENT) => decls::variable_decl(p),
         _ => expr_stmt(p),
     }
 }
 
-/// `Return` ou `Return expr`
+/// `Return` or `Return expr`
 fn return_stmt(p: &mut Parser) {
     let m = p.start();
     p.bump(RETURN_KW);
@@ -47,11 +47,11 @@ fn return_stmt(p: &mut Parser) {
     m.complete(p, RETURN_STMT);
 }
 
-/// Un appel, ou une affectation.
+/// A call, or an assignment.
 fn expr_stmt(p: &mut Parser) {
     let m = p.start();
     if !exprs::expr(p) {
-        // L'erreur est déjà signalée ; reste à garantir la progression.
+        // The error is already reported; progress must still be guaranteed.
         m.abandon(p);
         let e = p.start();
         p.bump_any();
@@ -123,9 +123,9 @@ fn lock_guard_stmt(p: &mut Parser) {
 
 /// `TryLockGuard g … [Else …] EndTryLockGuard` — Starfield.
 ///
-/// La branche alternative s'ouvre sur un simple `Else` dans le vanilla
-/// (`SQ_TraitsQuestScript.psc`). `ElseTryLockGuard`, que décrit la grammaire
-/// ANTLR mais qu'aucun script n'emploie, est accepté au même endroit.
+/// The alternative branch opens with a plain `Else` in vanilla
+/// (`SQ_TraitsQuestScript.psc`). `ElseTryLockGuard`, which the ANTLR grammar
+/// describes but no script uses, is accepted at the same place.
 fn try_lock_guard_stmt(p: &mut Parser) {
     let m = p.start();
     p.bump(TRYLOCKGUARD_KW);
@@ -143,10 +143,10 @@ fn try_lock_guard_stmt(p: &mut Parser) {
     m.complete(p, TRY_LOCK_GUARD_STMT);
 }
 
-/// Les verrous d'un `LockGuard`.
+/// The locks of a `LockGuard`.
 ///
-/// Le corpus vanilla n'en prend jamais qu'un ; la liste coûte une virgule et
-/// évite une fausse erreur si un script en prend plusieurs.
+/// The vanilla corpus never takes more than one; the list costs a comma and
+/// avoids a false error if a script takes several.
 fn guard_list(p: &mut Parser) {
     let m = p.start();
     loop {

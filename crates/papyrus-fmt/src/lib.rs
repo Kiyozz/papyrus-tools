@@ -1,33 +1,33 @@
-//! Le formateur canonique de Papyrus.
+//! The canonical Papyrus formatter.
 //!
-//! Un seul style, peu d'options : le but est qu'on cesse d'en discuter, comme
-//! avec `gofmt`. Le formateur travaille sur l'arbre syntaxique concret, ligne
-//! par ligne — Papyrus est orienté ligne, et le formateur n'a jamais à décider
-//! où couper.
+//! One style, few options: the goal is to stop arguing about it, as with
+//! `gofmt`. The formatter works on the concrete syntax tree, line by line —
+//! Papyrus is line-oriented, and the formatter never has to decide where to
+//! break.
 //!
-//! # Ce qu'il fait
+//! # What it does
 //!
-//! - réindente selon l'imbrication ;
-//! - normalise les espaces dans la ligne ;
-//! - écrit les mots-clés en minuscules, sauf quand ils servent de nom
-//!   (`Auto State Default`, `.Length`) ;
-//! - garde au plus une ligne vide, aucune avant un mot qui ferme un bloc ;
-//! - retire les espaces de fin, écrit des fins de ligne LF et termine le
-//!   fichier par une seule.
+//! - reindents according to nesting;
+//! - normalizes spaces within the line;
+//! - writes keywords in lowercase, except when they serve as names
+//!   (`Auto State Default`, `.Length`);
+//! - keeps at most one blank line, none before a word that closes a block;
+//! - strips trailing spaces, writes LF line endings and ends the file with
+//!   exactly one.
 //!
-//! # Ce qu'il ne fait jamais
+//! # What it never does
 //!
-//! - toucher aux identifiants : Papyrus est insensible à la casse, mais
-//!   renommer est l'affaire du linter, qui sait ce qui est sûr ;
-//! - toucher au contenu des chaînes et des commentaires ;
-//! - changer l'encodage : un BOM présent est conservé, aucun n'est ajouté ;
-//! - formater un fichier qui ne se parse pas.
+//! - touch identifiers: Papyrus is case-insensitive, but renaming is the
+//!   linter's business, which knows what is safe;
+//! - touch the contents of strings and comments;
+//! - change the encoding: an existing BOM is kept, none is added;
+//! - format a file that does not parse.
 //!
-//! # Garde-fou
+//! # Safeguard
 //!
-//! Avant de rendre son résultat, le formateur vérifie que la suite des tokens
-//! significatifs est inchangée, à la casse des mots-clés près. Au moindre
-//! écart, il refuse : mieux vaut ne pas formater que corrompre un script.
+//! Before returning its result, the formatter checks that the sequence of
+//! significant tokens is unchanged, up to keyword case. At the slightest
+//! difference it refuses: better not to format than to corrupt a script.
 
 #![forbid(unsafe_code)]
 
@@ -39,12 +39,12 @@ use papyrus_syntax::{ParseError, SyntaxKind, SyntaxNode, SyntaxToken, lex_with_d
 
 use SyntaxKind::*;
 
-/// Une unité d'indentation.
+/// An indentation unit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Indent {
-    /// Ce nombre d'espaces par niveau.
+    /// This many spaces per level.
     Spaces(u8),
-    /// Une tabulation par niveau.
+    /// One tab per level.
     Tabs,
 }
 
@@ -54,22 +54,22 @@ impl Default for Indent {
     }
 }
 
-/// Les réglages du formateur.
+/// The formatter settings.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct FormatOptions {
-    /// L'indentation, deux espaces par défaut.
+    /// The indentation, two spaces by default.
     pub indent: Indent,
 }
 
-/// Pourquoi un fichier n'a pas été formaté.
+/// Why a file was not formatted.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FormatError {
-    /// La source ne se parse pas : la formater risquerait de l'abîmer.
+    /// The source does not parse: formatting it could damage it.
     Syntax(Vec<ParseError>),
-    /// Le résultat ne contient pas les mêmes tokens que la source. C'est un
-    /// bug du formateur ; le fichier est laissé intact.
+    /// The result does not contain the same tokens as the source. This is a
+    /// formatter bug; the file is left untouched.
     Unsafe {
-        /// Ce qui diffère, pour le rapport de bug.
+        /// What differs, for the bug report.
         detail: String,
     },
 }
@@ -96,7 +96,7 @@ impl fmt::Display for FormatError {
 
 impl std::error::Error for FormatError {}
 
-/// Formate `source`, lue pour la cible `dialect`.
+/// Formats `source`, read for the `dialect` target.
 pub fn format(
     source: &str,
     dialect: Dialect,
@@ -132,18 +132,18 @@ pub fn format(
     Ok(out)
 }
 
-// ── Découpage en lignes ───────────────────────────────────────────────────
+// ── Splitting into lines ──────────────────────────────────────────────────
 
-/// Une ligne physique : ses tokens, espaces exclus.
+/// A physical line: its tokens, spaces excluded.
 #[derive(Debug, Default)]
 struct Line {
     tokens: Vec<SyntaxToken>,
-    /// La ligne prolonge la précédente par un `\`.
+    /// The line continues the previous one through a `\`.
     continuation: bool,
 }
 
 impl Line {
-    /// Vrai si la ligne ne porte que des commentaires ou une docstring.
+    /// True if the line only holds comments or a docstring.
     fn is_comment_only(&self) -> bool {
         self.tokens.iter().all(|t| t.kind().is_comment())
     }
@@ -175,11 +175,11 @@ fn lines(root: &SyntaxNode) -> Vec<Line> {
 
 // ── Indentation ───────────────────────────────────────────────────────────
 
-/// Profondeur d'imbrication d'un token significatif.
+/// Nesting depth of a significant token.
 ///
-/// Un niveau par corps d'instructions, et un par membre d'un bloc de
-/// déclarations : fonction dans un `State`, champ dans un `Struct`, property
-/// dans un `Group`, accesseur dans une `Property`.
+/// One level per statement body, and one per member of a declaration block:
+/// function in a `State`, field in a `Struct`, property in a `Group`, accessor
+/// in a `Property`.
 fn level(token: &SyntaxToken) -> usize {
     token
         .parent_ancestors()
@@ -198,7 +198,7 @@ fn level(token: &SyntaxToken) -> usize {
         .count()
 }
 
-/// Vrai pour les mots qui ferment un bloc ou en ouvrent la branche suivante.
+/// True for words that close a block or open its next branch.
 fn is_closer(kind: SyntaxKind) -> bool {
     matches!(
         kind,
@@ -218,12 +218,12 @@ fn is_closer(kind: SyntaxKind) -> bool {
     )
 }
 
-/// Le niveau de chaque ligne.
+/// The level of each line.
 ///
-/// Une ligne de code prend celui de son premier token. Une ligne de
-/// commentaire n'en a pas — la trivia n'est pas toujours rangée dans le bloc
-/// qu'elle décrit — et s'aligne donc sur le code qui la suit, ou sur le corps
-/// du bloc si ce code le ferme.
+/// A code line takes the level of its first token. A comment line has none —
+/// trivia is not always stored in the block it describes — so it aligns with
+/// the code that follows it, or with the block body if that code closes the
+/// block.
 fn levels(lines: &[Line]) -> Vec<usize> {
     let mut levels = vec![0; lines.len()];
     let mut next_code: Option<usize> = None;
@@ -247,7 +247,7 @@ fn levels(lines: &[Line]) -> Vec<usize> {
         }
     }
 
-    // Une continuation s'indente de deux niveaux sous sa ligne logique.
+    // A continuation is indented two levels below its logical line.
     let mut base = 0;
     for (i, line) in lines.iter().enumerate() {
         if line.continuation {
@@ -259,7 +259,7 @@ fn levels(lines: &[Line]) -> Vec<usize> {
     levels
 }
 
-// ── Écriture ──────────────────────────────────────────────────────────────
+// ── Writing ───────────────────────────────────────────────────────────────
 
 fn print(root: &SyntaxNode, options: &FormatOptions, out: &mut String) {
     let lines = lines(root);
@@ -273,12 +273,12 @@ fn print(root: &SyntaxNode, options: &FormatOptions, out: &mut String) {
     let mut blank = false;
     for (line, level) in lines.iter().zip(levels) {
         if line.tokens.is_empty() {
-            // Au plus une ligne vide, jamais en tête ni en fin de fichier.
+            // At most one blank line, never at the start or end of the file.
             blank = started;
             continue;
         }
-        // Ni avant `EndIf`, `EndFunction`, `Else`… : un bloc ne finit pas sur
-        // du vide.
+        // Nor before `EndIf`, `EndFunction`, `Else`…: a block does not end on
+        // emptiness.
         let closes = line
             .tokens
             .first()
@@ -305,7 +305,7 @@ fn print(root: &SyntaxNode, options: &FormatOptions, out: &mut String) {
     }
 }
 
-/// Le texte d'un token, tel que le formateur l'écrit.
+/// The text of a token, as the formatter writes it.
 fn text(token: &SyntaxToken) -> Cow<'_, str> {
     let raw = token.text();
     match token.kind() {
@@ -317,8 +317,8 @@ fn text(token: &SyntaxToken) -> Cow<'_, str> {
     }
 }
 
-/// Vrai pour un mot-clé qui sert ici de nom, et garde donc la casse choisie
-/// par l'auteur.
+/// True for a keyword used here as a name, which therefore keeps the case
+/// chosen by the author.
 fn keeps_case(token: &SyntaxToken) -> bool {
     let Some(parent) = token.parent() else {
         return false;
@@ -326,9 +326,9 @@ fn keeps_case(token: &SyntaxToken) -> bool {
     match parent.kind() {
         // `Auto State Default`, `Group Mandatory`
         NAME => true,
-        // `.Length` ; `self` et `parent` restent des mots-clés.
+        // `.Length`; `self` and `parent` stay keywords.
         NAME_REF => !matches!(token.kind(), SELF_KW | PARENT_KW),
-        // Des types nommés, comme `Actor` — pas des primitifs.
+        // Named types, like `Actor` — not primitives.
         TYPE_REF => matches!(
             token.kind(),
             CUSTOMEVENTNAME_KW | SCRIPTEVENTNAME_KW | STRUCTVARNAME_KW
@@ -341,18 +341,18 @@ fn parent_kind(token: &SyntaxToken) -> Option<SyntaxKind> {
     token.parent().map(|p| p.kind())
 }
 
-/// Vrai s'il faut une espace entre deux tokens voisins sur une ligne.
+/// True if two neighboring tokens on a line need a space between them.
 fn space_between(prev: &SyntaxToken, next: &SyntaxToken) -> bool {
     let (p, n) = (prev.kind(), next.kind());
 
-    // Les commentaires et la continuation se détachent toujours.
+    // Comments and line continuations always stand apart.
     if p.is_comment() || n.is_comment() || n == LINE_CONTINUATION {
         return true;
     }
 
     match n {
         COMMA | R_PAREN | R_BRACK | DOT | COLON => return false,
-        // `Foo(`, `Function F(`, `RequiresGuard(` — mais `If (`.
+        // `Foo(`, `Function F(`, `RequiresGuard(` — but `If (`.
         L_PAREN if matches!(parent_kind(next), Some(ARG_LIST | PARAM_LIST)) => return false,
         // `t[0]`, `int[]`, `new int[4]`
         L_BRACK => return false,
@@ -365,10 +365,10 @@ fn space_between(prev: &SyntaxToken, next: &SyntaxToken) -> bool {
     }
 }
 
-// ── Garde-fou ─────────────────────────────────────────────────────────────
+// ── Safeguard ─────────────────────────────────────────────────────────────
 
-/// Ce que le formatage ne doit pas changer : les tokens significatifs, les
-/// commentaires, et les fins de ligne qui séparent du code.
+/// What formatting must not change: significant tokens, comments, and the
+/// line breaks that separate code.
 fn fingerprint(source: &str, dialect: Dialect) -> Vec<(SyntaxKind, String)> {
     let mut out: Vec<(SyntaxKind, String)> = Vec::new();
     let mut after_newline = true;

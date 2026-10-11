@@ -1,12 +1,12 @@
-//! Tâches de développement.
+//! Development tasks.
 //!
 //! ```sh
 //! cargo xtask stdlib --game skyrim --from ".../Data/Source/Scripts"
 //! ```
 //!
-//! Ne tourne que sur la machine d'un développeur qui possède le jeu : le
-//! binaire `papyrus` ne lit jamais d'installation. Le résultat, des tables de
-//! signatures, est versionné.
+//! Only runs on the machine of a developer who owns the game: the `papyrus`
+//! binary never reads an installation. The result, signature tables, is
+//! committed.
 
 #![forbid(unsafe_code)]
 
@@ -27,12 +27,12 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Task {
-    /// Génère les tables de `papyrus-stdlib` depuis les sources d'un jeu.
+    /// Generate the `papyrus-stdlib` tables from a game's sources.
     Stdlib {
-        /// skyrim, fallout4 ou starfield.
+        /// skyrim, fallout4 or starfield.
         #[arg(long)]
         game: GameId,
-        /// Le dossier des sources `.psc` du jeu.
+        /// The folder of the game's `.psc` sources.
         #[arg(long)]
         from: PathBuf,
     },
@@ -77,12 +77,12 @@ fn child(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxNode> {
     node.children().find(|c| c.kind() == kind)
 }
 
-/// Le texte d'un nœud, trivia comprise, sans espace autour.
+/// The text of a node, trivia included, trimmed.
 fn text(node: &SyntaxNode) -> String {
     node.text().to_string().trim().to_owned()
 }
 
-/// Le texte significatif d'un nœud : tokens hors trivia, accolés.
+/// The significant text of a node: non-trivia tokens, joined.
 fn compact(node: &SyntaxNode) -> String {
     node.descendants_with_tokens()
         .filter_map(|e| e.into_token())
@@ -98,7 +98,7 @@ fn has_flag(owner: &SyntaxNode, flag: SyntaxKind) -> bool {
 
 fn function(decl: &SyntaxNode) -> Option<Function> {
     let name = text(&child(decl, SyntaxKind::NAME)?);
-    // Le type de retour précède `Function` ; `Event` n'en a pas.
+    // The return type precedes `Function`; `Event` has none.
     let returns = if decl.kind() == SyntaxKind::FUNCTION_DECL {
         child(decl, SyntaxKind::TYPE_REF).map(|t| compact(&t))
     } else {
@@ -110,7 +110,7 @@ fn function(decl: &SyntaxNode) -> Option<Function> {
         .filter_map(|param| {
             let ty = compact(&child(&param, SyntaxKind::TYPE_REF)?);
             let name = text(&child(&param, SyntaxKind::NAME)?);
-            // La valeur par défaut : ce qui suit `=`.
+            // The default value: whatever follows `=`.
             let default = param
                 .children()
                 .find(|c| !matches!(c.kind(), SyntaxKind::TYPE_REF | SyntaxKind::NAME))
@@ -127,13 +127,13 @@ fn function(decl: &SyntaxNode) -> Option<Function> {
     })
 }
 
-/// Vrai si le script ne fait que déclarer : ni variable, ni property, ni
-/// corps de fonction.
+/// True if the script only declares: no variable, no property, no function
+/// body.
 ///
-/// C'est la forme des types du moteur sans fonction native — en Skyrim,
-/// `Activator.psc` tient en une ligne : `Scriptname Activator extends Form
-/// Hidden`, et `Static.psc` n'a même pas `Hidden`. Sans ce critère, ces types
-/// manqueraient aux tables.
+/// That is the shape of engine types without native functions — in Skyrim,
+/// `Activator.psc` is a single line: `Scriptname Activator extends Form
+/// Hidden`, and `Static.psc` does not even have `Hidden`. Without this
+/// criterion, these types would be missing from the tables.
 fn declares_only(root: &SyntaxNode) -> bool {
     root.children().all(|item| match item.kind() {
         SyntaxKind::SCRIPT_HEADER | SyntaxKind::IMPORT => true,
@@ -151,8 +151,8 @@ fn script(root: &SyntaxNode) -> Option<Script> {
         .and_then(|e| child(&e, SyntaxKind::TYPE_REF))
         .map(|t| compact(&t));
 
-    // Les déclarations du state vide seulement : les states redéfinissent,
-    // ils ne déclarent pas.
+    // Only the declarations of the empty state: states redefine, they do not
+    // declare.
     let mut functions: Vec<Function> = root
         .children()
         .filter(|c| c.kind() == SyntaxKind::FUNCTION_DECL)
@@ -161,8 +161,8 @@ fn script(root: &SyntaxNode) -> Option<Script> {
     let mut events: Vec<Function> = root
         .children()
         .filter(|c| c.kind() == SyntaxKind::EVENT_DECL)
-        // `Event Actor.OnDeath` écoute un autre script : ce n'est pas un
-        // événement de celui-ci.
+        // `Event Actor.OnDeath` listens to another script: it is not one of
+        // this script's events.
         .filter(|e| child(e, SyntaxKind::TYPE_REF).is_none())
         .filter_map(|e| function(&e))
         .collect();
@@ -189,7 +189,7 @@ fn script(root: &SyntaxNode) -> Option<Script> {
     })
 }
 
-// ── Génération ────────────────────────────────────────────────────────────
+// ── Generation ────────────────────────────────────────────────────────────
 
 fn emit_functions(out: &mut String, functions: &[Function]) {
     out.push_str("&[");
@@ -217,10 +217,10 @@ fn generate(game: GameId, scripts: &[Script], files: usize) -> String {
     let mut out = String::new();
     writeln!(
         out,
-        "// @generated par `cargo xtask stdlib --game {}` — ne pas modifier.\n\
+        "// @generated by `cargo xtask stdlib --game {}` — do not edit.\n\
          //\n\
-         // {} scripts natifs, extraits de {files} sources vanilla. Signatures\n\
-         // seulement : ni corps de fonction, ni docstring.\n\n\
+         // {} native scripts, extracted from {files} vanilla sources. Signatures\n\
+         // only: no function bodies, no docstrings.\n\n\
          use crate::{{Function, Param, Script}};\n\n\
          #[rustfmt::skip]\n\
          pub(crate) static SCRIPTS: &[Script] = &[",
