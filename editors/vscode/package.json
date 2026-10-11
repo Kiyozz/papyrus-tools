@@ -1,13 +1,13 @@
 {
   "name": "papyrus-tools",
   "displayName": "Papyrus",
-  "description": "Diagnostics, formatage et lints pour Papyrus, le langage de script de Skyrim, Fallout 4 et Starfield",
+  "description": "Diagnostics, formatting and lints for Papyrus, the scripting language of Skyrim, Fallout 4 and Starfield",
   "version": "0.4.0",
-  "publisher": "wk",
-  "license": "MIT OR Apache-2.0",
+  "publisher": "kiyozz",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Wk/papyrus-tools"
+    "url": "https://github.com/kiyozz/papyrus-tools"
   },
   "engines": {
     "vscode": "^1.91.0"
@@ -54,7 +54,7 @@
         "papyrus.server.path": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Chemin du binaire `papyrus`. Vide : celui de l'extension s'il est fourni, sinon `papyrus` dans le `PATH`."
+          "markdownDescription": "Path of the `papyrus` binary. Empty: the one bundled with the extension, else `papyrus` from the `PATH`."
         },
         "papyrus.trace.server": {
           "type": "string",
@@ -64,14 +64,14 @@
             "verbose"
           ],
           "default": "off",
-          "description": "Trace des échanges avec le serveur, dans la sortie « Papyrus »."
+          "description": "Trace the communication with the server, in the \"Papyrus\" output."
         }
       }
     },
     "commands": [
       {
         "command": "papyrus.restart",
-        "title": "Redémarrer le serveur",
+        "title": "Restart the server",
         "category": "Papyrus"
       }
     ]
@@ -83,6 +83,6 @@
     "@vscode/vsce": "^4.0.0"
   },
   "scripts": {
-    "package": "vsce package --skip-license"
+    "package": "vsce package"
   }
 }

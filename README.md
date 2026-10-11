@@ -107,17 +107,19 @@ frappe, correctifs et « Autoriser sur cette ligne », formatage, plan du
 fichier, repli, coloration sémantique. À l'ouverture, il indexe les scripts
 du projet pour suivre `extends` d'un fichier à l'autre et déduire le jeu.
 
-**VSCode** — l'extension est dans `editors/vscode` :
+**VSCode** — l'extension, dans `editors/vscode`, est publiée une fois par
+plateforme (Windows x64 et arm64, macOS arm64, Linux x64 et arm64), avec le
+binaire `papyrus` embarqué. Pour la construire localement :
 
 ```sh
-cd editors/vscode
-npm install
-npm run package          # papyrus-tools-0.4.0.vsix
-code --install-extension papyrus-tools-0.4.0.vsix
+npm ci && npm ci --prefix editors/vscode
+cargo build --release -p papyrus-cli
+npm run package:extension -- --target win32-x64 --binary target/release/papyrus.exe
+code --install-extension dist/papyrus-tools-win32-x64-0.4.0.vsix
 ```
 
-Elle lance `papyrus` depuis le `PATH`, ou le binaire désigné par
-`papyrus.server.path`.
+Le réglage `papyrus.server.path` désigne un autre binaire ; sans binaire
+embarqué, l'extension cherche `papyrus` dans le `PATH`.
 
 **IntelliJ** — avec le plugin [LSP4IJ](https://github.com/redhat-developer/lsp4ij) :
 *Settings › Languages & Frameworks › Language Servers › +*, commande
@@ -182,6 +184,17 @@ Attention aux dispositions, qui n'ont aucune logique commune : Skyrim SE range
 ses sources dans `Data/Source/Scripts`, Fallout 4 et Starfield dans
 `Data/Scripts/Source`, avec des sous-dossiers.
 
+### Versions
+
+Une seule version couvre la CLI, le serveur LSP et l'extension. Chaque
+changement visible ajoute un changeset (`npx changeset`, ou un fichier dans
+`.changeset/`). Sur `main`, le workflow *Release* ouvre une PR
+« chore: release » qui monte la version, écrit `CHANGELOG.md` et la recopie
+dans `Cargo.toml` et l'extension. Une fois mergée, la version est taguée, puis
+binaires et extensions sont construits pour chaque plateforme et attachés à la
+release GitHub — et publiés sur le Visual Studio Marketplace et Open VSX si les
+secrets `VSCE_PAT` et `OVSX_PAT` existent.
+
 ## Encodage des `.psc`
 
 Mesuré sur les trois compilateurs officiels : **aucun encodage sans BOM ne
@@ -202,7 +215,7 @@ contient un tiret cadratin en UTF-8 sans BOM, que le Creation Kit affiche
 
 ## Licence
 
-MIT OR Apache-2.0, au choix.
+[Apache-2.0](LICENSE).
 
 Les grammaires ANTLR de [`fireundubh/OpenPapyrus`](https://github.com/fireundubh/OpenPapyrus)
 (MIT) ont servi de spécification de référence. Aucun code n'est dérivé de

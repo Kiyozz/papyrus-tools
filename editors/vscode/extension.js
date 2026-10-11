@@ -1,5 +1,5 @@
 // @ts-check
-// Le client LSP de Papyrus : lance `papyrus lsp` et lui confie les `.psc`.
+// The Papyrus LSP client: starts `papyrus lsp` and hands it the `.psc` files.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -10,8 +10,8 @@ const { LanguageClient } = require("vscode-languageclient/node");
 let client;
 
 /**
- * Le binaire à lancer : le réglage, sinon celui que l'extension embarque,
- * sinon `papyrus` dans le `PATH`.
+ * The binary to start: the setting, else the one bundled with the extension,
+ * else `papyrus` from the `PATH`.
  * @param {vscode.ExtensionContext} context
  */
 function serverPath(context) {
@@ -21,7 +21,18 @@ function serverPath(context) {
   }
   const exe = process.platform === "win32" ? "papyrus.exe" : "papyrus";
   const bundled = path.join(context.extensionPath, "server", exe);
-  return fs.existsSync(bundled) ? bundled : "papyrus";
+  if (!fs.existsSync(bundled)) {
+    return "papyrus";
+  }
+  if (process.platform !== "win32") {
+    // A `.vsix` does not guarantee the executable bit.
+    try {
+      fs.chmodSync(bundled, 0o755);
+    } catch {
+      // Read-only: never mind, launching will say why.
+    }
+  }
+  return bundled;
 }
 
 /** @param {vscode.ExtensionContext} context */
@@ -39,8 +50,8 @@ async function start(context) {
     await client.start();
   } catch (error) {
     vscode.window.showErrorMessage(
-      `Papyrus : impossible de lancer « ${command} lsp ». ` +
-        "Installer papyrus, ou régler papyrus.server.path.",
+      `Papyrus: could not start "${command} lsp". ` +
+        "Install papyrus, or set papyrus.server.path.",
     );
     throw error;
   }

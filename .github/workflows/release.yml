@@ -1,0 +1,80 @@
+# Versions, kept by changesets.
+#
+# On `main`, while changesets remain, a "chore: release" PR bumps the
+# version and writes CHANGELOG.md. Once merged, none remain: the version is
+# tagged `vX.Y.Z`, then the binaries and extensions are built and published.
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  changesets:
+    name: Changesets
+    runs-on: ubuntu-latest
+    outputs:
+      pending: ${{ steps.changesets.outputs.hasChangesets }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # `release:version` updates Cargo.lock.
+      - uses: dtolnay/rust-toolchain@1.86
+      - run: npm ci
+      - id: changesets
+        uses: changesets/action@v1
+        with:
+          version: npm run release:version
+          commit: "chore: release"
+          title: "chore: release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  tag:
+    name: Tag
+    needs: changesets
+    if: needs.changesets.outputs.pending == 'false'
+    runs-on: ubuntu-latest
+    outputs:
+      created: ${{ steps.tag.outputs.created }}
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: tag
+        name: Tag the version if it is new
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
+            echo "v$version already exists"
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            git tag "v$version"
+            git push origin "v$version"
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # A tag pushed with GITHUB_TOKEN triggers no workflow: the build is called
+  # directly.
+  build:
+    name: Build
+    needs: tag
+    if: needs.tag.outputs.created == 'true'
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: v${{ needs.tag.outputs.version }}
+      publish: true
+    secrets: inherit

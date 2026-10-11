@@ -1,0 +1,126 @@
+# The `papyrus` binaries and the VSCode extension, per platform.
+#
+# Called by release.yml after a tag; can be run by hand to check the build
+# without publishing anything.
+
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: The tag or branch to build
+        type: string
+        required: true
+      publish:
+        description: Create the GitHub release and publish the extension
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: The tag or branch to build
+        type: string
+        default: main
+      publish:
+        description: Create the GitHub release and publish the extension
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: win32-x64
+            rust: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: win32-arm64
+            rust: aarch64-pc-windows-msvc
+            os: windows-latest
+          - target: darwin-arm64
+            rust: aarch64-apple-darwin
+            os: macos-latest
+          # musl: a static binary, which runs on any distribution.
+          - target: linux-x64
+            rust: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: linux-arm64
+            rust: aarch64-unknown-linux-musl
+            os: ubuntu-24.04-arm
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: dtolnay/rust-toolchain@1.86
+        with:
+          targets: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.rust }}
+      - name: musl
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Binary
+        run: cargo build --release --locked --package papyrus-cli --target ${{ matrix.rust }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+      - run: npm ci
+        working-directory: editors/vscode
+      - name: Extension and archive
+        shell: bash
+        run: |
+          exe=papyrus
+          if [ "${{ runner.os }}" = Windows ]; then exe=papyrus.exe; fi
+          node scripts/package-extension.mjs --target ${{ matrix.target }} \
+            --binary "target/${{ matrix.rust }}/release/$exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: papyrus-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    needs: build
+    if: inputs.publish
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Release GitHub
+        run: |
+          version=$(node -p "require('./package.json').version")
+          node scripts/release-notes.mjs "$version" > notes.md
+          gh release create "v$version" dist/* --title "v$version" --notes-file notes.md
+      # Without a token the step is skipped: the GitHub release is enough.
+      - name: Visual Studio Marketplace
+        if: env.VSCE_PAT != ''
+        run: npx --yes @vscode/vsce@4 publish --packagePath dist/*.vsix
+      - name: Open VSX
+        if: env.OVSX_PAT != ''
+        run: |
+          for vsix in dist/*.vsix; do
+            npx --yes ovsx@1 publish "$vsix" --pat "$OVSX_PAT"
+          done

@@ -1,10 +1,12 @@
 /target
 **/*.rs.bk
 
-# Corpus local : jamais commité (droits Bethesda).
-# Les chemins d'installation vivent ici, hors du dépôt.
+# Local corpus: never committed (Bethesda's rights).
+# Installation paths live here, outside the repository.
 /corpus.local.toml
 /test-data/vanilla/
 
-# Sorties de compilation Papyrus
+# Papyrus compiler output
 *.pex
+node_modules/
+/dist/
