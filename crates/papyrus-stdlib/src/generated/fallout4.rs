@@ -1,0 +1,3266 @@
+// @generated par `cargo xtask stdlib --game fallout4` — ne pas modifier.
+//
+// 229 scripts natifs, extraits de 2752 sources vanilla. Signatures
+// seulement : ni corps de fonction, ni docstring.
+
+use crate::{Function, Param, Script};
+
+#[rustfmt::skip]
+pub(crate) static SCRIPTS: &[Script] = &[
+Script {
+    name: "Action",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Activator",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "IsRadio", returns: Some("bool"), global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ActiveMagicEffect",
+    parent: Some("ScriptObject"),
+    functions: &[
+        Function { name: "Dispel", returns: None, global: false, native: true, params: &[] },
+        Function { name: "GetBaseObject", returns: Some("MagicEffect"), global: false, native: true, params: &[] },
+        Function { name: "GetCasterActor", returns: Some("Actor"), global: false, native: true, params: &[] },
+        Function { name: "GetTargetActor", returns: Some("Actor"), global: false, native: true, params: &[] },
+        Function { name: "StartObjectProfiling", returns: None, global: false, native: true, params: &[] },
+        Function { name: "StopObjectProfiling", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+        Function { name: "OnActivate", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCellAttach", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCellDetach", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCellLoad", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnClose", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCombatStateChanged", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "Actor", default: None }, Param { name: "aeCombatState", ty: "int", default: None }, ] },
+        Function { name: "OnCommandModeCompleteCommand", returns: None, global: false, native: false, params: &[Param { name: "aeCommandType", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCommandModeEnter", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCommandModeExit", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCommandModeGiveCommand", returns: None, global: false, native: false, params: &[Param { name: "aeCommandType", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCompanionDismiss", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnConsciousnessStateChanged", returns: None, global: false, native: false, params: &[Param { name: "abUnconscious", ty: "bool", default: None }, ] },
+        Function { name: "OnContainerChanged", returns: None, global: false, native: false, params: &[Param { name: "akNewContainer", ty: "ObjectReference", default: None }, Param { name: "akOldContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCripple", returns: None, global: false, native: false, params: &[Param { name: "akActorValue", ty: "ActorValue", default: None }, Param { name: "abCrippled", ty: "bool", default: None }, ] },
+        Function { name: "OnDeath", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnDeferredKill", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnDestructionStageChanged", returns: None, global: false, native: false, params: &[Param { name: "aiOldStage", ty: "int", default: None }, Param { name: "aiCurrentStage", ty: "int", default: None }, ] },
+        Function { name: "OnDifficultyChanged", returns: None, global: false, native: false, params: &[Param { name: "aOldDifficulty", ty: "int", default: None }, Param { name: "aNewDifficulty", ty: "int", default: None }, ] },
+        Function { name: "OnDying", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnEffectFinish", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "Actor", default: None }, Param { name: "akCaster", ty: "Actor", default: None }, ] },
+        Function { name: "OnEffectStart", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "Actor", default: None }, Param { name: "akCaster", ty: "Actor", default: None }, ] },
+        Function { name: "OnEnterBleedout", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnEnterSneaking", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnEquipped", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "OnEscortWaitStart", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnEscortWaitStop", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnExitFurniture", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnGetUp", returns: None, global: false, native: false, params: &[Param { name: "akFurniture", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnGrab", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnHolotapeChatter", returns: None, global: false, native: false, params: &[Param { name: "astrChatter", ty: "string", default: None }, Param { name: "afNumericData", ty: "float", default: None }, ] },
+        Function { name: "OnHolotapePlay", returns: None, global: false, native: false, params: &[Param { name: "aTerminalRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemAdded", returns: None, global: false, native: false, params: &[Param { name: "akBaseItem", ty: "Form", default: None }, Param { name: "aiItemCount", ty: "int", default: None }, Param { name: "akItemReference", ty: "ObjectReference", default: None }, Param { name: "akSourceContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemEquipped", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemRemoved", returns: None, global: false, native: false, params: &[Param { name: "akBaseItem", ty: "Form", default: None }, Param { name: "aiItemCount", ty: "int", default: None }, Param { name: "akItemReference", ty: "ObjectReference", default: None }, Param { name: "akDestContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemUnequipped", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnKill", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "Actor", default: None }, ] },
+        Function { name: "OnLoad", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnLocationChange", returns: None, global: false, native: false, params: &[Param { name: "akOldLoc", ty: "Location", default: None }, Param { name: "akNewLoc", ty: "Location", default: None }, ] },
+        Function { name: "OnLockStateChanged", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnOpen", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPackageChange", returns: None, global: false, native: false, params: &[Param { name: "akOldPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPackageEnd", returns: None, global: false, native: false, params: &[Param { name: "akOldPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPackageStart", returns: None, global: false, native: false, params: &[Param { name: "akNewPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPartialCripple", returns: None, global: false, native: false, params: &[Param { name: "akActorValue", ty: "ActorValue", default: None }, Param { name: "abCrippled", ty: "bool", default: None }, ] },
+        Function { name: "OnPickpocketFailed", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPipboyRadioDetection", returns: None, global: false, native: false, params: &[Param { name: "abDetected", ty: "bool", default: None }, ] },
+        Function { name: "OnPlayerCreateRobot", returns: None, global: false, native: false, params: &[Param { name: "akNewRobot", ty: "Actor", default: None }, ] },
+        Function { name: "OnPlayerDialogueTarget", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPlayerEnterVertibird", returns: None, global: false, native: false, params: &[Param { name: "akVertibird", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPlayerFallLongDistance", returns: None, global: false, native: false, params: &[Param { name: "afDamage", ty: "float", default: None }, ] },
+        Function { name: "OnPlayerFireWeapon", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, ] },
+        Function { name: "OnPlayerHealTeammate", returns: None, global: false, native: false, params: &[Param { name: "akTeammate", ty: "Actor", default: None }, ] },
+        Function { name: "OnPlayerLoadGame", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPlayerModArmorWeapon", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akModBaseObject", ty: "ObjectMod", default: None }, ] },
+        Function { name: "OnPlayerModRobot", returns: None, global: false, native: false, params: &[Param { name: "akRobot", ty: "Actor", default: None }, Param { name: "akModBaseObject", ty: "ObjectMod", default: None }, ] },
+        Function { name: "OnPlayerSwimming", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPlayerUseWorkBench", returns: None, global: false, native: false, params: &[Param { name: "akWorkBench", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPowerOff", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPowerOn", returns: None, global: false, native: false, params: &[Param { name: "akPowerGenerator", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnRaceSwitchComplete", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnRead", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnRelease", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnReset", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnSell", returns: None, global: false, native: false, params: &[Param { name: "akSeller", ty: "Actor", default: None }, ] },
+        Function { name: "OnSit", returns: None, global: false, native: false, params: &[Param { name: "akFurniture", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnSpeechChallengeAvailable", returns: None, global: false, native: false, params: &[Param { name: "akSpeaker", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnSpellCast", returns: None, global: false, native: false, params: &[Param { name: "akSpell", ty: "Form", default: None }, ] },
+        Function { name: "OnTranslationAlmostComplete", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnTranslationComplete", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnTranslationFailed", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnTrapHitStart", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "afXVel", ty: "float", default: None }, Param { name: "afYVel", ty: "float", default: None }, Param { name: "afZVel", ty: "float", default: None }, Param { name: "afXPos", ty: "float", default: None }, Param { name: "afYPos", ty: "float", default: None }, Param { name: "afZPos", ty: "float", default: None }, Param { name: "aeMaterial", ty: "int", default: None }, Param { name: "abInitialHit", ty: "bool", default: None }, Param { name: "aeMotionType", ty: "int", default: None }, ] },
+        Function { name: "OnTrapHitStop", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTriggerEnter", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTriggerLeave", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnUnequipped", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "OnUnload", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnWorkshopMode", returns: None, global: false, native: false, params: &[Param { name: "aStart", ty: "bool", default: None }, ] },
+        Function { name: "OnWorkshopNPCTransfer", returns: None, global: false, native: false, params: &[Param { name: "akNewWorkshop", ty: "Location", default: None }, Param { name: "akActionKW", ty: "Keyword", default: None }, ] },
+        Function { name: "OnWorkshopObjectDestroyed", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectGrabbed", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectMoved", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectPlaced", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectRepaired", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+    ],
+},
+Script {
+    name: "Actor",
+    parent: Some("ObjectReference"),
+    functions: &[
+        Function { name: "AddPerk", returns: None, global: false, native: true, params: &[Param { name: "akPerk", ty: "Perk", default: None }, Param { name: "abNotify", ty: "bool", default: Some("false") }, ] },
+        Function { name: "AddSpell", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akSpell", ty: "Spell", default: None }, Param { name: "abVerbose", ty: "bool", default: Some("true") }, ] },
+        Function { name: "AddToFaction", returns: None, global: false, native: false, params: &[Param { name: "akFaction", ty: "Faction", default: None }, ] },
+        Function { name: "AllowBleedoutDialogue", returns: None, global: false, native: true, params: &[Param { name: "abCanTalk", ty: "bool", default: None }, ] },
+        Function { name: "AllowCompanion", returns: None, global: false, native: false, params: &[Param { name: "MakeCompanionIfNoneCurrently", ty: "bool", default: Some("true") }, Param { name: "ForceCompanion", ty: "bool", default: Some("false") }, ] },
+        Function { name: "AllowPCDialogue", returns: None, global: false, native: true, params: &[Param { name: "abTalk", ty: "bool", default: None }, ] },
+        Function { name: "AttachAshPile", returns: None, global: false, native: true, params: &[Param { name: "akAshPileBase", ty: "Form", default: Some("None") }, ] },
+        Function { name: "AttemptAnimationSetSwitch", returns: None, global: false, native: true, params: &[] },
+        Function { name: "CanFlyHere", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "CanMoveVertical", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "CanStrafe", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "ChangeAnimArchetype", returns: Some("bool"), global: false, native: true, params: &[Param { name: "apKeyword", ty: "keyword", default: Some("none") }, ] },
+        Function { name: "ChangeAnimFaceArchetype", returns: None, global: false, native: true, params: &[Param { name: "apKeyword", ty: "keyword", default: Some("none") }, ] },
+        Function { name: "ChangeAnimFlavor", returns: Some("bool"), global: false, native: true, params: &[Param { name: "apKeyword", ty: "keyword", default: Some("none") }, ] },
+        Function { name: "ChangeHeadPart", returns: None, global: false, native: true, params: &[Param { name: "apHeadPart", ty: "headpart", default: None }, Param { name: "abRemovePart", ty: "bool", default: Some("false") }, Param { name: "abRemoveExtraParts", ty: "bool", default: Some("false") }, ] },
+        Function { name: "ClearArrested", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ClearExpressionOverride", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ClearExtraArrows", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ClearForcedLandingMarker", returns: None, global: false, native: false, params: &[] },
+        Function { name: "ClearForcedMovement", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ClearLookAt", returns: None, global: false, native: true, params: &[] },
+        Function { name: "DisallowCompanion", returns: None, global: false, native: false, params: &[Param { name: "SuppressDismissMessage", ty: "bool", default: Some("false") }, ] },
+        Function { name: "Dismember", returns: None, global: false, native: true, params: &[Param { name: "asBodyPart", ty: "string", default: None }, Param { name: "abForceExplode", ty: "bool", default: Some("false") }, Param { name: "abForceDismember", ty: "bool", default: Some("false") }, Param { name: "abForceBloodyMess", ty: "bool", default: Some("false") }, ] },
+        Function { name: "Dismount", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "DispelAllSpells", returns: None, global: false, native: true, params: &[] },
+        Function { name: "DispelSpell", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akSpell", ty: "Spell", default: None }, ] },
+        Function { name: "DoCombatSpellApply", returns: None, global: false, native: true, params: &[Param { name: "akSpell", ty: "Spell", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "DogDropItems", returns: None, global: false, native: true, params: &[] },
+        Function { name: "DogPlaceInMouth", returns: None, global: false, native: true, params: &[Param { name: "akItem", ty: "Form", default: None }, ] },
+        Function { name: "DrawWeapon", returns: None, global: false, native: true, params: &[] },
+        Function { name: "EnableAI", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, Param { name: "abPauseVoice", ty: "bool", default: Some("false") }, ] },
+        Function { name: "EndDeferredKill", returns: None, global: false, native: true, params: &[] },
+        Function { name: "EquipItem", returns: None, global: false, native: true, params: &[Param { name: "akItem", ty: "Form", default: None }, Param { name: "abPreventRemoval", ty: "bool", default: Some("false") }, Param { name: "abSilent", ty: "bool", default: Some("false") }, ] },
+        Function { name: "EquipSpell", returns: None, global: false, native: true, params: &[Param { name: "akSpell", ty: "Spell", default: None }, Param { name: "aiSource", ty: "int", default: None }, ] },
+        Function { name: "EvaluatePackage", returns: None, global: false, native: true, params: &[Param { name: "abResetAI", ty: "bool", default: Some("false") }, ] },
+        Function { name: "FollowerFollow", returns: None, global: false, native: false, params: &[] },
+        Function { name: "FollowerSetDistanceFar", returns: None, global: false, native: false, params: &[] },
+        Function { name: "FollowerSetDistanceMedium", returns: None, global: false, native: false, params: &[] },
+        Function { name: "FollowerSetDistanceNear", returns: None, global: false, native: false, params: &[] },
+        Function { name: "FollowerWait", returns: None, global: false, native: false, params: &[] },
+        Function { name: "ForceMovementDirection", returns: None, global: false, native: true, params: &[Param { name: "afXAngle", ty: "float", default: Some("0.0") }, Param { name: "afYAngle", ty: "float", default: Some("0.0") }, Param { name: "afZAngle", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "ForceMovementDirectionRamp", returns: None, global: false, native: true, params: &[Param { name: "afXAngle", ty: "float", default: Some("0.0") }, Param { name: "afYAngle", ty: "float", default: Some("0.0") }, Param { name: "afZAngle", ty: "float", default: Some("0.0") }, Param { name: "afRampTime", ty: "float", default: Some("0.1") }, ] },
+        Function { name: "ForceMovementRotationSpeed", returns: None, global: false, native: true, params: &[Param { name: "afXMult", ty: "float", default: Some("0.0") }, Param { name: "afYMult", ty: "float", default: Some("0.0") }, Param { name: "afZMult", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "ForceMovementRotationSpeedRamp", returns: None, global: false, native: true, params: &[Param { name: "afXMult", ty: "float", default: Some("0.0") }, Param { name: "afYMult", ty: "float", default: Some("0.0") }, Param { name: "afZMult", ty: "float", default: Some("0.0") }, Param { name: "afRampTime", ty: "float", default: Some("0.1") }, ] },
+        Function { name: "ForceMovementSpeed", returns: None, global: false, native: true, params: &[Param { name: "afSpeedMult", ty: "float", default: None }, ] },
+        Function { name: "ForceMovementSpeedRamp", returns: None, global: false, native: true, params: &[Param { name: "afSpeedMult", ty: "float", default: None }, Param { name: "afRampTime", ty: "float", default: Some("0.1") }, ] },
+        Function { name: "ForceTargetAngle", returns: None, global: false, native: true, params: &[Param { name: "afXAngle", ty: "float", default: Some("0.0") }, Param { name: "afYAngle", ty: "float", default: Some("0.0") }, Param { name: "afZAngle", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "ForceTargetDirection", returns: None, global: false, native: true, params: &[Param { name: "afXAngle", ty: "float", default: Some("0.0") }, Param { name: "afYAngle", ty: "float", default: Some("0.0") }, Param { name: "afZAngle", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "ForceTargetSpeed", returns: None, global: false, native: true, params: &[Param { name: "afSpeed", ty: "float", default: None }, ] },
+        Function { name: "GetActorBase", returns: Some("ActorBase"), global: false, native: false, params: &[] },
+        Function { name: "GetAllCombatTargets", returns: Some("Actor[]"), global: false, native: true, params: &[] },
+        Function { name: "GetBribeAmount", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetCombatState", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetCombatTarget", returns: Some("Actor"), global: false, native: true, params: &[] },
+        Function { name: "GetCrimeFaction", returns: Some("Faction"), global: false, native: true, params: &[] },
+        Function { name: "GetCurrentPackage", returns: Some("Package"), global: false, native: true, params: &[] },
+        Function { name: "GetDialogueTarget", returns: Some("Actor"), global: false, native: true, params: &[] },
+        Function { name: "GetEquippedItemType", returns: Some("int"), global: false, native: true, params: &[Param { name: "aiEquipIndex", ty: "int", default: None }, ] },
+        Function { name: "GetEquippedShield", returns: Some("Armor"), global: false, native: true, params: &[] },
+        Function { name: "GetEquippedSpell", returns: Some("Spell"), global: false, native: true, params: &[Param { name: "aiSource", ty: "int", default: None }, ] },
+        Function { name: "GetEquippedWeapon", returns: Some("Weapon"), global: false, native: true, params: &[Param { name: "aiEquipIndex", ty: "int", default: Some("0") }, ] },
+        Function { name: "GetFactionRank", returns: Some("int"), global: false, native: true, params: &[Param { name: "akFaction", ty: "Faction", default: None }, ] },
+        Function { name: "GetFactionReaction", returns: Some("int"), global: false, native: true, params: &[Param { name: "akOther", ty: "Actor", default: None }, ] },
+        Function { name: "GetFlyingState", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetForcedLandingMarker", returns: Some("ObjectReference"), global: false, native: true, params: &[] },
+        Function { name: "GetGoldAmount", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetHighestRelationshipRank", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetKiller", returns: Some("Actor"), global: false, native: true, params: &[] },
+        Function { name: "GetLevel", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetLeveledActorBase", returns: Some("ActorBase"), global: false, native: true, params: &[] },
+        Function { name: "GetLightLevel", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetLowestRelationshipRank", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetNoBleedoutRecovery", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "GetPlayerControls", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "GetRace", returns: Some("Race"), global: false, native: true, params: &[] },
+        Function { name: "GetRelationshipRank", returns: Some("int"), global: false, native: true, params: &[Param { name: "akOther", ty: "Actor", default: None }, ] },
+        Function { name: "GetSitState", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetSleepState", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "HasAssociation", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akAssociation", ty: "AssociationType", default: None }, Param { name: "akOther", ty: "Actor", default: Some("None") }, ] },
+        Function { name: "HasDetectionLOS", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akOther", ty: "ObjectReference", default: None }, ] },
+        Function { name: "HasFamilyRelationship", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akOther", ty: "Actor", default: Some("None") }, ] },
+        Function { name: "HasMagicEffect", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akEffect", ty: "MagicEffect", default: None }, ] },
+        Function { name: "HasMagicEffectWithKeyword", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "HasParentRelationship", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akOther", ty: "Actor", default: None }, ] },
+        Function { name: "HasPerk", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akPerk", ty: "Perk", default: None }, ] },
+        Function { name: "HasSpell", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akForm", ty: "Form", default: None }, ] },
+        Function { name: "IsAIEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsAlarmed", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsAlerted", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsAllowedToFly", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsArrested", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsArrestingTarget", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsBeingRidden", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsBeingRiddenBy", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "IsBleedingOut", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsBribed", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsChild", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsCommandedActor", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsDead", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsDetectedBy", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akOther", ty: "Actor", default: None }, ] },
+        Function { name: "IsDismembered", returns: Some("bool"), global: false, native: true, params: &[Param { name: "asBodyPart", ty: "string", default: Some("\"\"") }, ] },
+        Function { name: "IsDoingFavor", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsEquipped", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akItem", ty: "Form", default: None }, ] },
+        Function { name: "IsEssential", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsFlying", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsGhost", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsGuard", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsHostileToActor", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "IsInCombat", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsInFaction", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akFaction", ty: "Faction", default: None }, ] },
+        Function { name: "IsInIronSights", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsInKillMove", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsInPowerArmor", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "IsInScene", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsIntimidated", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsOnMount", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsOverEncumbered", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsOwner", returns: Some("bool"), global: false, native: false, params: &[Param { name: "akObject", ty: "ObjectReference", default: None }, ] },
+        Function { name: "IsPlayersLastRiddenHorse", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsPlayerTeammate", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsRunning", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsSeatOccupied", returns: Some("bool"), global: false, native: true, params: &[Param { name: "apKeyword", ty: "keyword", default: None }, ] },
+        Function { name: "IsSneaking", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsSprinting", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsTalking", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsTrespassing", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsUnconscious", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsWeaponDrawn", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "Kill", returns: None, global: false, native: true, params: &[Param { name: "akKiller", ty: "Actor", default: Some("None") }, ] },
+        Function { name: "KillEssential", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "Actor", default: Some("None") }, ] },
+        Function { name: "KillSilent", returns: None, global: false, native: true, params: &[Param { name: "akKiller", ty: "Actor", default: Some("None") }, ] },
+        Function { name: "MakePlayerFriend", returns: None, global: false, native: false, params: &[] },
+        Function { name: "MarkItemAsFavorite", returns: None, global: false, native: true, params: &[Param { name: "akItem", ty: "Form", default: None }, Param { name: "aiSlot", ty: "int", default: Some("-1") }, ] },
+        Function { name: "ModFactionRank", returns: None, global: false, native: true, params: &[Param { name: "akFaction", ty: "Faction", default: None }, Param { name: "aiMod", ty: "int", default: None }, ] },
+        Function { name: "ModFavorPoints", returns: None, global: false, native: false, params: &[Param { name: "iFavorPoints", ty: "int", default: Some("1") }, ] },
+        Function { name: "ModFavorPointsWithGlobal", returns: None, global: false, native: false, params: &[Param { name: "FavorPointsGlobal", ty: "GlobalVariable", default: None }, ] },
+        Function { name: "MoveToPackageLocation", returns: None, global: false, native: true, params: &[] },
+        Function { name: "OpenInventory", returns: None, global: false, native: true, params: &[Param { name: "abForceOpen", ty: "bool", default: Some("false") }, ] },
+        Function { name: "PathToReference", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aTarget", ty: "ObjectReference", default: None }, Param { name: "afWalkRunPercent", ty: "float", default: None }, ] },
+        Function { name: "PlayIdle", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akIdle", ty: "Idle", default: None }, ] },
+        Function { name: "PlayIdleAction", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aAction", ty: "Action", default: None }, Param { name: "aTarget", ty: "ObjectReference", default: Some("None") }, ] },
+        Function { name: "PlayIdleWithTarget", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akIdle", ty: "Idle", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "PlaySubGraphAnimation", returns: None, global: false, native: true, params: &[Param { name: "asEventName", ty: "string", default: None }, ] },
+        Function { name: "RemoveFromAllFactions", returns: None, global: false, native: true, params: &[] },
+        Function { name: "RemoveFromFaction", returns: None, global: false, native: true, params: &[Param { name: "akFaction", ty: "Faction", default: None }, ] },
+        Function { name: "RemovePerk", returns: None, global: false, native: true, params: &[Param { name: "akPerk", ty: "Perk", default: None }, ] },
+        Function { name: "RemoveSpell", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akSpell", ty: "Spell", default: None }, ] },
+        Function { name: "ResetHealthAndLimbs", returns: None, global: false, native: true, params: &[] },
+        Function { name: "Resurrect", returns: None, global: false, native: true, params: &[] },
+        Function { name: "SendAssaultAlarm", returns: None, global: false, native: true, params: &[] },
+        Function { name: "SendTrespassAlarm", returns: None, global: false, native: true, params: &[Param { name: "akCriminal", ty: "Actor", default: None }, ] },
+        Function { name: "SetAlert", returns: None, global: false, native: true, params: &[Param { name: "abAlerted", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetAllowFlying", returns: None, global: false, native: true, params: &[Param { name: "abAllowed", ty: "bool", default: Some("true") }, Param { name: "abAllowCrash", ty: "bool", default: Some("true") }, Param { name: "abAllowSearch", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetAlpha", returns: None, global: false, native: true, params: &[Param { name: "afTargetAlpha", ty: "float", default: None }, Param { name: "abFade", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetAnimArchetypeConfident", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetAnimArchetypeDepressed", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetAnimArchetypeElderly", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetAnimArchetypeFriendly", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetAnimArchetypeIrritated", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetAnimArchetypeNervous", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetAnimArchetypeNeutral", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetAttackActorOnSight", returns: None, global: false, native: true, params: &[Param { name: "abAttackOnSight", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetAvailableToBeCompanion", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetAvoidPlayer", returns: None, global: false, native: true, params: &[Param { name: "abAvoid", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetBribed", returns: None, global: false, native: true, params: &[Param { name: "abBribe", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetCanDoCommand", returns: None, global: false, native: true, params: &[Param { name: "abCanCommand", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetCombatStyle", returns: None, global: false, native: true, params: &[Param { name: "akCombatStyle", ty: "CombatStyle", default: None }, ] },
+        Function { name: "SetCommandState", returns: None, global: false, native: true, params: &[Param { name: "abStartCommandMode", ty: "bool", default: None }, ] },
+        Function { name: "SetCompanion", returns: None, global: false, native: false, params: &[Param { name: "SetCompanion", ty: "bool", default: Some("true") }, Param { name: "FillCompanionAlias", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetCrimeFaction", returns: None, global: false, native: true, params: &[Param { name: "akFaction", ty: "Faction", default: None }, ] },
+        Function { name: "SetCriticalStage", returns: None, global: false, native: true, params: &[Param { name: "aiStage", ty: "int", default: None }, ] },
+        Function { name: "SetDogAnimArchetypeAgitated", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetDogAnimArchetypeAlert", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetDogAnimArchetypeNeutral", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetDogAnimArchetypePlayful", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetDoingFavor", returns: None, global: false, native: true, params: &[Param { name: "abDoingFavor", ty: "bool", default: Some("true") }, Param { name: "abWorkShopMode", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetEssential", returns: None, global: false, native: true, params: &[Param { name: "abEssential", ty: "bool", default: None }, ] },
+        Function { name: "SetEyeTexture", returns: None, global: false, native: true, params: &[Param { name: "akNewTexture", ty: "TextureSet", default: None }, ] },
+        Function { name: "SetFactionRank", returns: None, global: false, native: true, params: &[Param { name: "akFaction", ty: "Faction", default: None }, Param { name: "aiRank", ty: "int", default: None }, ] },
+        Function { name: "SetForcedLandingMarker", returns: None, global: false, native: true, params: &[Param { name: "aMarker", ty: "ObjectReference", default: None }, ] },
+        Function { name: "SetGhost", returns: None, global: false, native: true, params: &[Param { name: "abIsGhost", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetHasCharGenSkeleton", returns: None, global: false, native: true, params: &[Param { name: "abCharGen", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetHeadTracking", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetIntimidated", returns: None, global: false, native: true, params: &[Param { name: "abIntimidate", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetLookAt", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "abPathingLookAt", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetNoBleedoutRecovery", returns: None, global: false, native: true, params: &[Param { name: "abAllowed", ty: "bool", default: None }, ] },
+        Function { name: "SetNotShowOnStealthMeter", returns: None, global: false, native: true, params: &[Param { name: "abNotShow", ty: "bool", default: None }, ] },
+        Function { name: "SetOutfit", returns: None, global: false, native: true, params: &[Param { name: "akOutfit", ty: "Outfit", default: None }, Param { name: "abSleepOutfit", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetOverrideVoiceType", returns: None, global: false, native: true, params: &[Param { name: "akVoiceType", ty: "VoiceType", default: None }, ] },
+        Function { name: "SetPlayerControls", returns: None, global: false, native: true, params: &[Param { name: "abControls", ty: "bool", default: None }, ] },
+        Function { name: "SetPlayerResistingArrest", returns: None, global: false, native: true, params: &[] },
+        Function { name: "SetPlayerTeammate", returns: None, global: false, native: true, params: &[Param { name: "abTeammate", ty: "bool", default: Some("true") }, Param { name: "abCanDoFavor", ty: "bool", default: Some("true") }, Param { name: "abGivePlayerXP", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetProtected", returns: None, global: false, native: true, params: &[Param { name: "abProtected", ty: "bool", default: None }, ] },
+        Function { name: "SetRace", returns: None, global: false, native: true, params: &[Param { name: "akRace", ty: "Race", default: Some("None") }, ] },
+        Function { name: "SetRelationshipRank", returns: None, global: false, native: true, params: &[Param { name: "akOther", ty: "Actor", default: None }, Param { name: "aiRank", ty: "int", default: None }, ] },
+        Function { name: "SetRestrained", returns: Some("bool"), global: false, native: true, params: &[Param { name: "abRestrained", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetSubGraphFloatVariable", returns: None, global: false, native: true, params: &[Param { name: "asVariableName", ty: "string", default: None }, Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "SetUnconscious", returns: Some("bool"), global: false, native: true, params: &[Param { name: "abUnconscious", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetVehicle", returns: None, global: false, native: true, params: &[Param { name: "akVehicle", ty: "Actor", default: None }, ] },
+        Function { name: "ShowBarterMenu", returns: None, global: false, native: true, params: &[] },
+        Function { name: "SnapIntoInteraction", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "StartCannibal", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "Actor", default: None }, ] },
+        Function { name: "StartCombat", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "Actor", default: None }, Param { name: "abPreferredTarget", ty: "bool", default: Some("false") }, ] },
+        Function { name: "StartDeferredKill", returns: None, global: false, native: true, params: &[] },
+        Function { name: "StartFrenzyAttack", returns: None, global: false, native: true, params: &[Param { name: "aChance", ty: "float", default: Some("0.1") }, Param { name: "aInterval", ty: "float", default: Some("0.5") }, ] },
+        Function { name: "StartSneaking", returns: None, global: false, native: true, params: &[] },
+        Function { name: "StartVampireFeed", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "Actor", default: None }, ] },
+        Function { name: "StopCombat", returns: None, global: false, native: true, params: &[] },
+        Function { name: "StopCombatAlarm", returns: None, global: false, native: true, params: &[] },
+        Function { name: "SwitchToPowerArmor", returns: None, global: false, native: true, params: &[Param { name: "aArmorFurniture", ty: "ObjectReference", default: None }, ] },
+        Function { name: "TrapSoul", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akTarget", ty: "Actor", default: None }, ] },
+        Function { name: "UnequipAll", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnequipItem", returns: None, global: false, native: true, params: &[Param { name: "akItem", ty: "Form", default: None }, Param { name: "abPreventEquip", ty: "bool", default: Some("false") }, Param { name: "abSilent", ty: "bool", default: Some("false") }, ] },
+        Function { name: "UnequipItemSlot", returns: None, global: false, native: true, params: &[Param { name: "aiSlot", ty: "int", default: None }, ] },
+        Function { name: "UnequipSpell", returns: None, global: false, native: true, params: &[Param { name: "akSpell", ty: "Spell", default: None }, Param { name: "aiSource", ty: "int", default: None }, ] },
+        Function { name: "UnLockOwnedDoorsInCell", returns: None, global: false, native: true, params: &[] },
+        Function { name: "WillIntimidateSucceed", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "WornHasKeyword", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "WouldBeStealing", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akObject", ty: "ObjectReference", default: None }, ] },
+        Function { name: "WouldRefuseCommand", returns: Some("int"), global: false, native: true, params: &[Param { name: "akObject", ty: "ObjectReference", default: None }, ] },
+    ],
+    events: &[
+        Function { name: "OnCombatStateChanged", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "Actor", default: None }, Param { name: "aeCombatState", ty: "int", default: None }, ] },
+        Function { name: "OnCommandModeCompleteCommand", returns: None, global: false, native: false, params: &[Param { name: "aeCommandType", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCommandModeEnter", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCommandModeExit", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCommandModeGiveCommand", returns: None, global: false, native: false, params: &[Param { name: "aeCommandType", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCompanionDismiss", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnConsciousnessStateChanged", returns: None, global: false, native: false, params: &[Param { name: "abUnconscious", ty: "bool", default: None }, ] },
+        Function { name: "OnCripple", returns: None, global: false, native: false, params: &[Param { name: "akActorValue", ty: "ActorValue", default: None }, Param { name: "abCrippled", ty: "bool", default: None }, ] },
+        Function { name: "OnDeath", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnDeferredKill", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnDifficultyChanged", returns: None, global: false, native: false, params: &[Param { name: "aOldDifficulty", ty: "int", default: None }, Param { name: "aNewDifficulty", ty: "int", default: None }, ] },
+        Function { name: "OnDying", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnEnterBleedout", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnEnterSneaking", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnEscortWaitStart", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnEscortWaitStop", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnGetUp", returns: None, global: false, native: false, params: &[Param { name: "akFurniture", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemEquipped", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemUnequipped", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnKill", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "Actor", default: None }, ] },
+        Function { name: "OnLocationChange", returns: None, global: false, native: false, params: &[Param { name: "akOldLoc", ty: "Location", default: None }, Param { name: "akNewLoc", ty: "Location", default: None }, ] },
+        Function { name: "OnPackageChange", returns: None, global: false, native: false, params: &[Param { name: "akOldPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPackageEnd", returns: None, global: false, native: false, params: &[Param { name: "akOldPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPackageStart", returns: None, global: false, native: false, params: &[Param { name: "akNewPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPartialCripple", returns: None, global: false, native: false, params: &[Param { name: "akActorValue", ty: "ActorValue", default: None }, Param { name: "abCrippled", ty: "bool", default: None }, ] },
+        Function { name: "OnPickpocketFailed", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPlayerCreateRobot", returns: None, global: false, native: false, params: &[Param { name: "akNewRobot", ty: "Actor", default: None }, ] },
+        Function { name: "OnPlayerEnterVertibird", returns: None, global: false, native: false, params: &[Param { name: "akVertibird", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPlayerFallLongDistance", returns: None, global: false, native: false, params: &[Param { name: "afDamage", ty: "float", default: None }, ] },
+        Function { name: "OnPlayerFireWeapon", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, ] },
+        Function { name: "OnPlayerHealTeammate", returns: None, global: false, native: false, params: &[Param { name: "akTeammate", ty: "Actor", default: None }, ] },
+        Function { name: "OnPlayerLoadGame", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPlayerModArmorWeapon", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akModBaseObject", ty: "ObjectMod", default: None }, ] },
+        Function { name: "OnPlayerModRobot", returns: None, global: false, native: false, params: &[Param { name: "akRobot", ty: "Actor", default: None }, Param { name: "akModBaseObject", ty: "ObjectMod", default: None }, ] },
+        Function { name: "OnPlayerSwimming", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPlayerUseWorkBench", returns: None, global: false, native: false, params: &[Param { name: "akWorkBench", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnRaceSwitchComplete", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnSit", returns: None, global: false, native: false, params: &[Param { name: "akFurniture", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnSpeechChallengeAvailable", returns: None, global: false, native: false, params: &[Param { name: "akSpeaker", ty: "ObjectReference", default: None }, ] },
+    ],
+},
+Script {
+    name: "ActorBase",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "GetClass", returns: Some("Class"), global: false, native: true, params: &[] },
+        Function { name: "GetDeadCount", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetGiftFilter", returns: Some("FormList"), global: false, native: true, params: &[] },
+        Function { name: "GetLevel", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetLevelExact", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetRace", returns: Some("Race"), global: false, native: true, params: &[] },
+        Function { name: "GetSex", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetUniqueActor", returns: Some("Actor"), global: false, native: true, params: &[] },
+        Function { name: "IsEssential", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsInvulnerable", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsProtected", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsUnique", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "SetEssential", returns: None, global: false, native: true, params: &[Param { name: "abEssential", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetInvulnerable", returns: None, global: false, native: true, params: &[Param { name: "abInvulnerable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetOutfit", returns: None, global: false, native: true, params: &[Param { name: "akOutfit", ty: "Outfit", default: None }, Param { name: "abSleepOutfit", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetProtected", returns: None, global: false, native: true, params: &[Param { name: "abProtected", ty: "bool", default: Some("true") }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ActorValue",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Alias",
+    parent: Some("ScriptObject"),
+    functions: &[
+        Function { name: "GetOwningQuest", returns: Some("Quest"), global: false, native: true, params: &[] },
+        Function { name: "StartObjectProfiling", returns: None, global: false, native: true, params: &[] },
+        Function { name: "StopObjectProfiling", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+        Function { name: "OnAliasInit", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnAliasReset", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnAliasShutdown", returns: None, global: false, native: false, params: &[] },
+    ],
+},
+Script {
+    name: "Ammo",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ArenaSceneScript",
+    parent: Some("Scene"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Armor",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "AspirationalAddItemScript03",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "AssociationType",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Book",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "BOSR05Script",
+    parent: Some("MinRecruitQuestScript"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "BoSResQuestScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_AddictionEffectScript",
+    parent: Some("ActiveMagicEffect"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_Cait",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_Codsworth",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_Curie",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_Danse",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_Deacon",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_Hancock",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_MacCready",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_Piper",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_Preston",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_Strong",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_Valentine",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Dislikes_X688",
+    parent: Some("CA_Interjection_Dislikes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_Cait",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_Codsworth",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_Curie",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_Danse",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_Deacon",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_Hancock",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_MacCready",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_Piper",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_Preston",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_Strong",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_Valentine",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Hates_X688",
+    parent: Some("CA_Interjection_Hates"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_Cait",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_Codsworth",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_Curie",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_Danse",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_Deacon",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_Hancock",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_MacCready",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_Piper",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_Preston",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_Strong",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_Valentine",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Likes_X688",
+    parent: Some("CA_Interjection_Likes"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_Cait",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_Codsworth",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_Curie",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_Danse",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_Deacon",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_Hancock",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_MacCready",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_Piper",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_Preston",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_Strong",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_Valentine",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Loves_X688",
+    parent: Some("CA_Interjection_Loves"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_Cait",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_Codsworth",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_Curie",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_Danse",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_Deacon",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_Hancock",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_MacCready",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_Piper",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_Preston",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_Strong",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_Valentine",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CA_Interjection_Neutral_X688",
+    parent: Some("TopicInfo"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CameraShot",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Cell",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "EnableFastTravel", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "GetActorOwner", returns: Some("ActorBase"), global: false, native: true, params: &[] },
+        Function { name: "GetFactionOwner", returns: Some("Faction"), global: false, native: true, params: &[] },
+        Function { name: "IsAttached", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsInterior", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsLoaded", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "Reset", returns: None, global: false, native: true, params: &[] },
+        Function { name: "SetActorOwner", returns: None, global: false, native: true, params: &[Param { name: "akActor", ty: "ActorBase", default: None }, ] },
+        Function { name: "SetFactionOwner", returns: None, global: false, native: true, params: &[Param { name: "akFaction", ty: "Faction", default: None }, ] },
+        Function { name: "SetFogColor", returns: None, global: false, native: true, params: &[Param { name: "aiNearRed", ty: "int", default: None }, Param { name: "aiNearGreen", ty: "int", default: None }, Param { name: "aiNearBlue", ty: "int", default: None }, Param { name: "aiFarRed", ty: "int", default: None }, Param { name: "aiFarGreen", ty: "int", default: None }, Param { name: "aiFarBlue", ty: "int", default: None }, ] },
+        Function { name: "SetFogPlanes", returns: None, global: false, native: true, params: &[Param { name: "afNear", ty: "float", default: None }, Param { name: "afFar", ty: "float", default: None }, ] },
+        Function { name: "SetFogPower", returns: None, global: false, native: true, params: &[Param { name: "afPower", ty: "float", default: None }, ] },
+        Function { name: "SetPublic", returns: None, global: false, native: true, params: &[Param { name: "abPublic", ty: "bool", default: Some("true") }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Class",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "CombatStyle",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "COMMacCreadyScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Component",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ConstitutionLaunch01Script",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ConstructibleObject",
+    parent: Some("MiscObject"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Container",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Debug",
+    parent: None,
+    functions: &[
+        Function { name: "CenterOnCell", returns: None, global: true, native: true, params: &[Param { name: "asCellname", ty: "string", default: None }, ] },
+        Function { name: "CenterOnCellAndWait", returns: Some("float"), global: true, native: true, params: &[Param { name: "asCellname", ty: "string", default: None }, ] },
+        Function { name: "CloseUserLog", returns: None, global: true, native: true, params: &[Param { name: "asLogName", ty: "string", default: None }, ] },
+        Function { name: "DBSendPlayerPosition", returns: None, global: true, native: true, params: &[] },
+        Function { name: "DumpAliasData", returns: None, global: true, native: true, params: &[Param { name: "akQuest", ty: "Quest", default: None }, ] },
+        Function { name: "DumpEventRegistrations", returns: None, global: true, native: true, params: &[Param { name: "akScript", ty: "ScriptObject", default: None }, ] },
+        Function { name: "EnableAI", returns: None, global: true, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableCollisions", returns: None, global: true, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableDetection", returns: None, global: true, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableMenus", returns: None, global: true, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "GetConfigName", returns: Some("string"), global: true, native: true, params: &[] },
+        Function { name: "GetPlatformName", returns: Some("string"), global: true, native: true, params: &[] },
+        Function { name: "GetVersionNumber", returns: Some("string"), global: true, native: true, params: &[] },
+        Function { name: "MessageBox", returns: None, global: true, native: true, params: &[Param { name: "asMessageBoxText", ty: "string", default: None }, ] },
+        Function { name: "Notification", returns: None, global: true, native: true, params: &[Param { name: "asNotificationText", ty: "string", default: None }, ] },
+        Function { name: "OpenUserLog", returns: Some("bool"), global: true, native: true, params: &[Param { name: "asLogName", ty: "string", default: None }, ] },
+        Function { name: "PlayerMoveToAndWait", returns: Some("float"), global: true, native: true, params: &[Param { name: "asDestRef", ty: "string", default: None }, ] },
+        Function { name: "QuitGame", returns: None, global: true, native: true, params: &[] },
+        Function { name: "SetFootIK", returns: None, global: true, native: true, params: &[Param { name: "abFootIK", ty: "bool", default: None }, ] },
+        Function { name: "SetGodMode", returns: None, global: true, native: true, params: &[Param { name: "abGodMode", ty: "bool", default: None }, ] },
+        Function { name: "ShowRefPosition", returns: None, global: true, native: true, params: &[Param { name: "arRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "StartScriptProfiling", returns: None, global: true, native: true, params: &[Param { name: "asScriptName", ty: "string", default: None }, ] },
+        Function { name: "StartStackProfiling", returns: None, global: true, native: true, params: &[] },
+        Function { name: "StartStackRootProfiling", returns: None, global: true, native: true, params: &[Param { name: "asScriptName", ty: "string", default: None }, Param { name: "akObj", ty: "ScriptObject", default: Some("None") }, ] },
+        Function { name: "StopScriptProfiling", returns: None, global: true, native: true, params: &[Param { name: "asScriptName", ty: "string", default: None }, ] },
+        Function { name: "StopStackProfiling", returns: None, global: true, native: true, params: &[] },
+        Function { name: "StopStackRootProfiling", returns: None, global: true, native: true, params: &[Param { name: "asScriptName", ty: "string", default: None }, Param { name: "akObj", ty: "ScriptObject", default: Some("None") }, ] },
+        Function { name: "Trace", returns: None, global: true, native: true, params: &[Param { name: "asTextToPrint", ty: "string", default: None }, Param { name: "aiSeverity", ty: "int", default: Some("0") }, ] },
+        Function { name: "TraceAndBox", returns: None, global: true, native: false, params: &[Param { name: "asTextToPrint", ty: "string", default: None }, Param { name: "aiSeverity", ty: "int", default: Some("0") }, ] },
+        Function { name: "TraceConditional", returns: None, global: true, native: false, params: &[Param { name: "TextToPrint", ty: "string", default: None }, Param { name: "ShowTrace", ty: "bool", default: None }, Param { name: "Severity", ty: "int", default: Some("0") }, ] },
+        Function { name: "TraceConditionalGlobal", returns: None, global: true, native: false, params: &[Param { name: "TextToPrint", ty: "string", default: None }, Param { name: "ShowTrace", ty: "GlobalVariable", default: None }, ] },
+        Function { name: "TraceFunction", returns: None, global: true, native: true, params: &[Param { name: "asTextToPrint", ty: "string", default: Some("\"Tracing function on request\"") }, Param { name: "aiSeverity", ty: "int", default: Some("0") }, ] },
+        Function { name: "TraceSelf", returns: None, global: true, native: false, params: &[Param { name: "CallingScript", ty: "ScriptObject", default: None }, Param { name: "FunctionName", ty: "string", default: None }, Param { name: "StringToTrace", ty: "string", default: None }, ] },
+        Function { name: "TraceStack", returns: None, global: true, native: true, params: &[Param { name: "asTextToPrint", ty: "string", default: Some("\"Tracing stack on request\"") }, Param { name: "aiSeverity", ty: "int", default: Some("0") }, ] },
+        Function { name: "TraceUser", returns: Some("bool"), global: true, native: true, params: &[Param { name: "asUserLog", ty: "string", default: None }, Param { name: "asTextToPrint", ty: "string", default: None }, Param { name: "aiSeverity", ty: "int", default: Some("0") }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DefaultAliasOnDeath2",
+    parent: Some("DefaultAliasOnDeath"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DefaultAliasOnDeath3",
+    parent: Some("DefaultAliasOnDeath"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DefaultAliasOnDeathA",
+    parent: Some("DefaultAliasOnDeath"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "defaultAliasOnUnloadA",
+    parent: Some("defaultaliasonunload"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DefaultCounterQuestA",
+    parent: Some("DefaultCounterQuest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DefaultCounterQuestB",
+    parent: Some("DefaultCounterQuest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DefaultCounterQuestC",
+    parent: Some("DefaultCounterQuest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DefaultCounterQuestD",
+    parent: Some("DefaultCounterQuest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DefaultCounterQuestE",
+    parent: Some("DefaultCounterQuest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DialogueAbernathyFarmBlake",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DialogueAbernathyFarmLucyTracking",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DialogueInstituteDoctorScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC01:DLC01_testJeffBScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC01:DLC01_TrackSystemTrapBase",
+    parent: Some("ObjectReference"),
+    functions: &[
+        Function { name: "InitTrap", returns: None, global: false, native: false, params: &[Param { name: "myMachine", ty: "DLC01:DLC01_TrackSystemMachine", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC01:DLC01MQ01Script",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC01:DLC01REObjectKMK01",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC01:TestDarylScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC02:DLC02TestDarylScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC03:DLC03AtomM01_PuzzlePieceScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+        Function { name: "OnActivate", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+    ],
+},
+Script {
+    name: "DLC03:DLC03CoA_FFNucleus02ObjTriggerScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC03:DLC03VRCubeBeamRecPassEndScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC03:VRDoorScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC03:WorkshopRadiantOwned05Script",
+    parent: Some("DLC03:WorkshopRadiantOwnedScript"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC04:PickMeUpStationScript",
+    parent: Some("DLC04:TributeChestScript"),
+    functions: &[
+        Function { name: "TryToSpawnLegendaryItem", returns: None, global: false, native: false, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DLC06:DLC06WorkshopOverseerDeskScript",
+    parent: Some("WorkshopObjectScript"),
+    functions: &[
+        Function { name: "AssignActorCustom", returns: None, global: false, native: false, params: &[Param { name: "newActor", ty: "WorkshopNPCScript", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DN015_PuzEmitterOutputScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DN034QuestScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DN084_LabCounterQuest01",
+    parent: Some("DefaultCounterQuest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DN084_LabCounterQuest02",
+    parent: Some("DefaultCounterQuest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DN084_LabCounterQuest03",
+    parent: Some("DefaultCounterQuest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DN084_LabCounterQuest04",
+    parent: Some("DefaultCounterQuest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DN084_LabCounterQuest05",
+    parent: Some("DefaultCounterQuest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DN101QuestScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DN134PowerSupplyScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DogmeatAliasCombatStateFaceScript",
+    parent: Some("ReferenceAlias"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DogmeatFaceAliasScript",
+    parent: Some("ReferenceAlias"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DogmeatQuestAliasBleedOutRecScript",
+    parent: Some("ReferenceAlias"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "DogmeatQuestScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "dogmeatScript",
+    parent: Some("ReferenceAlias"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Door",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "EffectShader",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Play", returns: None, global: false, native: true, params: &[Param { name: "akObject", ty: "ObjectReference", default: None }, Param { name: "afDuration", ty: "float", default: Some("-1.0") }, ] },
+        Function { name: "Stop", returns: None, global: false, native: true, params: &[Param { name: "akObject", ty: "ObjectReference", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Enchantment",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "IsHostile", returns: Some("bool"), global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "EncounterZone",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "CountActors", returns: Some("int"), global: false, native: true, params: &[Param { name: "apRequiredLinkedRefKeyword", ty: "Keyword", default: Some("None") }, Param { name: "apExcludeLinkedRefKeyword", ty: "Keyword", default: Some("None") }, ] },
+        Function { name: "GetActors", returns: Some("Actor[]"), global: false, native: true, params: &[Param { name: "apRequiredLinkedRefKeyword", ty: "Keyword", default: Some("None") }, Param { name: "apExcludeLinkedRefKeyword", ty: "Keyword", default: Some("None") }, ] },
+        Function { name: "Reset", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Explosion",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Faction",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "CanPayCrimeGold", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "GetCrimeGold", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetCrimeGoldNonViolent", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetCrimeGoldViolent", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetFactionReaction", returns: Some("int"), global: false, native: true, params: &[Param { name: "akOther", ty: "Actor", default: None }, ] },
+        Function { name: "GetInfamy", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetInfamyNonViolent", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetInfamyViolent", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetStolenItemValueCrime", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetStolenItemValueNoCrime", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "IsFactionInCrimeGroup", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akOther", ty: "Faction", default: None }, ] },
+        Function { name: "IsPlayerEnemy", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsPlayerExpelled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "ModCrimeGold", returns: None, global: false, native: true, params: &[Param { name: "aiAmount", ty: "int", default: None }, Param { name: "abViolent", ty: "bool", default: Some("false") }, ] },
+        Function { name: "PlayerPayCrimeGold", returns: None, global: false, native: true, params: &[Param { name: "abRemoveStolenItems", ty: "bool", default: Some("true") }, Param { name: "abGoToJail", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SendAssaultAlarm", returns: None, global: false, native: true, params: &[] },
+        Function { name: "SendPlayerToJail", returns: None, global: false, native: true, params: &[Param { name: "abRemoveInventory", ty: "bool", default: Some("true") }, Param { name: "abRealJail", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetAlly", returns: None, global: false, native: true, params: &[Param { name: "akOther", ty: "Faction", default: None }, Param { name: "abSelfIsFriendToOther", ty: "bool", default: Some("false") }, Param { name: "abOtherIsFriendToSelf", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetCrimeGold", returns: None, global: false, native: true, params: &[Param { name: "aiGold", ty: "int", default: None }, ] },
+        Function { name: "SetCrimeGoldViolent", returns: None, global: false, native: true, params: &[Param { name: "aiGold", ty: "int", default: None }, ] },
+        Function { name: "SetEnemy", returns: None, global: false, native: true, params: &[Param { name: "akOther", ty: "Faction", default: None }, Param { name: "abSelfIsNeutralToOther", ty: "bool", default: Some("false") }, Param { name: "abOtherIsNeutralToSelf", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetPlayerEnemy", returns: None, global: false, native: true, params: &[Param { name: "abIsEnemy", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetPlayerExpelled", returns: None, global: false, native: true, params: &[Param { name: "abIsExpelled", ty: "bool", default: Some("true") }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Flora",
+    parent: Some("Activator"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "FollowersDogmeatScript",
+    parent: Some("ReferenceAlias"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Form",
+    parent: Some("ScriptObject"),
+    functions: &[
+        Function { name: "GetFormID", returns: Some("Int"), global: false, native: true, params: &[] },
+        Function { name: "GetGoldValue", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "HasKeyword", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "HasKeywordInFormList", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akKeywordList", ty: "FormList", default: None }, ] },
+        Function { name: "PlayerKnows", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "StartObjectProfiling", returns: None, global: false, native: true, params: &[] },
+        Function { name: "StopObjectProfiling", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "FormList",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "AddForm", returns: None, global: false, native: true, params: &[Param { name: "apForm", ty: "Form", default: None }, ] },
+        Function { name: "Find", returns: Some("int"), global: false, native: true, params: &[Param { name: "apForm", ty: "Form", default: None }, ] },
+        Function { name: "GetAt", returns: Some("Form"), global: false, native: true, params: &[Param { name: "aiIndex", ty: "int", default: None }, ] },
+        Function { name: "GetSize", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "HasForm", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akForm", ty: "Form", default: None }, ] },
+        Function { name: "RemoveAddedForm", returns: None, global: false, native: true, params: &[Param { name: "apForm", ty: "Form", default: None }, ] },
+        Function { name: "Revert", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Furniture",
+    parent: Some("Activator"),
+    functions: &[
+        Function { name: "GetAssociatedForm", returns: Some("Form"), global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Game",
+    parent: None,
+    functions: &[
+        Function { name: "AddAchievement", returns: None, global: true, native: true, params: &[Param { name: "aiAchievementID", ty: "int", default: None }, ] },
+        Function { name: "AddPerkPoints", returns: None, global: true, native: true, params: &[Param { name: "aiPerkPoints", ty: "int", default: None }, ] },
+        Function { name: "AdvanceSkill", returns: None, global: true, native: true, params: &[Param { name: "asSkillName", ty: "string", default: None }, Param { name: "afMagnitude", ty: "float", default: None }, ] },
+        Function { name: "ClearPrison", returns: None, global: true, native: true, params: &[] },
+        Function { name: "ClearTempEffects", returns: None, global: true, native: true, params: &[] },
+        Function { name: "EnablePipboyHDRMask", returns: None, global: true, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "Error", returns: None, global: true, native: true, params: &[Param { name: "asMessage", ty: "string", default: None }, ] },
+        Function { name: "FadeOutGame", returns: None, global: true, native: true, params: &[Param { name: "abFadingOut", ty: "bool", default: None }, Param { name: "abBlackFade", ty: "bool", default: None }, Param { name: "afSecsBeforeFade", ty: "float", default: None }, Param { name: "afFadeDuration", ty: "float", default: None }, Param { name: "abStayFaded", ty: "bool", default: Some("false") }, ] },
+        Function { name: "FastTravel", returns: None, global: true, native: true, params: &[Param { name: "akDestination", ty: "ObjectReference", default: None }, ] },
+        Function { name: "FindClosestActor", returns: Some("Actor"), global: true, native: true, params: &[Param { name: "afX", ty: "float", default: None }, Param { name: "afY", ty: "float", default: None }, Param { name: "afZ", ty: "float", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindClosestActorFromRef", returns: Some("Actor"), global: true, native: false, params: &[Param { name: "arCenter", ty: "ObjectReference", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindClosestReferenceOfAnyTypeInList", returns: Some("ObjectReference"), global: true, native: true, params: &[Param { name: "arBaseObjects", ty: "FormList", default: None }, Param { name: "afX", ty: "float", default: None }, Param { name: "afY", ty: "float", default: None }, Param { name: "afZ", ty: "float", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindClosestReferenceOfAnyTypeInListFromRef", returns: Some("ObjectReference"), global: true, native: false, params: &[Param { name: "arBaseObjects", ty: "FormList", default: None }, Param { name: "arCenter", ty: "ObjectReference", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindClosestReferenceOfType", returns: Some("ObjectReference"), global: true, native: true, params: &[Param { name: "arBaseObject", ty: "Form", default: None }, Param { name: "afX", ty: "float", default: None }, Param { name: "afY", ty: "float", default: None }, Param { name: "afZ", ty: "float", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindClosestReferenceOfTypeFromRef", returns: Some("ObjectReference"), global: true, native: false, params: &[Param { name: "arBaseObject", ty: "Form", default: None }, Param { name: "arCenter", ty: "ObjectReference", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindRandomActor", returns: Some("Actor"), global: true, native: true, params: &[Param { name: "afX", ty: "float", default: None }, Param { name: "afY", ty: "float", default: None }, Param { name: "afZ", ty: "float", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindRandomActorFromRef", returns: Some("Actor"), global: true, native: false, params: &[Param { name: "arCenter", ty: "ObjectReference", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindRandomReferenceOfAnyTypeInList", returns: Some("ObjectReference"), global: true, native: true, params: &[Param { name: "arBaseObjects", ty: "FormList", default: None }, Param { name: "afX", ty: "float", default: None }, Param { name: "afY", ty: "float", default: None }, Param { name: "afZ", ty: "float", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindRandomReferenceOfAnyTypeInListFromRef", returns: Some("ObjectReference"), global: true, native: false, params: &[Param { name: "arBaseObjects", ty: "FormList", default: None }, Param { name: "arCenter", ty: "ObjectReference", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindRandomReferenceOfType", returns: Some("ObjectReference"), global: true, native: true, params: &[Param { name: "arBaseObject", ty: "Form", default: None }, Param { name: "afX", ty: "float", default: None }, Param { name: "afY", ty: "float", default: None }, Param { name: "afZ", ty: "float", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindRandomReferenceOfTypeFromRef", returns: Some("ObjectReference"), global: true, native: false, params: &[Param { name: "arBaseObject", ty: "Form", default: None }, Param { name: "arCenter", ty: "ObjectReference", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "ForceDisableSSRGodraysDirLight", returns: None, global: true, native: true, params: &[Param { name: "abDisableSSR", ty: "bool", default: None }, Param { name: "abDisableGodrays", ty: "bool", default: None }, Param { name: "abDisableDirLight", ty: "bool", default: None }, ] },
+        Function { name: "ForceFirstPerson", returns: None, global: true, native: true, params: &[] },
+        Function { name: "ForceThirdPerson", returns: None, global: true, native: true, params: &[] },
+        Function { name: "GetAggressionAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetAgilityAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetCaps", returns: Some("MiscObject"), global: true, native: false, params: &[] },
+        Function { name: "GetCharismaAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetCommonProperties", returns: Some("CommonPropertiesScript"), global: true, native: false, params: &[] },
+        Function { name: "GetConfidenceAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetDifficulty", returns: Some("int"), global: true, native: true, params: &[] },
+        Function { name: "GetEnduranceAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetForm", returns: Some("Form"), global: true, native: true, params: &[Param { name: "aiFormID", ty: "int", default: None }, ] },
+        Function { name: "GetFormFromFile", returns: Some("Form"), global: true, native: true, params: &[Param { name: "aiFormID", ty: "int", default: None }, Param { name: "asFilename", ty: "string", default: None }, ] },
+        Function { name: "GetGameSettingFloat", returns: Some("float"), global: true, native: true, params: &[Param { name: "asGameSetting", ty: "string", default: None }, ] },
+        Function { name: "GetGameSettingInt", returns: Some("int"), global: true, native: true, params: &[Param { name: "asGameSetting", ty: "string", default: None }, ] },
+        Function { name: "GetGameSettingString", returns: Some("string"), global: true, native: true, params: &[Param { name: "asGameSetting", ty: "string", default: None }, ] },
+        Function { name: "GetHealthAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetIntelligenceAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetLuckAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetPerceptionAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetPlayer", returns: Some("Actor"), global: true, native: true, params: &[] },
+        Function { name: "GetPlayerFollowers", returns: Some("Actor[]"), global: true, native: true, params: &[] },
+        Function { name: "GetPlayerGrabbedRef", returns: Some("ObjectReference"), global: true, native: true, params: &[] },
+        Function { name: "GetPlayerLevel", returns: Some("int"), global: true, native: false, params: &[] },
+        Function { name: "GetPlayerRadioFrequency", returns: Some("float"), global: true, native: true, params: &[] },
+        Function { name: "GetPlayersLastRiddenHorse", returns: Some("Actor"), global: true, native: true, params: &[] },
+        Function { name: "GetRealHoursPassed", returns: Some("float"), global: true, native: true, params: &[] },
+        Function { name: "GetStrengthAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetSuspiciousAV", returns: Some("ActorValue"), global: true, native: true, params: &[] },
+        Function { name: "GetXPForLevel", returns: Some("int"), global: true, native: true, params: &[Param { name: "auiLevel", ty: "int", default: None }, ] },
+        Function { name: "GivePlayerCaps", returns: None, global: true, native: false, params: &[Param { name: "nCaps", ty: "int", default: None }, ] },
+        Function { name: "HideTitleSequenceMenu", returns: None, global: true, native: true, params: &[] },
+        Function { name: "IncrementSkill", returns: None, global: true, native: true, params: &[Param { name: "akActorValue", ty: "ActorValue", default: None }, Param { name: "aiCount", ty: "int", default: Some("1") }, ] },
+        Function { name: "IncrementStat", returns: None, global: true, native: true, params: &[Param { name: "asStatName", ty: "string", default: None }, Param { name: "aiModAmount", ty: "int", default: Some("1") }, ] },
+        Function { name: "InitializeMarkerDistances", returns: None, global: true, native: true, params: &[] },
+        Function { name: "IsActivateControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsCamSwitchControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsFastTravelControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsFastTravelEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsFavoritesControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsFightingControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsJournalControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsJumpingControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsLookingControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsMenuControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsMovementControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsPlayerInRadioRange", returns: Some("bool"), global: true, native: true, params: &[Param { name: "afFrequency", ty: "float", default: None }, ] },
+        Function { name: "IsPlayerListening", returns: Some("bool"), global: true, native: true, params: &[Param { name: "afFrequency", ty: "float", default: None }, ] },
+        Function { name: "IsPlayerRadioOn", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsPluginInstalled", returns: Some("bool"), global: true, native: true, params: &[Param { name: "asName", ty: "string", default: None }, ] },
+        Function { name: "IsSneakingControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsVATSControlsEnabled", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "IsVATSPlaybackActive", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "PassTime", returns: None, global: true, native: true, params: &[Param { name: "aiHours", ty: "int", default: None }, ] },
+        Function { name: "PlayBink", returns: None, global: true, native: true, params: &[Param { name: "asFileName", ty: "string", default: None }, Param { name: "abInterruptible", ty: "bool", default: Some("false") }, Param { name: "abMuteAudio", ty: "bool", default: Some("true") }, Param { name: "abMuteMusic", ty: "bool", default: Some("true") }, Param { name: "abLetterbox", ty: "bool", default: Some("true") }, Param { name: "abIsNewGameBink", ty: "bool", default: Some("false") }, ] },
+        Function { name: "PlayEventCamera", returns: None, global: true, native: true, params: &[Param { name: "akCamera", ty: "CameraShot", default: None }, Param { name: "akRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "PrecacheCharGen", returns: None, global: true, native: true, params: &[] },
+        Function { name: "PrecacheCharGenClear", returns: None, global: true, native: true, params: &[] },
+        Function { name: "QueryStat", returns: Some("int"), global: true, native: true, params: &[Param { name: "asStat", ty: "string", default: None }, ] },
+        Function { name: "QuitToMainMenu", returns: None, global: true, native: true, params: &[] },
+        Function { name: "RemovePlayerCaps", returns: None, global: true, native: false, params: &[Param { name: "nCaps", ty: "int", default: None }, ] },
+        Function { name: "RequestAutoSave", returns: None, global: true, native: true, params: &[] },
+        Function { name: "RequestModel", returns: None, global: true, native: true, params: &[Param { name: "asModelName", ty: "string", default: None }, ] },
+        Function { name: "RequestSave", returns: None, global: true, native: true, params: &[] },
+        Function { name: "RewardPlayerXP", returns: None, global: true, native: true, params: &[Param { name: "auiXPAmount", ty: "int", default: None }, Param { name: "abDirect", ty: "bool", default: Some("false") }, ] },
+        Function { name: "ServeTime", returns: None, global: true, native: true, params: &[] },
+        Function { name: "SetCameraTarget", returns: None, global: true, native: true, params: &[Param { name: "arTarget", ty: "Actor", default: None }, ] },
+        Function { name: "SetCharGenHUDMode", returns: None, global: true, native: true, params: &[Param { name: "aiCGHUDMode", ty: "int", default: None }, ] },
+        Function { name: "SetInChargen", returns: None, global: true, native: true, params: &[Param { name: "abDisableSaving", ty: "bool", default: None }, Param { name: "abDisableWaiting", ty: "bool", default: None }, Param { name: "abShowControlsDisabledMessage", ty: "bool", default: None }, ] },
+        Function { name: "SetInsideMemoryHUDMode", returns: None, global: true, native: true, params: &[Param { name: "aInsideMemory", ty: "bool", default: None }, ] },
+        Function { name: "SetPlayerAIDriven", returns: None, global: true, native: true, params: &[Param { name: "abAIDriven", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetPlayerOnElevator", returns: None, global: true, native: true, params: &[Param { name: "abOnElevator", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetPlayerRadioFrequency", returns: None, global: true, native: true, params: &[Param { name: "afFrequency", ty: "float", default: None }, ] },
+        Function { name: "SetPlayerReportCrime", returns: None, global: true, native: true, params: &[Param { name: "abReportCrime", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetSittingRotation", returns: None, global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "ShakeCamera", returns: None, global: true, native: true, params: &[Param { name: "akSource", ty: "ObjectReference", default: Some("None") }, Param { name: "afStrength", ty: "float", default: Some("0.5") }, Param { name: "afDuration", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "ShakeController", returns: None, global: true, native: true, params: &[Param { name: "afSmallMotorStrength", ty: "float", default: None }, Param { name: "afBigMotorStreangth", ty: "float", default: None }, Param { name: "afDuration", ty: "float", default: None }, ] },
+        Function { name: "ShowAllMapMarkers", returns: None, global: true, native: true, params: &[] },
+        Function { name: "ShowFatigueWarningOnHUD", returns: None, global: true, native: true, params: &[] },
+        Function { name: "ShowFirstPersonGeometry", returns: None, global: true, native: true, params: &[Param { name: "abShow", ty: "bool", default: Some("true") }, ] },
+        Function { name: "ShowPerkVaultBoyOnHUD", returns: None, global: true, native: true, params: &[Param { name: "aVaultBoySwf", ty: "string", default: None }, Param { name: "aSoundDescriptor", ty: "Sound", default: Some("None") }, ] },
+        Function { name: "ShowPipboyBootSequence", returns: None, global: true, native: true, params: &[Param { name: "asAnimationName", ty: "string", default: None }, ] },
+        Function { name: "ShowPipboyPlugin", returns: None, global: true, native: true, params: &[] },
+        Function { name: "ShowRaceMenu", returns: None, global: true, native: true, params: &[Param { name: "akMenuTarget", ty: "ObjectReference", default: Some("None") }, Param { name: "uiMode", ty: "int", default: Some("0") }, Param { name: "akMenuSpouseFemale", ty: "ObjectReference", default: Some("None") }, Param { name: "akMenuSpouseMale", ty: "ObjectReference", default: Some("None") }, Param { name: "akVendor", ty: "ObjectReference", default: Some("None") }, ] },
+        Function { name: "ShowSPECIALMenu", returns: None, global: true, native: true, params: &[] },
+        Function { name: "ShowTitleSequenceMenu", returns: None, global: true, native: true, params: &[] },
+        Function { name: "ShowTrainingMenu", returns: None, global: true, native: true, params: &[Param { name: "aTrainer", ty: "Actor", default: None }, ] },
+        Function { name: "StartDialogueCameraOrCenterOnTarget", returns: None, global: true, native: true, params: &[Param { name: "akCameraTarget", ty: "ObjectReference", default: Some("None") }, ] },
+        Function { name: "StartTitleSequence", returns: None, global: true, native: true, params: &[Param { name: "asSequenceName", ty: "string", default: None }, ] },
+        Function { name: "StopDialogueCamera", returns: None, global: true, native: true, params: &[Param { name: "abConsiderResume", ty: "bool", default: Some("false") }, Param { name: "abSwitchingTo1stP", ty: "bool", default: Some("false") }, ] },
+        Function { name: "TriggerScreenBlood", returns: None, global: true, native: true, params: &[Param { name: "aiValue", ty: "int", default: None }, ] },
+        Function { name: "TurnPlayerRadioOn", returns: None, global: true, native: true, params: &[Param { name: "abRadioOn", ty: "bool", default: Some("true") }, ] },
+        Function { name: "UsingGamepad", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "Warning", returns: None, global: true, native: true, params: &[Param { name: "asMessage", ty: "string", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "GlobalVariable",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "GetValue", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetValueInt", returns: Some("int"), global: false, native: false, params: &[] },
+        Function { name: "Mod", returns: Some("float"), global: false, native: false, params: &[Param { name: "afHowMuch", ty: "float", default: None }, ] },
+        Function { name: "SetValue", returns: None, global: false, native: true, params: &[Param { name: "afNewValue", ty: "float", default: None }, ] },
+        Function { name: "SetValueInt", returns: None, global: false, native: false, params: &[Param { name: "aiNewValue", ty: "int", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "GlowingSea",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Hardcore:HC_FastTravelScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Hazard",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "HeadPart",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Holotape",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Idle",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "IdleMarker",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ImageSpaceModifier",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Apply", returns: None, global: false, native: true, params: &[Param { name: "afStrength", ty: "float", default: Some("1.0") }, ] },
+        Function { name: "ApplyCrossFade", returns: None, global: false, native: true, params: &[Param { name: "afFadeDuration", ty: "float", default: Some("1.0") }, ] },
+        Function { name: "PopTo", returns: None, global: false, native: true, params: &[Param { name: "akNewModifier", ty: "ImageSpaceModifier", default: None }, Param { name: "afStrength", ty: "float", default: Some("1.0") }, ] },
+        Function { name: "Remove", returns: None, global: false, native: true, params: &[] },
+        Function { name: "RemoveCrossFade", returns: None, global: true, native: true, params: &[Param { name: "afFadeDuration", ty: "float", default: Some("1.0") }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ImpactDataSet",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Ingredient",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "IsHostile", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "LearnAllEffects", returns: None, global: false, native: true, params: &[] },
+        Function { name: "LearnEffect", returns: None, global: false, native: true, params: &[Param { name: "aiIndex", ty: "int", default: None }, ] },
+        Function { name: "LearnNextEffect", returns: Some("int"), global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "InputEnableLayer",
+    parent: Some("ScriptObject"),
+    functions: &[
+        Function { name: "Create", returns: Some("InputEnableLayer"), global: true, native: true, params: &[] },
+        Function { name: "Delete", returns: None, global: false, native: true, params: &[] },
+        Function { name: "DisablePlayerControls", returns: None, global: false, native: true, params: &[Param { name: "abMovement", ty: "bool", default: Some("true") }, Param { name: "abFighting", ty: "bool", default: Some("true") }, Param { name: "abCamSwitch", ty: "bool", default: Some("false") }, Param { name: "abLooking", ty: "bool", default: Some("false") }, Param { name: "abSneaking", ty: "bool", default: Some("false") }, Param { name: "abMenu", ty: "bool", default: Some("true") }, Param { name: "abActivate", ty: "bool", default: Some("true") }, Param { name: "abJournalTabs", ty: "bool", default: Some("false") }, Param { name: "abVATS", ty: "bool", default: Some("true") }, Param { name: "abFavorites", ty: "bool", default: Some("true") }, Param { name: "abRunning", ty: "bool", default: Some("false") }, ] },
+        Function { name: "EnableActivate", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableCamSwitch", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableFastTravel", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableFavorites", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableFighting", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableJournal", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableJumping", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableLooking", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableMenu", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableMovement", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnablePlayerControls", returns: None, global: false, native: true, params: &[Param { name: "abMovement", ty: "bool", default: Some("true") }, Param { name: "abFighting", ty: "bool", default: Some("true") }, Param { name: "abCamSwitch", ty: "bool", default: Some("true") }, Param { name: "abLooking", ty: "bool", default: Some("true") }, Param { name: "abSneaking", ty: "bool", default: Some("true") }, Param { name: "abMenu", ty: "bool", default: Some("true") }, Param { name: "abActivate", ty: "bool", default: Some("true") }, Param { name: "abJournalTabs", ty: "bool", default: Some("true") }, Param { name: "abVATS", ty: "bool", default: Some("true") }, Param { name: "abFavorites", ty: "bool", default: Some("true") }, Param { name: "abRunning", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableRunning", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableSneaking", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableSprinting", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableVATS", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableZKey", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "IsActivateEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsCamSwitchEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsFastTravelEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsFavoritesEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsFightingEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsJournalEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsJumpingEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsLookingEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsMenuEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsMovementEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsRunningEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsSneakingEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsSprintingEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsVATSEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsZKeyEnabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "Reset", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Inst305RadioRackTerminalSCRIPT",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "InstanceNamingRules",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "MergeWith", returns: None, global: false, native: true, params: &[Param { name: "aSource", ty: "InstanceNamingRules", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "InstM01PostScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Key",
+    parent: Some("MiscObject"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Keyword",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "SendStoryEvent", returns: None, global: false, native: true, params: &[Param { name: "akLoc", ty: "Location", default: Some("None") }, Param { name: "akRef1", ty: "ObjectReference", default: Some("None") }, Param { name: "akRef2", ty: "ObjectReference", default: Some("None") }, Param { name: "aiValue1", ty: "int", default: Some("0") }, Param { name: "aiValue2", ty: "int", default: Some("0") }, ] },
+        Function { name: "SendStoryEventAndWait", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akLoc", ty: "Location", default: Some("None") }, Param { name: "akRef1", ty: "ObjectReference", default: Some("None") }, Param { name: "akRef2", ty: "ObjectReference", default: Some("None") }, Param { name: "aiValue1", ty: "int", default: Some("0") }, Param { name: "aiValue2", ty: "int", default: Some("0") }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "LeveledActor",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "AddForm", returns: None, global: false, native: true, params: &[Param { name: "apForm", ty: "Form", default: None }, Param { name: "aiLevel", ty: "int", default: None }, ] },
+        Function { name: "Revert", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "LeveledItem",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "AddForm", returns: None, global: false, native: true, params: &[Param { name: "apForm", ty: "Form", default: None }, Param { name: "aiLevel", ty: "int", default: None }, Param { name: "aiCount", ty: "int", default: None }, ] },
+        Function { name: "Revert", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "LeveledSpell",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "AddForm", returns: None, global: false, native: true, params: &[Param { name: "apForm", ty: "Form", default: None }, Param { name: "aiLevel", ty: "int", default: None }, ] },
+        Function { name: "Revert", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Light",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Location",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "AddLinkedLocation", returns: None, global: false, native: true, params: &[Param { name: "akLoc", ty: "Location", default: None }, Param { name: "akKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "GetAllLinkedLocations", returns: Some("Location[]"), global: false, native: true, params: &[Param { name: "akKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "GetKeywordData", returns: Some("float"), global: false, native: true, params: &[Param { name: "akKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "GetRefTypeAliveCount", returns: Some("int"), global: false, native: true, params: &[Param { name: "akRefType", ty: "LocationRefType", default: None }, ] },
+        Function { name: "GetRefTypeDeadCount", returns: Some("int"), global: false, native: true, params: &[Param { name: "akRefType", ty: "LocationRefType", default: None }, ] },
+        Function { name: "HasCommonParent", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akOther", ty: "Location", default: None }, Param { name: "akFilter", ty: "Keyword", default: Some("None") }, ] },
+        Function { name: "HasEverBeenCleared", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "HasRefType", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akRefType", ty: "LocationRefType", default: None }, ] },
+        Function { name: "IsChild", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akOther", ty: "Location", default: None }, ] },
+        Function { name: "IsCleared", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsLinkedLocation", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "IsLoaded", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsSameLocation", returns: Some("bool"), global: false, native: false, params: &[Param { name: "akOtherLocation", ty: "Location", default: None }, Param { name: "akKeyword", ty: "Keyword", default: Some("None") }, ] },
+        Function { name: "ModifyKeywordData", returns: None, global: false, native: false, params: &[Param { name: "akKeyword", ty: "Keyword", default: None }, Param { name: "afData", ty: "float", default: None }, ] },
+        Function { name: "RemoveLinkedLocation", returns: None, global: false, native: true, params: &[Param { name: "akLoc", ty: "Location", default: None }, Param { name: "akKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "Reset", returns: None, global: false, native: true, params: &[] },
+        Function { name: "SetCleared", returns: None, global: false, native: true, params: &[Param { name: "abCleared", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetKeywordData", returns: None, global: false, native: true, params: &[Param { name: "akKeyword", ty: "Keyword", default: None }, Param { name: "afData", ty: "float", default: None }, ] },
+    ],
+    events: &[
+        Function { name: "OnLocationCleared", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnLocationLoaded", returns: None, global: false, native: false, params: &[] },
+    ],
+},
+Script {
+    name: "LocationAlias",
+    parent: Some("Alias"),
+    functions: &[
+        Function { name: "Clear", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ForceLocationTo", returns: None, global: false, native: true, params: &[Param { name: "akNewLocation", ty: "Location", default: None }, ] },
+        Function { name: "GetLocation", returns: Some("Location"), global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "LocationRefType",
+    parent: Some("Keyword"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MagicEffect",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "GetAssociatedSkill", returns: Some("string"), global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Math",
+    parent: None,
+    functions: &[
+        Function { name: "abs", returns: Some("float"), global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "acos", returns: Some("float"), global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "asin", returns: Some("float"), global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "atan", returns: Some("float"), global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "Ceiling", returns: Some("int"), global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "cos", returns: Some("float"), global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "DegreesToRadians", returns: Some("float"), global: true, native: true, params: &[Param { name: "afDegrees", ty: "float", default: None }, ] },
+        Function { name: "Floor", returns: Some("int"), global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "Max", returns: Some("float"), global: true, native: false, params: &[Param { name: "afValue1", ty: "float", default: None }, Param { name: "afValue2", ty: "float", default: None }, ] },
+        Function { name: "Min", returns: Some("float"), global: true, native: false, params: &[Param { name: "afValue1", ty: "float", default: None }, Param { name: "afValue2", ty: "float", default: None }, ] },
+        Function { name: "pow", returns: Some("float"), global: true, native: true, params: &[Param { name: "x", ty: "float", default: None }, Param { name: "y", ty: "float", default: None }, ] },
+        Function { name: "RadiansToDegrees", returns: Some("float"), global: true, native: true, params: &[Param { name: "afRadians", ty: "float", default: None }, ] },
+        Function { name: "sin", returns: Some("float"), global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "sqrt", returns: Some("float"), global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "tan", returns: Some("float"), global: true, native: true, params: &[Param { name: "afValue", ty: "float", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Message",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "ClearHelpMessages", returns: None, global: true, native: true, params: &[] },
+        Function { name: "ResetHelpMessage", returns: None, global: true, native: true, params: &[Param { name: "asEvent", ty: "string", default: None }, ] },
+        Function { name: "Show", returns: Some("int"), global: false, native: true, params: &[Param { name: "afArg1", ty: "float", default: Some("0.0") }, Param { name: "afArg2", ty: "float", default: Some("0.0") }, Param { name: "afArg3", ty: "float", default: Some("0.0") }, Param { name: "afArg4", ty: "float", default: Some("0.0") }, Param { name: "afArg5", ty: "float", default: Some("0.0") }, Param { name: "afArg6", ty: "float", default: Some("0.0") }, Param { name: "afArg7", ty: "float", default: Some("0.0") }, Param { name: "afArg8", ty: "float", default: Some("0.0") }, Param { name: "afArg9", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "ShowAsHelpMessage", returns: None, global: false, native: true, params: &[Param { name: "asEvent", ty: "string", default: None }, Param { name: "afDuration", ty: "float", default: None }, Param { name: "afInterval", ty: "float", default: None }, Param { name: "aiMaxTimes", ty: "int", default: None }, Param { name: "asContext", ty: "string", default: Some("\"\"") }, Param { name: "aiPriority", ty: "int", default: Some("0") }, ] },
+        Function { name: "UnshowAsHelpMessage", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MinRadiantOwned04",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MiscObject",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "GetObjectComponentCount", returns: Some("int"), global: false, native: true, params: &[Param { name: "akComponent", ty: "Component", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ModLegendaryFrenzyScript",
+    parent: Some("ActiveMagicEffect"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MovableStatic",
+    parent: Some("Static"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MQ102SpouseCorpseScript",
+    parent: Some("ReferenceAlias"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MQ105Script",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MQ202MemoryLoungerScript",
+    parent: Some("ReferenceAlias"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MQ203AdvanceMemoryTriggerScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MQ203MemoryB_BabyScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MS16BobbiDeathScript",
+    parent: Some("ReferenceAlias"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MS16DisableOnLoadScript",
+    parent: Some("ReferenceAlias"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MusicType",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Add", returns: None, global: false, native: true, params: &[] },
+        Function { name: "Remove", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MyMod01:Deep:Other",
+    parent: Some("MyMod01:MyScript"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "MyMod01:MyScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "newscript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "NumberPuzzleDummyTrigger",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ObjectMod",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ObjectReference",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Activate", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akActivator", ty: "ObjectReference", default: None }, Param { name: "abDefaultProcessingOnly", ty: "bool", default: Some("false") }, ] },
+        Function { name: "AddDependentAnimatedObjectReference", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akDependent", ty: "ObjectReference", default: None }, ] },
+        Function { name: "AddItem", returns: None, global: false, native: true, params: &[Param { name: "akItemToAdd", ty: "Form", default: None }, Param { name: "aiCount", ty: "int", default: Some("1") }, Param { name: "abSilent", ty: "bool", default: Some("false") }, ] },
+        Function { name: "AddKeyIfNeeded", returns: None, global: false, native: false, params: &[Param { name: "ObjectWithNeededKey", ty: "ObjectReference", default: None }, ] },
+        Function { name: "AddKeyword", returns: None, global: false, native: true, params: &[Param { name: "apKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "AddTextReplacementData", returns: None, global: false, native: true, params: &[Param { name: "asTokenLabel", ty: "string", default: None }, Param { name: "akForm", ty: "Form", default: None }, ] },
+        Function { name: "AddToMap", returns: None, global: false, native: true, params: &[Param { name: "abAllowFastTravel", ty: "bool", default: Some("false") }, ] },
+        Function { name: "ApplyConveyorBelt", returns: None, global: false, native: true, params: &[Param { name: "aTarget", ty: "string", default: None }, Param { name: "aLinVelX", ty: "float", default: None }, Param { name: "aLinVelY", ty: "float", default: None }, Param { name: "aLinVelZ", ty: "float", default: None }, Param { name: "abOn", ty: "bool", default: Some("true") }, Param { name: "abReverse", ty: "bool", default: Some("false") }, ] },
+        Function { name: "ApplyFanMotor", returns: None, global: false, native: true, params: &[Param { name: "aTarget", ty: "string", default: None }, Param { name: "aAxisX", ty: "float", default: None }, Param { name: "aAxisY", ty: "float", default: None }, Param { name: "aAxisZ", ty: "float", default: None }, Param { name: "aForce", ty: "float", default: None }, Param { name: "abOn", ty: "bool", default: Some("true") }, ] },
+        Function { name: "ApplyHavokImpulse", returns: None, global: false, native: true, params: &[Param { name: "afX", ty: "float", default: None }, Param { name: "afY", ty: "float", default: None }, Param { name: "afZ", ty: "float", default: None }, Param { name: "afMagnitude", ty: "float", default: None }, ] },
+        Function { name: "AttachMod", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akMod", ty: "ObjectMod", default: None }, Param { name: "aiAttachIndex", ty: "int", default: Some("0") }, ] },
+        Function { name: "AttachModToInventoryItem", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akItem", ty: "Form", default: None }, Param { name: "akMod", ty: "ObjectMod", default: None }, ] },
+        Function { name: "AttachTo", returns: None, global: false, native: true, params: &[Param { name: "akParent", ty: "ObjectReference", default: None }, ] },
+        Function { name: "BlockActivation", returns: None, global: false, native: true, params: &[Param { name: "abBlocked", ty: "bool", default: Some("true") }, Param { name: "abHideActivateText", ty: "bool", default: Some("false") }, ] },
+        Function { name: "CalculateEncounterLevel", returns: Some("int"), global: false, native: true, params: &[Param { name: "aiDifficulty", ty: "int", default: Some("4") }, ] },
+        Function { name: "CanFastTravelToMarker", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "CanProduceForWorkshop", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "ClearDestruction", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ClearFromOldLocations", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ConveyorBeltOn", returns: None, global: false, native: true, params: &[Param { name: "abOn", ty: "bool", default: Some("true") }, ] },
+        Function { name: "CountActorsLinkedToMe", returns: Some("int"), global: false, native: true, params: &[Param { name: "apLinkKeyword", ty: "Keyword", default: Some("None") }, Param { name: "apExcludeKeyword", ty: "Keyword", default: Some("None") }, ] },
+        Function { name: "CountLinkedRefChain", returns: Some("int"), global: false, native: true, params: &[Param { name: "apKeyword", ty: "keyword", default: Some("None") }, Param { name: "maxExpectedLinkedRefs", ty: "int", default: Some("100") }, ] },
+        Function { name: "CountRefsLinkedToMe", returns: Some("int"), global: false, native: true, params: &[Param { name: "apLinkKeyword", ty: "Keyword", default: Some("None") }, Param { name: "apExcludeKeyword", ty: "Keyword", default: Some("None") }, ] },
+        Function { name: "CreateDetectionEvent", returns: None, global: false, native: true, params: &[Param { name: "akOwner", ty: "Actor", default: None }, Param { name: "aiSoundLevel", ty: "int", default: Some("0") }, ] },
+        Function { name: "DamageObject", returns: None, global: false, native: true, params: &[Param { name: "afDamage", ty: "float", default: None }, ] },
+        Function { name: "DamageValue", returns: None, global: false, native: true, params: &[Param { name: "akAV", ty: "ActorValue", default: None }, Param { name: "afDamage", ty: "float", default: None }, ] },
+        Function { name: "Delete", returns: None, global: false, native: true, params: &[] },
+        Function { name: "DeleteWhenAble", returns: None, global: false, native: false, params: &[] },
+        Function { name: "Disable", returns: None, global: false, native: true, params: &[Param { name: "abFadeOut", ty: "bool", default: Some("false") }, ] },
+        Function { name: "DisableLinkChain", returns: None, global: false, native: true, params: &[Param { name: "apKeyword", ty: "Keyword", default: Some("None") }, Param { name: "abFadeOut", ty: "bool", default: Some("false") }, ] },
+        Function { name: "DisableNoWait", returns: None, global: false, native: true, params: &[Param { name: "abFadeOut", ty: "bool", default: Some("false") }, ] },
+        Function { name: "Drop", returns: None, global: false, native: true, params: &[Param { name: "abSilent", ty: "bool", default: Some("false") }, ] },
+        Function { name: "DropFirstObject", returns: Some("ObjectReference"), global: false, native: true, params: &[Param { name: "abInitiallyDisabled", ty: "bool", default: Some("false") }, ] },
+        Function { name: "DropObject", returns: Some("ObjectReference"), global: false, native: true, params: &[Param { name: "akObject", ty: "Form", default: None }, Param { name: "aiCount", ty: "int", default: Some("1") }, ] },
+        Function { name: "Enable", returns: None, global: false, native: true, params: &[Param { name: "abFadeIn", ty: "bool", default: Some("false") }, ] },
+        Function { name: "EnableFastTravel", returns: None, global: false, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "EnableLinkChain", returns: None, global: false, native: true, params: &[Param { name: "apKeyword", ty: "Keyword", default: Some("None") }, Param { name: "abFadeIn", ty: "bool", default: Some("false") }, ] },
+        Function { name: "EnableNoWait", returns: None, global: false, native: true, params: &[Param { name: "abFadeIn", ty: "bool", default: Some("false") }, ] },
+        Function { name: "FanMotorOn", returns: None, global: false, native: true, params: &[Param { name: "abOn", ty: "bool", default: Some("true") }, ] },
+        Function { name: "FindAllReferencesOfType", returns: Some("ObjectReference[]"), global: false, native: true, params: &[Param { name: "akObjectOrList", ty: "Form", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "FindAllReferencesWithKeyword", returns: Some("ObjectReference[]"), global: false, native: true, params: &[Param { name: "akKeywordOrList", ty: "Form", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "ForceAddRagdollToWorld", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ForceRemoveRagdollFromWorld", returns: None, global: false, native: true, params: &[] },
+        Function { name: "GetActorOwner", returns: Some("ActorBase"), global: false, native: true, params: &[] },
+        Function { name: "GetActorRefOwner", returns: Some("Actor"), global: false, native: true, params: &[] },
+        Function { name: "GetActorsLinkedToMe", returns: Some("Actor[]"), global: false, native: true, params: &[Param { name: "apLinkKeyword", ty: "Keyword", default: Some("None") }, Param { name: "apExcludeKeyword", ty: "Keyword", default: Some("None") }, ] },
+        Function { name: "GetAngleX", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetAngleY", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetAngleZ", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetAnimationVariableBool", returns: Some("bool"), global: false, native: true, params: &[Param { name: "arVariableName", ty: "string", default: None }, ] },
+        Function { name: "GetAnimationVariableFloat", returns: Some("float"), global: false, native: true, params: &[Param { name: "arVariableName", ty: "string", default: None }, ] },
+        Function { name: "GetAnimationVariableInt", returns: Some("int"), global: false, native: true, params: &[Param { name: "arVariableName", ty: "string", default: None }, ] },
+        Function { name: "GetBaseObject", returns: Some("Form"), global: false, native: true, params: &[] },
+        Function { name: "GetBaseValue", returns: Some("float"), global: false, native: true, params: &[Param { name: "akAV", ty: "ActorValue", default: None }, ] },
+        Function { name: "GetComponentCount", returns: Some("int"), global: false, native: true, params: &[Param { name: "akItem", ty: "Form", default: Some("None") }, ] },
+        Function { name: "GetContainer", returns: Some("ObjectReference"), global: false, native: true, params: &[] },
+        Function { name: "GetCurrentDestructionStage", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetCurrentLocation", returns: Some("Location"), global: false, native: true, params: &[] },
+        Function { name: "GetCurrentScene", returns: Some("Scene"), global: false, native: true, params: &[] },
+        Function { name: "GetDistance", returns: Some("float"), global: false, native: true, params: &[Param { name: "akOther", ty: "ObjectReference", default: None }, ] },
+        Function { name: "GetEditorLocation", returns: Some("Location"), global: false, native: true, params: &[] },
+        Function { name: "GetEncounterZone", returns: Some("EncounterZone"), global: false, native: true, params: &[] },
+        Function { name: "GetFactionOwner", returns: Some("Faction"), global: false, native: true, params: &[] },
+        Function { name: "GetHeadingAngle", returns: Some("float"), global: false, native: true, params: &[Param { name: "akOther", ty: "ObjectReference", default: None }, ] },
+        Function { name: "GetHeight", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetInventoryValue", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetItemCount", returns: Some("int"), global: false, native: true, params: &[Param { name: "akItem", ty: "Form", default: Some("None") }, ] },
+        Function { name: "GetItemHealthPercent", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetKey", returns: Some("Key"), global: false, native: true, params: &[] },
+        Function { name: "GetLength", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetLinkedRef", returns: Some("ObjectReference"), global: false, native: true, params: &[Param { name: "apKeyword", ty: "Keyword", default: Some("NONE") }, ] },
+        Function { name: "getLinkedRefArray", returns: Some("ObjectReference[]"), global: false, native: false, params: &[Param { name: "keywordLink", ty: "keyword", default: None }, ] },
+        Function { name: "GetLinkedRefChain", returns: Some("ObjectReference[]"), global: false, native: true, params: &[Param { name: "apKeyword", ty: "keyword", default: Some("None") }, Param { name: "iMaxExpectedLinkedRefs", ty: "int", default: Some("100") }, ] },
+        Function { name: "GetLinkedRefChildren", returns: Some("ObjectReference[]"), global: false, native: true, params: &[Param { name: "apKeyword", ty: "keyword", default: None }, ] },
+        Function { name: "GetLockLevel", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetLocRefTypes", returns: Some("LocationRefType[]"), global: false, native: true, params: &[] },
+        Function { name: "GetMass", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetNthLinkedRef", returns: Some("ObjectReference"), global: false, native: true, params: &[Param { name: "aiLinkedRef", ty: "int", default: None }, Param { name: "apKeyword", ty: "Keyword", default: Some("None") }, ] },
+        Function { name: "GetOpenState", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetParentCell", returns: Some("Cell"), global: false, native: true, params: &[] },
+        Function { name: "GetPositionX", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetPositionY", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetPositionZ", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetRadioFrequency", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetRadioVolume", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetRefsLinkedToMe", returns: Some("ObjectReference[]"), global: false, native: true, params: &[Param { name: "apLinkKeyword", ty: "Keyword", default: Some("None") }, Param { name: "apExcludeKeyword", ty: "Keyword", default: Some("None") }, ] },
+        Function { name: "GetResourceDamage", returns: Some("float"), global: false, native: true, params: &[Param { name: "akValue", ty: "ActorValue", default: Some("None") }, ] },
+        Function { name: "GetSafePosition", returns: Some("float[]"), global: false, native: true, params: &[Param { name: "aSearchRadius", ty: "float", default: Some("-1.0") }, Param { name: "aSafeRadius", ty: "float", default: Some("-1.0") }, ] },
+        Function { name: "GetScale", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetSelfAsActor", returns: Some("actor"), global: false, native: false, params: &[] },
+        Function { name: "GetTeleportCell", returns: Some("Cell"), global: false, native: true, params: &[] },
+        Function { name: "GetTransitionCell", returns: Some("Cell"), global: false, native: true, params: &[] },
+        Function { name: "GetTransmitterDistance", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetTriggerObjectCount", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetValue", returns: Some("float"), global: false, native: true, params: &[Param { name: "akAV", ty: "ActorValue", default: None }, ] },
+        Function { name: "GetValuePercentage", returns: Some("float"), global: false, native: true, params: &[Param { name: "akAV", ty: "ActorValue", default: None }, ] },
+        Function { name: "GetVoiceType", returns: Some("VoiceType"), global: false, native: true, params: &[] },
+        Function { name: "GetWidth", returns: Some("float"), global: false, native: true, params: &[] },
+        Function { name: "GetWorkshopOwnedObjects", returns: Some("ObjectReference[]"), global: false, native: true, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "GetWorkshopResourceDamage", returns: Some("float"), global: false, native: true, params: &[Param { name: "akValue", ty: "ActorValue", default: None }, ] },
+        Function { name: "GetWorkshopResourceObjects", returns: Some("ObjectReference[]"), global: false, native: true, params: &[Param { name: "akAV", ty: "ActorValue", default: Some("None") }, Param { name: "aiOption", ty: "int", default: Some("0") }, ] },
+        Function { name: "GetWorldSpace", returns: Some("WorldSpace"), global: false, native: true, params: &[] },
+        Function { name: "HasActorRefOwner", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "HasDirectLOS", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "asSourceNode", ty: "string", default: Some("\"\"") }, Param { name: "asTargetNode", ty: "string", default: Some("\"\"") }, ] },
+        Function { name: "HasEffectKeyword", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "HasKeyword", returns: Some("bool"), global: false, native: true, params: &[Param { name: "apKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "HasKeywordInFormList", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akKeywordList", ty: "FormList", default: None }, ] },
+        Function { name: "HasLocRefType", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akRefType", ty: "LocationRefType", default: None }, ] },
+        Function { name: "HasNode", returns: Some("bool"), global: false, native: true, params: &[Param { name: "asNodeName", ty: "string", default: None }, ] },
+        Function { name: "HasOwner", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "HasRefType", returns: Some("bool"), global: false, native: false, params: &[Param { name: "akRefType", ty: "LocationRefType", default: None }, ] },
+        Function { name: "HasSharedPowerGrid", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akCompare", ty: "ObjectReference", default: None }, ] },
+        Function { name: "IgnoreFriendlyHits", returns: None, global: false, native: true, params: &[Param { name: "abIgnore", ty: "bool", default: Some("true") }, ] },
+        Function { name: "InterruptCast", returns: None, global: false, native: true, params: &[] },
+        Function { name: "Is3DLoaded", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsActivateChild", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akChild", ty: "ObjectReference", default: None }, ] },
+        Function { name: "IsActivationBlocked", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsConveyorBeltOn", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsCreated", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsDeleted", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsDestroyed", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsDisabled", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsEnabled", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "IsFanMotorOn", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsFurnitureInUse", returns: Some("bool"), global: false, native: true, params: &[Param { name: "abIgnoreReserved", ty: "bool", default: Some("false") }, ] },
+        Function { name: "IsFurnitureMarkerInUse", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aiMarker", ty: "int", default: None }, Param { name: "abIgnoreReserved", ty: "bool", default: Some("false") }, ] },
+        Function { name: "IsIgnoringFriendlyHits", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsInDialogueWithPlayer", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsInInterior", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "IsInLocation", returns: Some("bool"), global: false, native: false, params: &[Param { name: "akLocation", ty: "Location", default: None }, ] },
+        Function { name: "IsLockBroken", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsLocked", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsMapMarkerVisible", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsNearPlayer", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "IsOwnedBy", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akOwner", ty: "Actor", default: None }, ] },
+        Function { name: "IsPowered", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsQuestItem", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsRadioOn", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsRefInTransitionCell", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "IsTeleportAreaLoaded", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsWithinBuildableArea", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "KnockAreaEffect", returns: None, global: false, native: true, params: &[Param { name: "afMagnitude", ty: "float", default: None }, Param { name: "afRadius", ty: "float", default: None }, ] },
+        Function { name: "Lock", returns: None, global: false, native: true, params: &[Param { name: "abLock", ty: "bool", default: Some("true") }, Param { name: "abAsOwner", ty: "bool", default: Some("false") }, ] },
+        Function { name: "MakeRadioReceiver", returns: None, global: false, native: true, params: &[Param { name: "afFrequency", ty: "float", default: None }, Param { name: "afVolume", ty: "float", default: Some("1.0") }, Param { name: "aOverrideModel", ty: "OutputModel", default: Some("None") }, Param { name: "abActive", ty: "bool", default: Some("true") }, Param { name: "abNoStatic", ty: "bool", default: Some("false") }, ] },
+        Function { name: "MakeTransmitterRepeater", returns: None, global: false, native: true, params: &[Param { name: "akTransmitterToRepeat", ty: "ObjectReference", default: None }, Param { name: "afInnerRadius", ty: "float", default: None }, Param { name: "afOuterRadius", ty: "float", default: None }, Param { name: "abUnlimitedRange", ty: "bool", default: Some("false") }, ] },
+        Function { name: "ModValue", returns: None, global: false, native: true, params: &[Param { name: "akAV", ty: "ActorValue", default: None }, Param { name: "afAmount", ty: "float", default: None }, ] },
+        Function { name: "MoveTo", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "afXOffset", ty: "float", default: Some("0.0") }, Param { name: "afYOffset", ty: "float", default: Some("0.0") }, Param { name: "afZOffset", ty: "float", default: Some("0.0") }, Param { name: "abMatchRotation", ty: "bool", default: Some("true") }, ] },
+        Function { name: "MoveToIfUnloaded", returns: Some("bool"), global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "afXOffset", ty: "float", default: Some("0.0") }, Param { name: "afYOffset", ty: "float", default: Some("0.0") }, Param { name: "afZOffset", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "MoveToMyEditorLocation", returns: None, global: false, native: true, params: &[] },
+        Function { name: "MoveToNearestNavmeshLocation", returns: None, global: false, native: true, params: &[] },
+        Function { name: "MoveToNode", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "asNodeName", ty: "string", default: None }, Param { name: "asMatchNodeName", ty: "string", default: Some("\"\"") }, ] },
+        Function { name: "MoveToWhenUnloaded", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "afXOffset", ty: "float", default: Some("0.0") }, Param { name: "afYOffset", ty: "float", default: Some("0.0") }, Param { name: "afZOffset", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "OpenWorkshopSettlementMenu", returns: Some("Location"), global: false, native: true, params: &[Param { name: "akActionKW", ty: "Keyword", default: None }, Param { name: "astrConfirm", ty: "Message", default: Some("None") }, Param { name: "aLocToHighlight", ty: "Location", default: Some("None") }, ] },
+        Function { name: "OpenWorkshopSettlementMenuEx", returns: Some("Location"), global: false, native: true, params: &[Param { name: "akActionKW", ty: "Keyword", default: None }, Param { name: "astrConfirm", ty: "Message", default: Some("None") }, Param { name: "aLocToHighlight", ty: "Location", default: Some("None") }, Param { name: "akIncludeKeywordList", ty: "FormList", default: Some("None") }, Param { name: "akExcludeKeywordList", ty: "FormList", default: Some("None") }, Param { name: "abExcludeZeroPopulation", ty: "bool", default: Some("false") }, Param { name: "abOnlyOwnedWorkshops", ty: "bool", default: Some("true") }, Param { name: "abTurnOffHeader", ty: "bool", default: Some("false") }, Param { name: "abOnlyPotentialVassalSettlements", ty: "bool", default: Some("false") }, Param { name: "abDisableReservedByQuests", ty: "bool", default: Some("false") }, ] },
+        Function { name: "PauseAudio", returns: None, global: false, native: true, params: &[] },
+        Function { name: "PlaceActorAtMe", returns: Some("Actor"), global: false, native: true, params: &[Param { name: "akActorToPlace", ty: "ActorBase", default: None }, Param { name: "aiLevelMod", ty: "int", default: Some("4") }, Param { name: "akZone", ty: "EncounterZone", default: Some("None") }, ] },
+        Function { name: "PlaceAtMe", returns: Some("ObjectReference"), global: false, native: true, params: &[Param { name: "akFormToPlace", ty: "Form", default: None }, Param { name: "aiCount", ty: "int", default: Some("1") }, Param { name: "abForcePersist", ty: "bool", default: Some("false") }, Param { name: "abInitiallyDisabled", ty: "bool", default: Some("false") }, Param { name: "abDeleteWhenAble", ty: "bool", default: Some("true") }, ] },
+        Function { name: "PlaceAtNode", returns: Some("ObjectReference"), global: false, native: true, params: &[Param { name: "asNodeName", ty: "string", default: None }, Param { name: "akFormToPlace", ty: "Form", default: None }, Param { name: "aiCount", ty: "int", default: Some("1") }, Param { name: "abForcePersist", ty: "bool", default: Some("false") }, Param { name: "abInitiallyDisabled", ty: "bool", default: Some("false") }, Param { name: "abDeleteWhenAble", ty: "bool", default: Some("true") }, Param { name: "abAttach", ty: "bool", default: Some("false") }, ] },
+        Function { name: "PlayAnimation", returns: Some("bool"), global: false, native: true, params: &[Param { name: "asAnimation", ty: "string", default: None }, ] },
+        Function { name: "PlayAnimationAndWait", returns: Some("bool"), global: false, native: true, params: &[Param { name: "asAnimation", ty: "string", default: None }, Param { name: "asEventName", ty: "string", default: None }, ] },
+        Function { name: "PlayGamebryoAnimation", returns: Some("bool"), global: false, native: true, params: &[Param { name: "asAnimation", ty: "string", default: None }, Param { name: "abStartOver", ty: "bool", default: Some("false") }, Param { name: "afEaseInTime", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "PlayImpactEffect", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akImpactEffect", ty: "ImpactDataSet", default: None }, Param { name: "asNodeName", ty: "string", default: Some("\"\"") }, Param { name: "afPickDirX", ty: "float", default: Some("0.0") }, Param { name: "afPickDirY", ty: "float", default: Some("0.0") }, Param { name: "afPickDirZ", ty: "float", default: Some("-1.0") }, Param { name: "afPickLength", ty: "float", default: Some("512.0") }, Param { name: "abApplyNodeRotation", ty: "bool", default: Some("false") }, Param { name: "abUseNodeLocalRotation", ty: "bool", default: Some("false") }, ] },
+        Function { name: "PlaySyncedAnimationAndWaitSS", returns: Some("bool"), global: false, native: true, params: &[Param { name: "asAnimation1", ty: "string", default: None }, Param { name: "asEvent1", ty: "string", default: None }, Param { name: "akObj2", ty: "ObjectReference", default: None }, Param { name: "asAnimation2", ty: "string", default: None }, Param { name: "asEvent2", ty: "string", default: None }, ] },
+        Function { name: "PlaySyncedAnimationSS", returns: Some("bool"), global: false, native: true, params: &[Param { name: "asAnimation1", ty: "string", default: None }, Param { name: "akObj2", ty: "ObjectReference", default: None }, Param { name: "asAnimation2", ty: "string", default: None }, ] },
+        Function { name: "PlayTerrainEffect", returns: None, global: false, native: true, params: &[Param { name: "asEffectModelName", ty: "string", default: None }, Param { name: "asAttachBoneName", ty: "string", default: None }, ] },
+        Function { name: "PreloadExteriorCell", returns: None, global: false, native: true, params: &[] },
+        Function { name: "PreloadTargetArea", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ProcessTrapHit", returns: None, global: false, native: true, params: &[Param { name: "akTrap", ty: "ObjectReference", default: None }, Param { name: "afDamage", ty: "float", default: None }, Param { name: "afPushback", ty: "float", default: None }, Param { name: "afXVel", ty: "float", default: None }, Param { name: "afYVel", ty: "float", default: None }, Param { name: "afZVel", ty: "float", default: None }, Param { name: "afXPos", ty: "float", default: None }, Param { name: "afYPos", ty: "float", default: None }, Param { name: "afZPos", ty: "float", default: None }, Param { name: "aeMaterial", ty: "int", default: None }, Param { name: "afStagger", ty: "float", default: None }, ] },
+        Function { name: "PushActorAway", returns: None, global: false, native: true, params: &[Param { name: "akActorToPush", ty: "Actor", default: None }, Param { name: "aiKnockbackForce", ty: "float", default: None }, ] },
+        Function { name: "RaidTargetsAvailable", returns: Some("int"), global: false, native: true, params: &[Param { name: "akActionKW", ty: "Keyword", default: None }, Param { name: "astrConfirm", ty: "Message", default: Some("None") }, Param { name: "aLocToHighlight", ty: "Location", default: Some("None") }, Param { name: "akIncludeKeywordList", ty: "FormList", default: Some("None") }, Param { name: "akExcludeKeywordList", ty: "FormList", default: Some("None") }, Param { name: "abExcludeZeroPopulation", ty: "bool", default: Some("false") }, Param { name: "abOnlyOwnedWorkshops", ty: "bool", default: Some("true") }, Param { name: "abTurnOffHeader", ty: "bool", default: Some("false") }, Param { name: "abOnlyPotentialVassalSettlements", ty: "bool", default: Some("false") }, Param { name: "abDisableReservedByQuests", ty: "bool", default: Some("false") }, ] },
+        Function { name: "rampRumble", returns: Some("bool"), global: false, native: false, params: &[Param { name: "power", ty: "float", default: Some("0.5") }, Param { name: "duration", ty: "float", default: Some("0.25") }, Param { name: "falloff", ty: "float", default: Some("1600.0") }, ] },
+        Function { name: "RecalculateResources", returns: None, global: false, native: true, params: &[] },
+        Function { name: "RemoveAllItems", returns: None, global: false, native: true, params: &[Param { name: "akTransferTo", ty: "ObjectReference", default: Some("None") }, Param { name: "abKeepOwnership", ty: "bool", default: Some("false") }, ] },
+        Function { name: "RemoveAllMods", returns: None, global: false, native: true, params: &[] },
+        Function { name: "RemoveAllModsFromInventoryItem", returns: None, global: false, native: true, params: &[Param { name: "akItem", ty: "Form", default: None }, ] },
+        Function { name: "RemoveComponents", returns: None, global: false, native: true, params: &[Param { name: "akComponent", ty: "Component", default: None }, Param { name: "aiCount", ty: "int", default: None }, Param { name: "abSilent", ty: "bool", default: Some("false") }, ] },
+        Function { name: "RemoveDependentAnimatedObjectReference", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akDependent", ty: "ObjectReference", default: None }, ] },
+        Function { name: "RemoveItem", returns: None, global: false, native: true, params: &[Param { name: "akItemToRemove", ty: "Form", default: None }, Param { name: "aiCount", ty: "int", default: Some("1") }, Param { name: "abSilent", ty: "bool", default: Some("false") }, Param { name: "akOtherContainer", ty: "ObjectReference", default: Some("None") }, ] },
+        Function { name: "RemoveItemByComponent", returns: None, global: false, native: true, params: &[Param { name: "akComponentToRemove", ty: "Form", default: None }, Param { name: "aiCount", ty: "int", default: Some("1") }, Param { name: "abSilent", ty: "bool", default: Some("false") }, Param { name: "akOtherContainer", ty: "ObjectReference", default: Some("None") }, ] },
+        Function { name: "RemoveKeyword", returns: None, global: false, native: true, params: &[Param { name: "apKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "RemoveMod", returns: None, global: false, native: true, params: &[Param { name: "akMod", ty: "ObjectMod", default: None }, ] },
+        Function { name: "RemoveModFromInventoryItem", returns: None, global: false, native: true, params: &[Param { name: "akItem", ty: "Form", default: None }, Param { name: "akMod", ty: "ObjectMod", default: None }, ] },
+        Function { name: "Repair", returns: None, global: false, native: true, params: &[] },
+        Function { name: "Reset", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ObjectReference", default: Some("None") }, ] },
+        Function { name: "ResetKeyword", returns: None, global: false, native: true, params: &[Param { name: "apKeyword", ty: "Keyword", default: None }, ] },
+        Function { name: "RestoreValue", returns: None, global: false, native: true, params: &[Param { name: "akAV", ty: "ActorValue", default: None }, Param { name: "afAmount", ty: "float", default: None }, ] },
+        Function { name: "ResumeAudio", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ReverseConveyorBelt", returns: None, global: false, native: true, params: &[Param { name: "abReverse", ty: "bool", default: Some("true") }, ] },
+        Function { name: "Say", returns: None, global: false, native: true, params: &[Param { name: "akTopicToSay", ty: "Topic", default: None }, Param { name: "akActorToSpeakAs", ty: "Actor", default: Some("None") }, Param { name: "abSpeakInPlayersHead", ty: "bool", default: Some("false") }, Param { name: "akTarget", ty: "ObjectReference", default: Some("None") }, ] },
+        Function { name: "SayCustom", returns: None, global: false, native: true, params: &[Param { name: "akKeywordToSay", ty: "Keyword", default: None }, Param { name: "akActorToSpeakAs", ty: "Actor", default: Some("None") }, Param { name: "abSpeakInPlayersHead", ty: "bool", default: Some("false") }, Param { name: "akTarget", ty: "ObjectReference", default: Some("None") }, ] },
+        Function { name: "SellItem", returns: Some("int"), global: false, native: false, params: &[Param { name: "Item", ty: "Form", default: None }, Param { name: "Value", ty: "int", default: None }, Param { name: "amountToSell", ty: "int", default: Some("-1") }, Param { name: "silent", ty: "bool", default: Some("false") }, Param { name: "paymentItem", ty: "form", default: Some("none") }, Param { name: "PaymentContainer", ty: "objectReference", default: Some("None") }, ] },
+        Function { name: "SendStealAlarm", returns: None, global: false, native: true, params: &[Param { name: "akThief", ty: "Actor", default: None }, ] },
+        Function { name: "SetActivateTextOverride", returns: None, global: false, native: true, params: &[Param { name: "akText", ty: "Message", default: None }, ] },
+        Function { name: "SetActorCause", returns: None, global: false, native: true, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "SetActorOwner", returns: None, global: false, native: true, params: &[Param { name: "akActorBase", ty: "ActorBase", default: None }, Param { name: "abNoCrime", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetActorRefOwner", returns: None, global: false, native: true, params: &[Param { name: "akActor", ty: "Actor", default: None }, Param { name: "abNoCrime", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetAngle", returns: None, global: false, native: true, params: &[Param { name: "afXAngle", ty: "float", default: None }, Param { name: "afYAngle", ty: "float", default: None }, Param { name: "afZAngle", ty: "float", default: None }, ] },
+        Function { name: "SetAnimationVariableBool", returns: None, global: false, native: true, params: &[Param { name: "arVariableName", ty: "string", default: None }, Param { name: "abNewValue", ty: "bool", default: None }, ] },
+        Function { name: "SetAnimationVariableFloat", returns: None, global: false, native: true, params: &[Param { name: "arVariableName", ty: "string", default: None }, Param { name: "afNewValue", ty: "float", default: None }, ] },
+        Function { name: "SetAnimationVariableInt", returns: None, global: false, native: true, params: &[Param { name: "arVariableName", ty: "string", default: None }, Param { name: "aiNewValue", ty: "int", default: None }, ] },
+        Function { name: "SetAttractionActive", returns: None, global: false, native: true, params: &[Param { name: "apKeyword", ty: "Keyword", default: None }, Param { name: "abActive", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetConveyorBeltVelocity", returns: None, global: false, native: true, params: &[Param { name: "afLinVelX", ty: "float", default: None }, Param { name: "afLinVelY", ty: "float", default: None }, Param { name: "afLinVelZ", ty: "float", default: None }, ] },
+        Function { name: "SetDestroyed", returns: None, global: false, native: true, params: &[Param { name: "abDestroyed", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetDirectAtTarget", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "SetFactionOwner", returns: None, global: false, native: true, params: &[Param { name: "akFaction", ty: "Faction", default: None }, Param { name: "abNoCrime", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetHarvested", returns: None, global: false, native: true, params: &[Param { name: "abHarvested", ty: "bool", default: None }, ] },
+        Function { name: "SetLinkedRef", returns: None, global: false, native: true, params: &[Param { name: "akLinkedRef", ty: "ObjectReference", default: None }, Param { name: "apKeyword", ty: "Keyword", default: Some("NONE") }, ] },
+        Function { name: "SetLockLevel", returns: None, global: false, native: true, params: &[Param { name: "aiLockLevel", ty: "int", default: None }, ] },
+        Function { name: "SetLocRefType", returns: None, global: false, native: true, params: &[Param { name: "akLoc", ty: "Location", default: None }, Param { name: "akRefType", ty: "LocationRefType", default: None }, ] },
+        Function { name: "SetMotionType", returns: None, global: false, native: true, params: &[Param { name: "aeMotionType", ty: "int", default: None }, Param { name: "abAllowActivate", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetNoFavorAllowed", returns: None, global: false, native: true, params: &[Param { name: "abNoFavor", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetOpen", returns: None, global: false, native: true, params: &[Param { name: "abOpen", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetPersistLoc", returns: None, global: false, native: true, params: &[Param { name: "akLoc", ty: "Location", default: None }, ] },
+        Function { name: "SetPlayerHasTaken", returns: None, global: false, native: true, params: &[Param { name: "abTaken", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetPosition", returns: None, global: false, native: true, params: &[Param { name: "afX", ty: "float", default: None }, Param { name: "afY", ty: "float", default: None }, Param { name: "afZ", ty: "float", default: None }, ] },
+        Function { name: "SetRadioFrequency", returns: None, global: false, native: true, params: &[Param { name: "afFrequency", ty: "float", default: None }, ] },
+        Function { name: "SetRadioOn", returns: None, global: false, native: true, params: &[Param { name: "abOn", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetRadioVolume", returns: None, global: false, native: true, params: &[Param { name: "afVolume", ty: "float", default: None }, ] },
+        Function { name: "SetScale", returns: None, global: false, native: true, params: &[Param { name: "afScale", ty: "float", default: None }, ] },
+        Function { name: "SetValue", returns: None, global: false, native: true, params: &[Param { name: "akAV", ty: "ActorValue", default: None }, Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "SplineTranslateTo", returns: None, global: false, native: true, params: &[Param { name: "afX", ty: "float", default: None }, Param { name: "afY", ty: "float", default: None }, Param { name: "afZ", ty: "float", default: None }, Param { name: "afXAngle", ty: "float", default: None }, Param { name: "afYAngle", ty: "float", default: None }, Param { name: "afZAngle", ty: "float", default: None }, Param { name: "afTangentMagnitude", ty: "float", default: None }, Param { name: "afSpeed", ty: "float", default: None }, Param { name: "afMaxRotationSpeed", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "SplineTranslateToRef", returns: None, global: false, native: false, params: &[Param { name: "arTarget", ty: "ObjectReference", default: None }, Param { name: "afTangentMagnitude", ty: "float", default: None }, Param { name: "afSpeed", ty: "float", default: None }, Param { name: "afMaxRotationSpeed", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "SplineTranslateToRefNode", returns: None, global: false, native: true, params: &[Param { name: "arTarget", ty: "ObjectReference", default: None }, Param { name: "arNodeName", ty: "string", default: None }, Param { name: "afTangentMagnitude", ty: "float", default: None }, Param { name: "afSpeed", ty: "float", default: None }, Param { name: "afMaxRotationSpeed", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "StartWorkshop", returns: None, global: false, native: true, params: &[Param { name: "abStart", ty: "bool", default: Some("true") }, ] },
+        Function { name: "StopTranslation", returns: None, global: false, native: true, params: &[] },
+        Function { name: "StoreInWorkshop", returns: None, global: false, native: true, params: &[Param { name: "akBaseItem", ty: "Form", default: None }, Param { name: "aiCount", ty: "int", default: Some("1") }, ] },
+        Function { name: "TetherToHorse", returns: None, global: false, native: true, params: &[Param { name: "akHorse", ty: "ObjectReference", default: None }, ] },
+        Function { name: "TranslateTo", returns: None, global: false, native: true, params: &[Param { name: "afX", ty: "float", default: None }, Param { name: "afY", ty: "float", default: None }, Param { name: "afZ", ty: "float", default: None }, Param { name: "afXAngle", ty: "float", default: None }, Param { name: "afYAngle", ty: "float", default: None }, Param { name: "afZAngle", ty: "float", default: None }, Param { name: "afSpeed", ty: "float", default: None }, Param { name: "afMaxRotationSpeed", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "TranslateToRef", returns: None, global: false, native: false, params: &[Param { name: "arTarget", ty: "ObjectReference", default: None }, Param { name: "afSpeed", ty: "float", default: None }, Param { name: "afMaxRotationSpeed", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "Unlock", returns: None, global: false, native: false, params: &[Param { name: "abAsOwner", ty: "bool", default: Some("false") }, ] },
+        Function { name: "WaitFor3DLoad", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "WaitForAnimationEvent", returns: Some("bool"), global: false, native: true, params: &[Param { name: "asEventName", ty: "string", default: None }, ] },
+        Function { name: "WaitForWorkshopResourceRecalc", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+        Function { name: "OnActivate", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCellAttach", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCellDetach", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCellLoad", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnClose", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnContainerChanged", returns: None, global: false, native: false, params: &[Param { name: "akNewContainer", ty: "ObjectReference", default: None }, Param { name: "akOldContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnDestructionStageChanged", returns: None, global: false, native: false, params: &[Param { name: "aiOldStage", ty: "int", default: None }, Param { name: "aiCurrentStage", ty: "int", default: None }, ] },
+        Function { name: "OnEquipped", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "OnExitFurniture", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnGrab", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnHolotapeChatter", returns: None, global: false, native: false, params: &[Param { name: "astrChatter", ty: "string", default: None }, Param { name: "afNumericData", ty: "float", default: None }, ] },
+        Function { name: "OnHolotapePlay", returns: None, global: false, native: false, params: &[Param { name: "aTerminalRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemAdded", returns: None, global: false, native: false, params: &[Param { name: "akBaseItem", ty: "Form", default: None }, Param { name: "aiItemCount", ty: "int", default: None }, Param { name: "akItemReference", ty: "ObjectReference", default: None }, Param { name: "akSourceContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemRemoved", returns: None, global: false, native: false, params: &[Param { name: "akBaseItem", ty: "Form", default: None }, Param { name: "aiItemCount", ty: "int", default: None }, Param { name: "akItemReference", ty: "ObjectReference", default: None }, Param { name: "akDestContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnLoad", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnLockStateChanged", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnOpen", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPipboyRadioDetection", returns: None, global: false, native: false, params: &[Param { name: "abDetected", ty: "bool", default: None }, ] },
+        Function { name: "OnPlayerDialogueTarget", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPowerOff", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPowerOn", returns: None, global: false, native: false, params: &[Param { name: "akPowerGenerator", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnRead", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnRelease", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnReset", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnSell", returns: None, global: false, native: false, params: &[Param { name: "akSeller", ty: "Actor", default: None }, ] },
+        Function { name: "OnSpellCast", returns: None, global: false, native: false, params: &[Param { name: "akSpell", ty: "Form", default: None }, ] },
+        Function { name: "OnTranslationAlmostComplete", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnTranslationComplete", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnTranslationFailed", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnTrapHitStart", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "afXVel", ty: "float", default: None }, Param { name: "afYVel", ty: "float", default: None }, Param { name: "afZVel", ty: "float", default: None }, Param { name: "afXPos", ty: "float", default: None }, Param { name: "afYPos", ty: "float", default: None }, Param { name: "afZPos", ty: "float", default: None }, Param { name: "aeMaterial", ty: "int", default: None }, Param { name: "abInitialHit", ty: "bool", default: None }, Param { name: "aeMotionType", ty: "int", default: None }, ] },
+        Function { name: "OnTrapHitStop", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTriggerEnter", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTriggerLeave", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnUnequipped", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "OnUnload", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnWorkshopMode", returns: None, global: false, native: false, params: &[Param { name: "aStart", ty: "bool", default: None }, ] },
+        Function { name: "OnWorkshopNPCTransfer", returns: None, global: false, native: false, params: &[Param { name: "akNewWorkshop", ty: "Location", default: None }, Param { name: "akActionKW", ty: "Keyword", default: None }, ] },
+        Function { name: "OnWorkshopObjectDestroyed", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectGrabbed", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectMoved", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectPlaced", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectRepaired", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+    ],
+},
+Script {
+    name: "Outfit",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "OutputModel",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Package",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "GetOwningQuest", returns: Some("Quest"), global: false, native: true, params: &[] },
+        Function { name: "GetTemplate", returns: Some("Package"), global: false, native: true, params: &[] },
+    ],
+    events: &[
+        Function { name: "OnChange", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "OnEnd", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "OnStart", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+    ],
+},
+Script {
+    name: "Perk",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+        Function { name: "OnEntryRun", returns: None, global: false, native: false, params: &[Param { name: "auiEntryID", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "akOwner", ty: "Actor", default: None }, ] },
+    ],
+},
+Script {
+    name: "perkRoboHackingEffectSCRIPT",
+    parent: Some("ActiveMagicEffect"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "PlayerCompanionsScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Potion",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "IsHostile", returns: Some("bool"), global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Projectile",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Quest",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "CompleteAllObjectives", returns: None, global: false, native: true, params: &[] },
+        Function { name: "CompleteQuest", returns: None, global: false, native: true, params: &[] },
+        Function { name: "FailAllObjectives", returns: None, global: false, native: true, params: &[] },
+        Function { name: "GetAlias", returns: Some("Alias"), global: false, native: true, params: &[Param { name: "aiAliasID", ty: "int", default: None }, ] },
+        Function { name: "GetCurrentStageID", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetQuestStageDone", returns: Some("bool"), global: true, native: false, params: &[Param { name: "questStageToCheck", ty: "QuestStage", default: None }, ] },
+        Function { name: "GetStage", returns: Some("int"), global: false, native: false, params: &[] },
+        Function { name: "GetStageDone", returns: Some("bool"), global: false, native: false, params: &[Param { name: "aiStage", ty: "int", default: None }, ] },
+        Function { name: "HasObjective", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aiObjective", ty: "int", default: None }, ] },
+        Function { name: "IsActive", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsCompleted", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsObjectiveCompleted", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aiObjective", ty: "int", default: None }, ] },
+        Function { name: "IsObjectiveDisplayed", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aiObjective", ty: "int", default: None }, ] },
+        Function { name: "IsObjectiveFailed", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aiObjective", ty: "int", default: None }, ] },
+        Function { name: "IsRunning", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsStageDone", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aiStage", ty: "int", default: None }, ] },
+        Function { name: "IsStarting", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsStopped", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "IsStopping", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "ModObjectiveGlobal", returns: Some("bool"), global: false, native: false, params: &[Param { name: "afModValue", ty: "float", default: None }, Param { name: "aModGlobal", ty: "GlobalVariable", default: None }, Param { name: "aiObjectiveID", ty: "int", default: Some("-1") }, Param { name: "afTargetValue", ty: "float", default: Some("-1.0") }, Param { name: "abCountingUp", ty: "bool", default: Some("true") }, Param { name: "abCompleteObjective", ty: "bool", default: Some("true") }, Param { name: "abRedisplayObjective", ty: "bool", default: Some("true") }, Param { name: "abAllowRollbackObjective", ty: "bool", default: Some("false") }, ] },
+        Function { name: "Reset", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ResetSpeechChallenges", returns: None, global: false, native: true, params: &[] },
+        Function { name: "SetActive", returns: None, global: false, native: true, params: &[Param { name: "abActive", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetAllStages", returns: None, global: false, native: false, params: &[Param { name: "lastStage", ty: "int", default: None }, ] },
+        Function { name: "SetCurrentStageID", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aiStageID", ty: "int", default: None }, ] },
+        Function { name: "SetObjectiveCompleted", returns: None, global: false, native: true, params: &[Param { name: "aiObjective", ty: "int", default: None }, Param { name: "abCompleted", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetObjectiveDisplayed", returns: None, global: false, native: true, params: &[Param { name: "aiObjective", ty: "int", default: None }, Param { name: "abDisplayed", ty: "bool", default: Some("true") }, Param { name: "abForce", ty: "bool", default: Some("false") }, ] },
+        Function { name: "SetObjectiveFailed", returns: None, global: false, native: true, params: &[Param { name: "aiObjective", ty: "int", default: None }, Param { name: "abFailed", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetObjectiveSkipped", returns: None, global: false, native: false, params: &[Param { name: "aiObjectiveID", ty: "int", default: None }, ] },
+        Function { name: "SetQuestStage", returns: None, global: true, native: false, params: &[Param { name: "questStageToSet", ty: "QuestStage", default: None }, ] },
+        Function { name: "SetStage", returns: Some("bool"), global: false, native: false, params: &[Param { name: "aiStage", ty: "int", default: None }, ] },
+        Function { name: "Start", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "Stop", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UpdateCurrentInstanceGlobal", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aUpdateGlobal", ty: "GlobalVariable", default: None }, ] },
+    ],
+    events: &[
+        Function { name: "OnQuestInit", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnQuestShutdown", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnReset", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnStageSet", returns: None, global: false, native: false, params: &[Param { name: "auiStageID", ty: "int", default: None }, Param { name: "auiItemID", ty: "int", default: None }, ] },
+        Function { name: "OnStoryActivateActor", returns: None, global: false, native: false, params: &[Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akActor", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnStoryActorAttach", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, ] },
+        Function { name: "OnStoryAddToPlayer", returns: None, global: false, native: false, params: &[Param { name: "akOwner", ty: "ObjectReference", default: None }, Param { name: "akContainer", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akItemBase", ty: "Form", default: None }, Param { name: "aiAcquireType", ty: "int", default: None }, ] },
+        Function { name: "OnStoryArrest", returns: None, global: false, native: false, params: &[Param { name: "akArrestingGuard", ty: "ObjectReference", default: None }, Param { name: "akCriminal", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "aiCrime", ty: "int", default: None }, ] },
+        Function { name: "OnStoryAssaultActor", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "ObjectReference", default: None }, Param { name: "akAttacker", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "aiCrime", ty: "int", default: None }, ] },
+        Function { name: "OnStoryAttractionObject", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, Param { name: "akObject", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "abCommanded", ty: "bool", default: None }, ] },
+        Function { name: "OnStoryBribeNPC", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnStoryCastMagic", returns: None, global: false, native: false, params: &[Param { name: "akCastingActor", ty: "ObjectReference", default: None }, Param { name: "akSpellTarget", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akSpell", ty: "Form", default: None }, ] },
+        Function { name: "OnStoryChangeLocation", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, Param { name: "akOldLocation", ty: "Location", default: None }, Param { name: "akNewLocation", ty: "Location", default: None }, ] },
+        Function { name: "OnStoryClearLocation", returns: None, global: false, native: false, params: &[Param { name: "akOldLocation", ty: "Location", default: None }, ] },
+        Function { name: "OnStoryCraftItem", returns: None, global: false, native: false, params: &[Param { name: "akBench", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akCreatedItem", ty: "Form", default: None }, ] },
+        Function { name: "OnStoryCrimeGold", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "ObjectReference", default: None }, Param { name: "akCriminal", ty: "ObjectReference", default: None }, Param { name: "akFaction", ty: "Form", default: None }, Param { name: "aiGoldAmount", ty: "int", default: None }, Param { name: "aiCrime", ty: "int", default: None }, ] },
+        Function { name: "OnStoryCure", returns: None, global: false, native: false, params: &[Param { name: "akInfection", ty: "Form", default: None }, ] },
+        Function { name: "OnStoryDialogue", returns: None, global: false, native: false, params: &[Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akActor1", ty: "ObjectReference", default: None }, Param { name: "akActor2", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnStoryDiscoverDeadBody", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, Param { name: "akDeadActor", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, ] },
+        Function { name: "OnStoryEscapeJail", returns: None, global: false, native: false, params: &[Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akCrimeGroup", ty: "Form", default: None }, ] },
+        Function { name: "OnStoryFlatterNPC", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnStoryHackTerminal", returns: None, global: false, native: false, params: &[Param { name: "akComputer", ty: "ObjectReference", default: None }, Param { name: "abSucceeded", ty: "bool", default: None }, ] },
+        Function { name: "OnStoryHello", returns: None, global: false, native: false, params: &[Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akActor1", ty: "ObjectReference", default: None }, Param { name: "akActor2", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnStoryIncreaseLevel", returns: None, global: false, native: false, params: &[Param { name: "aiNewLevel", ty: "int", default: None }, ] },
+        Function { name: "OnStoryInfection", returns: None, global: false, native: false, params: &[Param { name: "akTransmittingActor", ty: "ObjectReference", default: None }, Param { name: "akInfection", ty: "Form", default: None }, ] },
+        Function { name: "OnStoryIntimidateNPC", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnStoryIronSights", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, Param { name: "akWeapon", ty: "Form", default: None }, ] },
+        Function { name: "OnStoryJail", returns: None, global: false, native: false, params: &[Param { name: "akGuard", ty: "ObjectReference", default: None }, Param { name: "akCrimeGroup", ty: "Form", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "aiCrimeGold", ty: "int", default: None }, ] },
+        Function { name: "OnStoryKillActor", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "ObjectReference", default: None }, Param { name: "akKiller", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "aiCrimeStatus", ty: "int", default: None }, Param { name: "aiRelationshipRank", ty: "int", default: None }, ] },
+        Function { name: "OnStoryLocationLoaded", returns: None, global: false, native: false, params: &[Param { name: "akLocation", ty: "Location", default: None }, ] },
+        Function { name: "OnStoryMineExplosion", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "ObjectReference", default: None }, Param { name: "akAttacker", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnStoryNewVoicePower", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, Param { name: "akVoicePower", ty: "Form", default: None }, ] },
+        Function { name: "OnStoryPayFine", returns: None, global: false, native: false, params: &[Param { name: "akCriminal", ty: "ObjectReference", default: None }, Param { name: "akGuard", ty: "ObjectReference", default: None }, Param { name: "akCrimeGroup", ty: "Form", default: None }, Param { name: "aiCrimeGold", ty: "int", default: None }, ] },
+        Function { name: "OnStoryPickLock", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, Param { name: "akLock", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnStoryPickPocket", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "ObjectReference", default: None }, Param { name: "abSuccess", ty: "bool", default: None }, ] },
+        Function { name: "OnStoryPlayerGetsFavor", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnStoryRelationshipChange", returns: None, global: false, native: false, params: &[Param { name: "akActor1", ty: "ObjectReference", default: None }, Param { name: "akActor2", ty: "ObjectReference", default: None }, Param { name: "aiOldRelationship", ty: "int", default: None }, Param { name: "aiNewRelationship", ty: "int", default: None }, ] },
+        Function { name: "OnStoryRemoveFromPlayer", returns: None, global: false, native: false, params: &[Param { name: "akOwner", ty: "ObjectReference", default: None }, Param { name: "akItem", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akItemBase", ty: "Form", default: None }, Param { name: "aiRemoveType", ty: "int", default: None }, ] },
+        Function { name: "OnStoryScript", returns: None, global: false, native: false, params: &[Param { name: "akKeyword", ty: "Keyword", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akRef1", ty: "ObjectReference", default: None }, Param { name: "akRef2", ty: "ObjectReference", default: None }, Param { name: "aiValue1", ty: "int", default: None }, Param { name: "aiValue2", ty: "int", default: None }, ] },
+        Function { name: "OnStoryServedTime", returns: None, global: false, native: false, params: &[Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akCrimeGroup", ty: "Form", default: None }, Param { name: "aiCrimeGold", ty: "int", default: None }, Param { name: "aiDaysJail", ty: "int", default: None }, ] },
+        Function { name: "OnStoryTrespass", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "ObjectReference", default: None }, Param { name: "akTrespasser", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "aiCrime", ty: "int", default: None }, ] },
+    ],
+},
+Script {
+    name: "Race",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "REAliasScriptPilot",
+    parent: None,
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "RefCollectionAlias",
+    parent: Some("Alias"),
+    functions: &[
+        Function { name: "AddArray", returns: None, global: false, native: false, params: &[Param { name: "refArrayToAdd", ty: "ObjectReference[]", default: None }, ] },
+        Function { name: "AddRef", returns: None, global: false, native: true, params: &[Param { name: "akNewRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "AddRefCollection", returns: None, global: false, native: false, params: &[Param { name: "refCollectionAliasToAdd", ty: "RefCollectionAlias", default: None }, ] },
+        Function { name: "AddToFaction", returns: None, global: false, native: false, params: &[Param { name: "akFaction", ty: "faction", default: None }, ] },
+        Function { name: "BlockActivation", returns: None, global: false, native: false, params: &[Param { name: "abBlocked", ty: "bool", default: Some("True") }, Param { name: "abHideActivateText", ty: "bool", default: Some("false") }, ] },
+        Function { name: "DisableAll", returns: None, global: false, native: false, params: &[Param { name: "bFadeOut", ty: "bool", default: Some("false") }, ] },
+        Function { name: "EnableAll", returns: None, global: false, native: false, params: &[Param { name: "bFadeIn", ty: "bool", default: Some("false") }, ] },
+        Function { name: "EvaluateAll", returns: None, global: false, native: false, params: &[] },
+        Function { name: "Find", returns: Some("int"), global: false, native: true, params: &[Param { name: "akFindRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "GetActorAt", returns: Some("Actor"), global: false, native: false, params: &[Param { name: "aiIndex", ty: "int", default: None }, ] },
+        Function { name: "GetAt", returns: Some("ObjectReference"), global: false, native: true, params: &[Param { name: "aiIndex", ty: "int", default: None }, ] },
+        Function { name: "GetCount", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetFirstOwnedObject", returns: Some("ObjectReference"), global: false, native: false, params: &[Param { name: "actorOwner", ty: "Actor", default: None }, ] },
+        Function { name: "IsOwnedObjectInList", returns: Some("bool"), global: false, native: false, params: &[Param { name: "actorOwner", ty: "Actor", default: None }, ] },
+        Function { name: "KillAll", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "actor", default: Some("NONE") }, ] },
+        Function { name: "LinkCollectionTo", returns: Some("bool"), global: false, native: false, params: &[Param { name: "LinkedRefCollectionAlias", ty: "RefCollectionAlias", default: None }, Param { name: "LinkKeyword", ty: "keyword", default: Some("none") }, Param { name: "WrapLinks", ty: "bool", default: Some("false") }, ] },
+        Function { name: "MoveAllTo", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "RemoveAll", returns: None, global: false, native: true, params: &[] },
+        Function { name: "RemoveFromAllFactions", returns: None, global: false, native: false, params: &[] },
+        Function { name: "RemoveFromFaction", returns: None, global: false, native: false, params: &[Param { name: "akFaction", ty: "faction", default: None }, ] },
+        Function { name: "RemoveRef", returns: None, global: false, native: true, params: &[Param { name: "akRemoveRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "ResetAll", returns: None, global: false, native: false, params: &[] },
+        Function { name: "SetEssential", returns: None, global: false, native: false, params: &[Param { name: "bSetEssential", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetProtected", returns: None, global: false, native: false, params: &[Param { name: "bSetProtected", ty: "bool", default: Some("true") }, ] },
+        Function { name: "SetValue", returns: None, global: false, native: false, params: &[Param { name: "akActorValue", ty: "ActorValue", default: None }, Param { name: "fValue", ty: "float", default: None }, ] },
+        Function { name: "StartCombatAll", returns: None, global: false, native: false, params: &[Param { name: "akCombatTarget", ty: "actor", default: None }, ] },
+    ],
+    events: &[
+        Function { name: "OnActivate", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCellAttach", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCellDetach", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCellLoad", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnClose", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCombatStateChanged", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "Actor", default: None }, Param { name: "aeCombatState", ty: "int", default: None }, ] },
+        Function { name: "OnCommandModeCompleteCommand", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "aeCommand", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCommandModeEnter", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCommandModeExit", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCommandModeGiveCommand", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "aeCommand", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCompanionDismiss", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnConsciousnessStateChanged", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "abUnconscious", ty: "bool", default: None }, ] },
+        Function { name: "OnContainerChanged", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akNewContainer", ty: "ObjectReference", default: None }, Param { name: "akOldContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCripple", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akActorValue", ty: "ActorValue", default: None }, Param { name: "abCrippled", ty: "bool", default: None }, ] },
+        Function { name: "OnDeath", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnDeferredKill", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnDestructionStageChanged", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "aiOldStage", ty: "int", default: None }, Param { name: "aiCurrentStage", ty: "int", default: None }, ] },
+        Function { name: "OnDifficultyChanged", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "aOldDifficulty", ty: "int", default: None }, Param { name: "aNewDifficulty", ty: "int", default: None }, ] },
+        Function { name: "OnDying", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnEnterBleedout", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnEnterSneaking", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnEquipped", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "OnEscortWaitStart", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnEscortWaitStop", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnExitFurniture", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnGetUp", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akFurniture", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnGrab", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnHolotapeChatter", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "astrChatter", ty: "string", default: None }, Param { name: "afNumericData", ty: "float", default: None }, ] },
+        Function { name: "OnHolotapePlay", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "aTerminalRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemAdded", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akBaseItem", ty: "Form", default: None }, Param { name: "aiItemCount", ty: "int", default: None }, Param { name: "akItemReference", ty: "ObjectReference", default: None }, Param { name: "akSourceContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemEquipped", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemRemoved", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akBaseItem", ty: "Form", default: None }, Param { name: "aiItemCount", ty: "int", default: None }, Param { name: "akItemReference", ty: "ObjectReference", default: None }, Param { name: "akDestContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemUnequipped", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnKill", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akVictim", ty: "Actor", default: None }, ] },
+        Function { name: "OnLoad", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnLocationChange", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akOldLoc", ty: "Location", default: None }, Param { name: "akNewLoc", ty: "Location", default: None }, ] },
+        Function { name: "OnLockStateChanged", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnOpen", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPackageChange", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akOldPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPackageEnd", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akOldPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPackageStart", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akNewPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPartialCripple", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akActorValue", ty: "ActorValue", default: None }, Param { name: "abCrippled", ty: "bool", default: None }, ] },
+        Function { name: "OnPickpocketFailed", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPipboyRadioDetection", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "abDetected", ty: "bool", default: None }, ] },
+        Function { name: "OnPlayerCreateRobot", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akNewRobot", ty: "Actor", default: None }, ] },
+        Function { name: "OnPlayerDialogueTarget", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPlayerEnterVertibird", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akVertibird", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPlayerFallLongDistance", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "afDamage", ty: "float", default: None }, ] },
+        Function { name: "OnPlayerFireWeapon", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akBaseObject", ty: "Form", default: None }, ] },
+        Function { name: "OnPlayerHealTeammate", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akTeammate", ty: "Actor", default: None }, ] },
+        Function { name: "OnPlayerLoadGame", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPlayerModArmorWeapon", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akModBaseObject", ty: "ObjectMod", default: None }, ] },
+        Function { name: "OnPlayerModRobot", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akRobot", ty: "Actor", default: None }, Param { name: "akModBaseObject", ty: "ObjectMod", default: None }, ] },
+        Function { name: "OnPlayerSwimming", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPlayerUseWorkBench", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akWorkBench", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPowerOff", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPowerOn", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akPowerGenerator", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnRaceSwitchComplete", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnRead", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnRelease", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnReset", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnSell", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akSeller", ty: "Actor", default: None }, ] },
+        Function { name: "OnSit", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akFurniture", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnSpeechChallengeAvailable", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akSpeaker", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnSpellCast", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akSpell", ty: "Form", default: None }, ] },
+        Function { name: "OnTranslationAlmostComplete", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTranslationComplete", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTranslationFailed", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTrapHitStart", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "afXVel", ty: "float", default: None }, Param { name: "afYVel", ty: "float", default: None }, Param { name: "afZVel", ty: "float", default: None }, Param { name: "afXPos", ty: "float", default: None }, Param { name: "afYPos", ty: "float", default: None }, Param { name: "afZPos", ty: "float", default: None }, Param { name: "aeMaterial", ty: "int", default: None }, Param { name: "abInitialHit", ty: "bool", default: None }, Param { name: "aeMotionType", ty: "int", default: None }, ] },
+        Function { name: "OnTrapHitStop", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTriggerEnter", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTriggerLeave", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnUnequipped", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "OnUnload", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopMode", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "aStart", ty: "bool", default: None }, ] },
+        Function { name: "OnWorkshopNPCTransfer", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akNewWorkshop", ty: "Location", default: None }, Param { name: "akActionKW", ty: "Keyword", default: None }, ] },
+        Function { name: "OnWorkshopObjectDestroyed", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectGrabbed", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectMoved", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectPlaced", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectRepaired", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+    ],
+},
+Script {
+    name: "ReferenceAlias",
+    parent: Some("Alias"),
+    functions: &[
+        Function { name: "ApplyToRef", returns: None, global: false, native: true, params: &[Param { name: "akRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "Clear", returns: None, global: false, native: true, params: &[] },
+        Function { name: "ForceRefIfEmpty", returns: Some("bool"), global: false, native: false, params: &[Param { name: "akNewRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "ForceRefTo", returns: None, global: false, native: true, params: &[Param { name: "akNewRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "GetActorRef", returns: Some("Actor"), global: false, native: false, params: &[] },
+        Function { name: "GetActorReference", returns: Some("Actor"), global: false, native: false, params: &[] },
+        Function { name: "GetRef", returns: Some("ObjectReference"), global: false, native: false, params: &[] },
+        Function { name: "GetReference", returns: Some("ObjectReference"), global: false, native: true, params: &[] },
+        Function { name: "RemoveFromRef", returns: None, global: false, native: true, params: &[Param { name: "akRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "TryToAddToFaction", returns: Some("bool"), global: false, native: false, params: &[Param { name: "FactionToAddTo", ty: "Faction", default: None }, ] },
+        Function { name: "TryToClear", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "TryToDisable", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "TryToDisableNoWait", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "TryToEnable", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "TryToEnableNoWait", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "TryToEvaluatePackage", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "TryToGetActorValue", returns: Some("float"), global: false, native: false, params: &[Param { name: "ActorValueToGet", ty: "ActorValue", default: None }, ] },
+        Function { name: "TryToGetValue", returns: Some("float"), global: false, native: false, params: &[Param { name: "akAV", ty: "ActorValue", default: None }, ] },
+        Function { name: "TryToKill", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "TryToMoveTo", returns: Some("bool"), global: false, native: false, params: &[Param { name: "RefToMoveTo", ty: "ObjectReference", default: None }, ] },
+        Function { name: "TryToRemoveFromFaction", returns: Some("bool"), global: false, native: false, params: &[Param { name: "FactionToRemoveFrom", ty: "Faction", default: None }, ] },
+        Function { name: "TryToReset", returns: Some("bool"), global: false, native: false, params: &[] },
+        Function { name: "TryToSetActorValue", returns: Some("bool"), global: false, native: false, params: &[Param { name: "ValueToSet", ty: "ActorValue", default: None }, Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "TryToSetValue", returns: Some("bool"), global: false, native: false, params: &[Param { name: "akAV", ty: "ActorValue", default: None }, Param { name: "afValue", ty: "float", default: None }, ] },
+        Function { name: "TryToStopCombat", returns: Some("bool"), global: false, native: false, params: &[] },
+    ],
+    events: &[
+        Function { name: "OnActivate", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCellAttach", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCellDetach", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCellLoad", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnClose", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCombatStateChanged", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "Actor", default: None }, Param { name: "aeCombatState", ty: "int", default: None }, ] },
+        Function { name: "OnCommandModeCompleteCommand", returns: None, global: false, native: false, params: &[Param { name: "aeCommandType", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCommandModeEnter", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCommandModeExit", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnCommandModeGiveCommand", returns: None, global: false, native: false, params: &[Param { name: "aeCommandType", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCompanionDismiss", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnConsciousnessStateChanged", returns: None, global: false, native: false, params: &[Param { name: "abUnconscious", ty: "bool", default: None }, ] },
+        Function { name: "OnContainerChanged", returns: None, global: false, native: false, params: &[Param { name: "akNewContainer", ty: "ObjectReference", default: None }, Param { name: "akOldContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnCripple", returns: None, global: false, native: false, params: &[Param { name: "akActorValue", ty: "ActorValue", default: None }, Param { name: "abCrippled", ty: "bool", default: None }, ] },
+        Function { name: "OnDeath", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnDeferredKill", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnDestructionStageChanged", returns: None, global: false, native: false, params: &[Param { name: "aiOldStage", ty: "int", default: None }, Param { name: "aiCurrentStage", ty: "int", default: None }, ] },
+        Function { name: "OnDifficultyChanged", returns: None, global: false, native: false, params: &[Param { name: "aOldDifficulty", ty: "int", default: None }, Param { name: "aNewDifficulty", ty: "int", default: None }, ] },
+        Function { name: "OnDying", returns: None, global: false, native: false, params: &[Param { name: "akKiller", ty: "Actor", default: None }, ] },
+        Function { name: "OnEnterBleedout", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnEnterSneaking", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnEquipped", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "OnEscortWaitStart", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnEscortWaitStop", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnExitFurniture", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnGetUp", returns: None, global: false, native: false, params: &[Param { name: "akFurniture", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnGrab", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnHolotapeChatter", returns: None, global: false, native: false, params: &[Param { name: "astrChatter", ty: "string", default: None }, Param { name: "afNumericData", ty: "float", default: None }, ] },
+        Function { name: "OnHolotapePlay", returns: None, global: false, native: false, params: &[Param { name: "aTerminalRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemAdded", returns: None, global: false, native: false, params: &[Param { name: "akBaseItem", ty: "Form", default: None }, Param { name: "aiItemCount", ty: "int", default: None }, Param { name: "akItemReference", ty: "ObjectReference", default: None }, Param { name: "akSourceContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemEquipped", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemRemoved", returns: None, global: false, native: false, params: &[Param { name: "akBaseItem", ty: "Form", default: None }, Param { name: "aiItemCount", ty: "int", default: None }, Param { name: "akItemReference", ty: "ObjectReference", default: None }, Param { name: "akDestContainer", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnItemUnequipped", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnKill", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "Actor", default: None }, ] },
+        Function { name: "OnLoad", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnLocationChange", returns: None, global: false, native: false, params: &[Param { name: "akOldLoc", ty: "Location", default: None }, Param { name: "akNewLoc", ty: "Location", default: None }, ] },
+        Function { name: "OnLockStateChanged", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnOpen", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPackageChange", returns: None, global: false, native: false, params: &[Param { name: "akOldPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPackageEnd", returns: None, global: false, native: false, params: &[Param { name: "akOldPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPackageStart", returns: None, global: false, native: false, params: &[Param { name: "akNewPackage", ty: "Package", default: None }, ] },
+        Function { name: "OnPartialCripple", returns: None, global: false, native: false, params: &[Param { name: "akActorValue", ty: "ActorValue", default: None }, Param { name: "abCrippled", ty: "bool", default: None }, ] },
+        Function { name: "OnPickpocketFailed", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPipboyRadioDetection", returns: None, global: false, native: false, params: &[Param { name: "abDetected", ty: "bool", default: None }, ] },
+        Function { name: "OnPlayerCreateRobot", returns: None, global: false, native: false, params: &[Param { name: "akNewRobot", ty: "Actor", default: None }, ] },
+        Function { name: "OnPlayerDialogueTarget", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPlayerEnterVertibird", returns: None, global: false, native: false, params: &[Param { name: "akVertibird", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPlayerFallLongDistance", returns: None, global: false, native: false, params: &[Param { name: "afDamage", ty: "float", default: None }, ] },
+        Function { name: "OnPlayerFireWeapon", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, ] },
+        Function { name: "OnPlayerHealTeammate", returns: None, global: false, native: false, params: &[Param { name: "akTeammate", ty: "Actor", default: None }, ] },
+        Function { name: "OnPlayerLoadGame", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPlayerModArmorWeapon", returns: None, global: false, native: false, params: &[Param { name: "akBaseObject", ty: "Form", default: None }, Param { name: "akModBaseObject", ty: "ObjectMod", default: None }, ] },
+        Function { name: "OnPlayerModRobot", returns: None, global: false, native: false, params: &[Param { name: "akRobot", ty: "Actor", default: None }, Param { name: "akModBaseObject", ty: "ObjectMod", default: None }, ] },
+        Function { name: "OnPlayerSwimming", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPlayerUseWorkBench", returns: None, global: false, native: false, params: &[Param { name: "akWorkBench", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPowerOff", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPowerOn", returns: None, global: false, native: false, params: &[Param { name: "akPowerGenerator", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnRaceSwitchComplete", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnRead", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnRelease", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnReset", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnSell", returns: None, global: false, native: false, params: &[Param { name: "akSeller", ty: "Actor", default: None }, ] },
+        Function { name: "OnSit", returns: None, global: false, native: false, params: &[Param { name: "akFurniture", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnSpeechChallengeAvailable", returns: None, global: false, native: false, params: &[Param { name: "akSpeaker", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnSpellCast", returns: None, global: false, native: false, params: &[Param { name: "akSpell", ty: "Form", default: None }, ] },
+        Function { name: "OnTranslationAlmostComplete", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnTranslationComplete", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnTranslationFailed", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnTrapHitStart", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "afXVel", ty: "float", default: None }, Param { name: "afYVel", ty: "float", default: None }, Param { name: "afZVel", ty: "float", default: None }, Param { name: "afXPos", ty: "float", default: None }, Param { name: "afYPos", ty: "float", default: None }, Param { name: "afZPos", ty: "float", default: None }, Param { name: "aeMaterial", ty: "int", default: None }, Param { name: "abInitialHit", ty: "bool", default: None }, Param { name: "aeMotionType", ty: "int", default: None }, ] },
+        Function { name: "OnTrapHitStop", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTriggerEnter", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnTriggerLeave", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnUnequipped", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
+        Function { name: "OnUnload", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnWorkshopMode", returns: None, global: false, native: false, params: &[Param { name: "aStart", ty: "bool", default: None }, ] },
+        Function { name: "OnWorkshopNPCTransfer", returns: None, global: false, native: false, params: &[Param { name: "akNewWorkshop", ty: "Location", default: None }, Param { name: "akActionKW", ty: "Keyword", default: None }, ] },
+        Function { name: "OnWorkshopObjectDestroyed", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectGrabbed", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectMoved", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectPlaced", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnWorkshopObjectRepaired", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+    ],
+},
+Script {
+    name: "RRKickOutScript",
+    parent: Some("Quest"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Scene",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "ForceStart", returns: None, global: false, native: true, params: &[] },
+        Function { name: "GetOwningQuest", returns: Some("Quest"), global: false, native: true, params: &[] },
+        Function { name: "IsActionComplete", returns: Some("bool"), global: false, native: true, params: &[Param { name: "aiActionID", ty: "int", default: None }, ] },
+        Function { name: "IsPlaying", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "Pause", returns: None, global: false, native: true, params: &[Param { name: "abPause", ty: "bool", default: None }, ] },
+        Function { name: "Start", returns: None, global: false, native: true, params: &[] },
+        Function { name: "Stop", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+        Function { name: "OnAction", returns: None, global: false, native: false, params: &[Param { name: "auiActionID", ty: "int", default: None }, Param { name: "akAlias", ty: "ReferenceAlias", default: None }, ] },
+        Function { name: "OnBegin", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnEnd", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPhaseBegin", returns: None, global: false, native: false, params: &[Param { name: "auiPhaseIndex", ty: "int", default: None }, ] },
+        Function { name: "OnPhaseEnd", returns: None, global: false, native: false, params: &[Param { name: "auiPhaseIndex", ty: "int", default: None }, ] },
+    ],
+},
+Script {
+    name: "ScriptObject",
+    parent: None,
+    functions: &[
+        Function { name: "AddInventoryEventFilter", returns: None, global: false, native: true, params: &[Param { name: "akFilter", ty: "Form", default: None }, ] },
+        Function { name: "CallFunction", returns: Some("Var"), global: false, native: true, params: &[Param { name: "asFuncName", ty: "string", default: None }, Param { name: "aParams", ty: "Var[]", default: None }, ] },
+        Function { name: "CallFunctionNoWait", returns: None, global: false, native: true, params: &[Param { name: "asFuncName", ty: "string", default: None }, Param { name: "aParams", ty: "Var[]", default: None }, ] },
+        Function { name: "CancelTimer", returns: None, global: false, native: true, params: &[Param { name: "aiTimerID", ty: "int", default: Some("0") }, ] },
+        Function { name: "CancelTimerGameTime", returns: None, global: false, native: true, params: &[Param { name: "aiTimerID", ty: "int", default: Some("0") }, ] },
+        Function { name: "CastAs", returns: Some("ScriptObject"), global: false, native: true, params: &[Param { name: "asScriptName", ty: "string", default: None }, ] },
+        Function { name: "GetPropertyValue", returns: Some("Var"), global: false, native: true, params: &[Param { name: "asPropertyName", ty: "string", default: None }, ] },
+        Function { name: "GetState", returns: Some("string"), global: false, native: false, params: &[] },
+        Function { name: "GotoState", returns: None, global: false, native: false, params: &[Param { name: "asNewState", ty: "string", default: None }, ] },
+        Function { name: "IsBoundGameObjectAvailable", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "RegisterForAnimationEvent", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akSender", ty: "ObjectReference", default: None }, Param { name: "asEventName", ty: "string", default: None }, ] },
+        Function { name: "RegisterForCustomEvent", returns: None, global: false, native: true, params: &[Param { name: "akSender", ty: "ScriptObject", default: None }, Param { name: "asEventName", ty: "CustomEventName", default: None }, ] },
+        Function { name: "RegisterForDetectionLOSGain", returns: None, global: false, native: true, params: &[Param { name: "akViewer", ty: "Actor", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "RegisterForDetectionLOSLost", returns: None, global: false, native: true, params: &[Param { name: "akViewer", ty: "Actor", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "RegisterForDirectLOSGain", returns: None, global: false, native: true, params: &[Param { name: "akViewer", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "asViewerNode", ty: "string", default: Some("\"\"") }, Param { name: "asTargetNode", ty: "string", default: Some("\"\"") }, ] },
+        Function { name: "RegisterForDirectLOSLost", returns: None, global: false, native: true, params: &[Param { name: "akViewer", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "asViewerNode", ty: "string", default: Some("\"\"") }, Param { name: "asTargetNode", ty: "string", default: Some("\"\"") }, ] },
+        Function { name: "RegisterForDistanceGreaterThanEvent", returns: None, global: false, native: true, params: &[Param { name: "akObj1", ty: "ScriptObject", default: None }, Param { name: "akObj2", ty: "ScriptObject", default: None }, Param { name: "afDistance", ty: "float", default: None }, ] },
+        Function { name: "RegisterForDistanceLessThanEvent", returns: None, global: false, native: true, params: &[Param { name: "akObj1", ty: "ScriptObject", default: None }, Param { name: "akObj2", ty: "ScriptObject", default: None }, Param { name: "afDistance", ty: "float", default: None }, ] },
+        Function { name: "RegisterForHitEvent", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ScriptObject", default: None }, Param { name: "akAggressorFilter", ty: "ScriptObject", default: Some("None") }, Param { name: "akSourceFilter", ty: "Form", default: Some("None") }, Param { name: "akProjectileFilter", ty: "Form", default: Some("None") }, Param { name: "aiPowerFilter", ty: "int", default: Some("-1") }, Param { name: "aiSneakFilter", ty: "int", default: Some("-1") }, Param { name: "aiBashFilter", ty: "int", default: Some("-1") }, Param { name: "aiBlockFilter", ty: "int", default: Some("-1") }, Param { name: "abMatch", ty: "bool", default: Some("true") }, ] },
+        Function { name: "RegisterForLooksMenuEvent", returns: None, global: false, native: true, params: &[] },
+        Function { name: "RegisterForMagicEffectApplyEvent", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ScriptObject", default: None }, Param { name: "akCasterFilter", ty: "ScriptObject", default: Some("None") }, Param { name: "akEffectFilter", ty: "Form", default: Some("None") }, Param { name: "abMatch", ty: "bool", default: Some("true") }, ] },
+        Function { name: "RegisterForMenuOpenCloseEvent", returns: None, global: false, native: true, params: &[Param { name: "asMenuName", ty: "string", default: None }, ] },
+        Function { name: "RegisterForPlayerSleep", returns: None, global: false, native: true, params: &[] },
+        Function { name: "RegisterForPlayerTeleport", returns: None, global: false, native: true, params: &[] },
+        Function { name: "RegisterForPlayerWait", returns: None, global: false, native: true, params: &[] },
+        Function { name: "RegisterForRadiationDamageEvent", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ScriptObject", default: None }, ] },
+        Function { name: "RegisterForRemoteEvent", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akEventSource", ty: "ScriptObject", default: None }, Param { name: "asEventName", ty: "ScriptEventName", default: None }, ] },
+        Function { name: "RegisterForTrackedStatsEvent", returns: None, global: false, native: true, params: &[Param { name: "asStat", ty: "string", default: None }, Param { name: "aiThreshold", ty: "int", default: None }, ] },
+        Function { name: "RegisterForTutorialEvent", returns: None, global: false, native: true, params: &[Param { name: "asEventName", ty: "String", default: None }, ] },
+        Function { name: "RemoveAllInventoryEventFilters", returns: None, global: false, native: true, params: &[] },
+        Function { name: "RemoveInventoryEventFilter", returns: None, global: false, native: true, params: &[Param { name: "akFilter", ty: "Form", default: None }, ] },
+        Function { name: "SendCustomEvent", returns: None, global: false, native: true, params: &[Param { name: "asEvent", ty: "CustomEventName", default: None }, Param { name: "akArgs", ty: "Var[]", default: Some("None") }, ] },
+        Function { name: "SetPropertyValue", returns: None, global: false, native: true, params: &[Param { name: "asPropertyName", ty: "string", default: None }, Param { name: "aValue", ty: "Var", default: None }, ] },
+        Function { name: "SetPropertyValueNoWait", returns: None, global: false, native: true, params: &[Param { name: "asPropertyName", ty: "string", default: None }, Param { name: "aValue", ty: "Var", default: None }, ] },
+        Function { name: "StartTimer", returns: None, global: false, native: true, params: &[Param { name: "afInterval", ty: "float", default: None }, Param { name: "aiTimerID", ty: "int", default: Some("0") }, ] },
+        Function { name: "StartTimerGameTime", returns: None, global: false, native: true, params: &[Param { name: "afInterval", ty: "float", default: None }, Param { name: "aiTimerID", ty: "int", default: Some("0") }, ] },
+        Function { name: "UnregisterForAllCustomEvents", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnregisterForAllEvents", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnregisterForAllHitEvents", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ScriptObject", default: Some("None") }, ] },
+        Function { name: "UnregisterForAllMagicEffectApplyEvents", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ScriptObject", default: Some("None") }, ] },
+        Function { name: "UnregisterForAllMenuOpenCloseEvents", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnregisterForAllRadiationDamageEvents", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnregisterForAllRemoteEvents", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnregisterForAllTrackedStatsEvents", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnregisterForAnimationEvent", returns: None, global: false, native: true, params: &[Param { name: "akSender", ty: "ObjectReference", default: None }, Param { name: "asEventName", ty: "string", default: None }, ] },
+        Function { name: "UnregisterForCustomEvent", returns: None, global: false, native: true, params: &[Param { name: "akSender", ty: "ScriptObject", default: None }, Param { name: "asEventName", ty: "CustomEventName", default: None }, ] },
+        Function { name: "UnregisterForDistanceEvents", returns: None, global: false, native: true, params: &[Param { name: "akObj1", ty: "ScriptObject", default: None }, Param { name: "akObj2", ty: "ScriptObject", default: None }, ] },
+        Function { name: "UnregisterForHitEvent", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ScriptObject", default: None }, Param { name: "akAggressorFilter", ty: "ScriptObject", default: Some("None") }, Param { name: "akSourceFilter", ty: "Form", default: Some("None") }, Param { name: "akProjectileFilter", ty: "Form", default: Some("None") }, Param { name: "aiPowerFilter", ty: "int", default: Some("-1") }, Param { name: "aiSneakFilter", ty: "int", default: Some("-1") }, Param { name: "aiBashFilter", ty: "int", default: Some("-1") }, Param { name: "aiBlockFilter", ty: "int", default: Some("-1") }, Param { name: "abMatch", ty: "bool", default: Some("true") }, ] },
+        Function { name: "UnregisterForLooksMenuEvent", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnregisterForLOS", returns: None, global: false, native: true, params: &[Param { name: "akViewer", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "UnregisterForMagicEffectApplyEvent", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ScriptObject", default: None }, Param { name: "akCasterFilter", ty: "ScriptObject", default: Some("None") }, Param { name: "akEffectFilter", ty: "Form", default: Some("None") }, Param { name: "abMatch", ty: "bool", default: Some("true") }, ] },
+        Function { name: "UnregisterForMenuOpenCloseEvent", returns: None, global: false, native: true, params: &[Param { name: "asMenuName", ty: "string", default: None }, ] },
+        Function { name: "UnregisterForPlayerSleep", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnregisterForPlayerTeleport", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnregisterForPlayerWait", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnregisterForRadiationDamageEvent", returns: None, global: false, native: true, params: &[Param { name: "akTarget", ty: "ScriptObject", default: None }, ] },
+        Function { name: "UnregisterForRemoteEvent", returns: None, global: false, native: true, params: &[Param { name: "akEventSource", ty: "ScriptObject", default: None }, Param { name: "asEventName", ty: "ScriptEventName", default: None }, ] },
+        Function { name: "UnregisterForTrackedStatsEvent", returns: None, global: false, native: true, params: &[Param { name: "asStat", ty: "string", default: None }, ] },
+        Function { name: "UnregisterForTutorialEvent", returns: None, global: false, native: true, params: &[Param { name: "asEventName", ty: "String", default: None }, ] },
+    ],
+    events: &[
+        Function { name: "OnAnimationEvent", returns: None, global: false, native: false, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "asEventName", ty: "string", default: None }, ] },
+        Function { name: "OnAnimationEventUnregistered", returns: None, global: false, native: false, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "asEventName", ty: "string", default: None }, ] },
+        Function { name: "OnBeginState", returns: None, global: false, native: false, params: &[Param { name: "asOldState", ty: "string", default: None }, ] },
+        Function { name: "OnDistanceGreaterThan", returns: None, global: false, native: false, params: &[Param { name: "akObj1", ty: "ObjectReference", default: None }, Param { name: "akObj2", ty: "ObjectReference", default: None }, Param { name: "afDistance", ty: "float", default: None }, ] },
+        Function { name: "OnDistanceLessThan", returns: None, global: false, native: false, params: &[Param { name: "akObj1", ty: "ObjectReference", default: None }, Param { name: "akObj2", ty: "ObjectReference", default: None }, Param { name: "afDistance", ty: "float", default: None }, ] },
+        Function { name: "OnEndState", returns: None, global: false, native: false, params: &[Param { name: "asNewState", ty: "string", default: None }, ] },
+        Function { name: "OnGainLOS", returns: None, global: false, native: false, params: &[Param { name: "akViewer", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnHit", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "akAggressor", ty: "ObjectReference", default: None }, Param { name: "akSource", ty: "Form", default: None }, Param { name: "akProjectile", ty: "Projectile", default: None }, Param { name: "abPowerAttack", ty: "bool", default: None }, Param { name: "abSneakAttack", ty: "bool", default: None }, Param { name: "abBashAttack", ty: "bool", default: None }, Param { name: "abHitBlocked", ty: "bool", default: None }, Param { name: "asMaterialName", ty: "string", default: None }, ] },
+        Function { name: "OnInit", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnLooksMenuEvent", returns: None, global: false, native: false, params: &[Param { name: "aiFlavor", ty: "int", default: None }, ] },
+        Function { name: "OnLostLOS", returns: None, global: false, native: false, params: &[Param { name: "akViewer", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnMagicEffectApply", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "akCaster", ty: "ObjectReference", default: None }, Param { name: "akEffect", ty: "MagicEffect", default: None }, ] },
+        Function { name: "OnMenuOpenCloseEvent", returns: None, global: false, native: false, params: &[Param { name: "asMenuName", ty: "string", default: None }, Param { name: "abOpening", ty: "bool", default: None }, ] },
+        Function { name: "OnPlayerSleepStart", returns: None, global: false, native: false, params: &[Param { name: "afSleepStartTime", ty: "float", default: None }, Param { name: "afDesiredSleepEndTime", ty: "float", default: None }, Param { name: "akBed", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPlayerSleepStop", returns: None, global: false, native: false, params: &[Param { name: "abInterrupted", ty: "bool", default: None }, Param { name: "akBed", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnPlayerTeleport", returns: None, global: false, native: false, params: &[] },
+        Function { name: "OnPlayerWaitStart", returns: None, global: false, native: false, params: &[Param { name: "afWaitStartTime", ty: "float", default: None }, Param { name: "afDesiredWaitEndTime", ty: "float", default: None }, ] },
+        Function { name: "OnPlayerWaitStop", returns: None, global: false, native: false, params: &[Param { name: "abInterrupted", ty: "bool", default: None }, ] },
+        Function { name: "OnRadiationDamage", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "abIngested", ty: "bool", default: None }, ] },
+        Function { name: "OnTimer", returns: None, global: false, native: false, params: &[Param { name: "aiTimerID", ty: "int", default: None }, ] },
+        Function { name: "OnTimerGameTime", returns: None, global: false, native: false, params: &[Param { name: "aiTimerID", ty: "int", default: None }, ] },
+        Function { name: "OnTrackedStatsEvent", returns: None, global: false, native: false, params: &[Param { name: "arStatName", ty: "string", default: None }, Param { name: "aiStatValue", ty: "int", default: None }, ] },
+        Function { name: "OnTutorialEvent", returns: None, global: false, native: false, params: &[Param { name: "asEventName", ty: "String", default: None }, Param { name: "aMessage", ty: "Message", default: None }, ] },
+    ],
+},
+Script {
+    name: "Scroll",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Cast", returns: None, global: false, native: true, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: Some("NONE") }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "ShaderParticleGeometry",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Apply", returns: None, global: false, native: true, params: &[Param { name: "afFadeInTime", ty: "float", default: Some("0.0") }, ] },
+        Function { name: "Remove", returns: None, global: false, native: true, params: &[Param { name: "afFadeOutTime", ty: "Float", default: Some("0.0") }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Shout",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "SituationAwarenessTriggerScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "SoulGem",
+    parent: Some("MiscObject"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Sound",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Play", returns: Some("int"), global: false, native: true, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, ] },
+        Function { name: "PlayAndWait", returns: Some("bool"), global: false, native: true, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, ] },
+        Function { name: "SetInstanceVolume", returns: None, global: true, native: true, params: &[Param { name: "aiPlaybackInstance", ty: "int", default: None }, Param { name: "afVolume", ty: "float", default: None }, ] },
+        Function { name: "StopInstance", returns: None, global: true, native: true, params: &[Param { name: "aiPlaybackInstance", ty: "int", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "SoundCategory",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Mute", returns: None, global: false, native: true, params: &[] },
+        Function { name: "Pause", returns: None, global: false, native: true, params: &[] },
+        Function { name: "SetFrequency", returns: None, global: false, native: true, params: &[Param { name: "afFrequencyCoeffecient", ty: "float", default: None }, ] },
+        Function { name: "SetVolume", returns: None, global: false, native: true, params: &[Param { name: "afVolume", ty: "float", default: None }, ] },
+        Function { name: "UnMute", returns: None, global: false, native: true, params: &[] },
+        Function { name: "UnPause", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "SoundCategorySnapshot",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Push", returns: None, global: false, native: true, params: &[Param { name: "afTransitionSecs", ty: "float", default: Some("1.0") }, ] },
+        Function { name: "Remove", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Spell",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Cast", returns: None, global: false, native: true, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: Some("NONE") }, ] },
+        Function { name: "IsHostile", returns: Some("bool"), global: false, native: true, params: &[] },
+        Function { name: "RemoteCast", returns: None, global: false, native: true, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "akBlameActor", ty: "Actor", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: Some("NONE") }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Static",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "TalkingActivator",
+    parent: Some("Activator"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Terminal",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "ShowOnPipboy", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+        Function { name: "OnMenuItemRun", returns: None, global: false, native: false, params: &[Param { name: "auiMenuItemID", ty: "int", default: None }, Param { name: "akTerminalRef", ty: "ObjectReference", default: None }, ] },
+    ],
+},
+Script {
+    name: "TestJeffLScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+        Function { name: "OnActivate", returns: None, global: false, native: false, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, ] },
+        Function { name: "OnInit", returns: None, global: false, native: false, params: &[] },
+    ],
+},
+Script {
+    name: "testJoelCarScript",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+        Function { name: "onHit", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "akAggressor", ty: "ObjectReference", default: None }, Param { name: "akSource", ty: "Form", default: None }, Param { name: "akProjectile", ty: "Projectile", default: None }, Param { name: "abPowerAttack", ty: "bool", default: None }, Param { name: "abSneakAttack", ty: "bool", default: None }, Param { name: "abBashAttack", ty: "bool", default: None }, Param { name: "abHitBlocked", ty: "bool", default: None }, Param { name: "asMaterialName", ty: "string", default: None }, ] },
+    ],
+},
+Script {
+    name: "TextureSet",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Topic",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Add", returns: None, global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "TopicInfo",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "GetOwningQuest", returns: Some("Quest"), global: false, native: true, params: &[] },
+        Function { name: "HasBeenSaid", returns: Some("bool"), global: false, native: true, params: &[] },
+    ],
+    events: &[
+        Function { name: "OnBegin", returns: None, global: false, native: false, params: &[Param { name: "akSpeakerRef", ty: "ObjectReference", default: None }, Param { name: "abHasBeenSaid", ty: "bool", default: None }, ] },
+        Function { name: "OnEnd", returns: None, global: false, native: false, params: &[Param { name: "akSpeakerRef", ty: "ObjectReference", default: None }, Param { name: "abHasBeenSaid", ty: "bool", default: None }, ] },
+    ],
+},
+Script {
+    name: "tpMotorEffectsSCRIPT",
+    parent: Some("ActiveMagicEffect"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Utility",
+    parent: None,
+    functions: &[
+        Function { name: "CallGlobalFunction", returns: Some("Var"), global: true, native: true, params: &[Param { name: "asScriptName", ty: "string", default: None }, Param { name: "asFuncName", ty: "string", default: None }, Param { name: "aParams", ty: "Var[]", default: None }, ] },
+        Function { name: "CallGlobalFunctionNoWait", returns: None, global: true, native: true, params: &[Param { name: "asScriptName", ty: "string", default: None }, Param { name: "asFuncName", ty: "string", default: None }, Param { name: "aParams", ty: "Var[]", default: None }, ] },
+        Function { name: "CaptureFrameRate", returns: Some("string"), global: true, native: true, params: &[Param { name: "numFrames", ty: "int", default: None }, ] },
+        Function { name: "EndFrameRateCapture", returns: None, global: true, native: true, params: &[] },
+        Function { name: "EnterTestData", returns: None, global: true, native: true, params: &[Param { name: "astestType", ty: "string", default: None }, Param { name: "astestMatter", ty: "string", default: None }, Param { name: "astestDetails", ty: "string", default: None }, Param { name: "astestResultContext", ty: "string", default: None }, Param { name: "astestResult", ty: "string", default: None }, ] },
+        Function { name: "GameTimeToString", returns: Some("string"), global: true, native: true, params: &[Param { name: "afGameTime", ty: "float", default: None }, ] },
+        Function { name: "GetAverageFrameRate", returns: Some("float"), global: true, native: true, params: &[] },
+        Function { name: "GetBudgetCount", returns: Some("int"), global: true, native: true, params: &[] },
+        Function { name: "GetBudgetLimit", returns: Some("string"), global: true, native: true, params: &[Param { name: "aiBudgetNumber", ty: "int", default: None }, ] },
+        Function { name: "GetBudgetName", returns: Some("string"), global: true, native: true, params: &[Param { name: "aiBudgetNumber", ty: "int", default: None }, ] },
+        Function { name: "GetCurrentBudget", returns: Some("string"), global: true, native: true, params: &[Param { name: "aiBudgetNumber", ty: "int", default: None }, ] },
+        Function { name: "GetCurrentGameTime", returns: Some("float"), global: true, native: true, params: &[] },
+        Function { name: "GetCurrentMemory", returns: Some("string"), global: true, native: true, params: &[] },
+        Function { name: "GetCurrentRealTime", returns: Some("float"), global: true, native: true, params: &[] },
+        Function { name: "GetCurrentStackID", returns: Some("int"), global: true, native: true, params: &[] },
+        Function { name: "GetMaxFrameRate", returns: Some("float"), global: true, native: true, params: &[] },
+        Function { name: "GetMinFrameRate", returns: Some("float"), global: true, native: true, params: &[] },
+        Function { name: "IsInMenuMode", returns: Some("bool"), global: true, native: true, params: &[] },
+        Function { name: "OverBudget", returns: Some("bool"), global: true, native: true, params: &[Param { name: "aiBudgetNumber", ty: "int", default: None }, ] },
+        Function { name: "PostStartUpTimes", returns: None, global: true, native: true, params: &[] },
+        Function { name: "RandomFloat", returns: Some("float"), global: true, native: true, params: &[Param { name: "afMin", ty: "float", default: Some("0.0") }, Param { name: "afMax", ty: "float", default: Some("1.0") }, ] },
+        Function { name: "RandomInt", returns: Some("int"), global: true, native: true, params: &[Param { name: "aiMin", ty: "int", default: Some("0") }, Param { name: "aiMax", ty: "int", default: Some("100") }, ] },
+        Function { name: "SetINIBool", returns: None, global: true, native: true, params: &[Param { name: "ini", ty: "string", default: None }, Param { name: "value", ty: "bool", default: None }, ] },
+        Function { name: "SetINIFloat", returns: None, global: true, native: true, params: &[Param { name: "ini", ty: "string", default: None }, Param { name: "value", ty: "float", default: None }, ] },
+        Function { name: "SetINIInt", returns: None, global: true, native: true, params: &[Param { name: "ini", ty: "string", default: None }, Param { name: "value", ty: "int", default: None }, ] },
+        Function { name: "SetINIString", returns: None, global: true, native: true, params: &[Param { name: "ini", ty: "string", default: None }, Param { name: "value", ty: "string", default: None }, ] },
+        Function { name: "StartFrameRateCapture", returns: None, global: true, native: true, params: &[] },
+        Function { name: "Wait", returns: None, global: true, native: true, params: &[Param { name: "afSeconds", ty: "float", default: None }, ] },
+        Function { name: "WaitGameTime", returns: None, global: true, native: true, params: &[Param { name: "afHours", ty: "float", default: None }, ] },
+        Function { name: "WaitMenuMode", returns: None, global: true, native: true, params: &[Param { name: "afSeconds", ty: "float", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Vault75DoorStartOpen",
+    parent: Some("ObjectReference"),
+    functions: &[
+    ],
+    events: &[
+        Function { name: "OnLoad", returns: None, global: false, native: false, params: &[] },
+    ],
+},
+Script {
+    name: "VisualEffect",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Play", returns: None, global: false, native: true, params: &[Param { name: "akObject", ty: "ObjectReference", default: None }, Param { name: "afTime", ty: "float", default: Some("-1.0") }, Param { name: "akFacingObject", ty: "ObjectReference", default: Some("None") }, ] },
+        Function { name: "Stop", returns: None, global: false, native: true, params: &[Param { name: "akObject", ty: "ObjectReference", default: None }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "VoiceType",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Weapon",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "Fire", returns: None, global: false, native: true, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "akAmmo", ty: "Ammo", default: Some("None") }, ] },
+        Function { name: "GetAmmo", returns: Some("Ammo"), global: false, native: true, params: &[] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "Weather",
+    parent: Some("Form"),
+    functions: &[
+        Function { name: "EnableAmbientParticles", returns: None, global: true, native: true, params: &[Param { name: "abEnable", ty: "bool", default: Some("true") }, ] },
+        Function { name: "FindWeather", returns: Some("Weather"), global: true, native: true, params: &[Param { name: "auiType", ty: "int", default: None }, ] },
+        Function { name: "ForceActive", returns: None, global: false, native: true, params: &[Param { name: "abOverride", ty: "bool", default: Some("false") }, ] },
+        Function { name: "GetClassification", returns: Some("int"), global: false, native: true, params: &[] },
+        Function { name: "GetCurrentWeather", returns: Some("Weather"), global: true, native: true, params: &[] },
+        Function { name: "GetCurrentWeatherTransition", returns: Some("float"), global: true, native: true, params: &[] },
+        Function { name: "GetOutgoingWeather", returns: Some("Weather"), global: true, native: true, params: &[] },
+        Function { name: "GetSkyMode", returns: Some("int"), global: true, native: true, params: &[] },
+        Function { name: "ReleaseOverride", returns: None, global: true, native: true, params: &[] },
+        Function { name: "SetActive", returns: None, global: false, native: true, params: &[Param { name: "abOverride", ty: "bool", default: Some("false") }, Param { name: "abAccelerate", ty: "bool", default: Some("false") }, ] },
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "WordOfPower",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "WorkshopActorCollectionScript",
+    parent: Some("RefCollectionAlias"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+Script {
+    name: "WorldSpace",
+    parent: Some("Form"),
+    functions: &[
+    ],
+    events: &[
+    ],
+},
+];
