@@ -16,15 +16,20 @@ papyrus-project = { path = "crates/papyrus-project", version = "0.3.0" }
 papyrus-fmt = { path = "crates/papyrus-fmt", version = "0.3.0" }
 papyrus-lint = { path = "crates/papyrus-lint", version = "0.3.0" }
 papyrus-stdlib = { path = "crates/papyrus-stdlib", version = "0.3.0" }
+papyrus-lsp = { path = "crates/papyrus-lsp", version = "0.3.0" }
 
 ariadne = "0.6"
 clap = { version = "4.6", features = ["derive"] }
 encoding_rs = "0.8"
+line-index = "0.1"
 logos = "0.16"
 rowan = "0.17"
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 text-size = "1.1"
+tokio = { version = "1", features = ["io-std", "io-util", "macros", "rt", "rt-multi-thread", "time"] }
 toml = "1.1"
+tower-lsp-server = "0.23"
 
 insta = "1.48"
 

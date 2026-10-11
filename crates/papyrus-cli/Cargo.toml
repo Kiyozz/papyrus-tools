@@ -1,6 +1,6 @@
 [package]
 name = "papyrus-cli"
-description = "La ligne de commande papyrus : check, fmt et lints"
+description = "La ligne de commande papyrus : check, fmt, lints et serveur LSP"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -17,6 +17,7 @@ papyrus-syntax.workspace = true
 papyrus-project.workspace = true
 papyrus-fmt.workspace = true
 papyrus-lint.workspace = true
+papyrus-lsp.workspace = true
 clap.workspace = true
 ariadne.workspace = true
 

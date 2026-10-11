@@ -1,0 +1,22 @@
+[package]
+name = "papyrus-lsp"
+description = "Serveur LSP pour Papyrus : diagnostics, symboles, formatage"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+papyrus-dialect.workspace = true
+papyrus-syntax.workspace = true
+papyrus-project.workspace = true
+papyrus-fmt.workspace = true
+papyrus-lint.workspace = true
+line-index.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tower-lsp-server.workspace = true
+
+[lints]
+workspace = true

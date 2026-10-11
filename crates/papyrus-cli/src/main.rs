@@ -4,6 +4,7 @@
 //! papyrus check --game skyrim Source/Scripts
 //! papyrus check --fix .
 //! papyrus fmt --check .
+//! papyrus lsp
 //! ```
 
 #![forbid(unsafe_code)]
@@ -46,6 +47,9 @@ enum Command {
     Fmt(FmtArgs),
     /// Liste les lints, leur code et leur niveau par défaut.
     Lints,
+    /// Lance le serveur LSP sur l'entrée et la sortie standard, pour un
+    /// éditeur.
+    Lsp,
 }
 
 #[derive(Debug, Args)]
@@ -212,6 +216,7 @@ fn main() -> ExitCode {
             lints();
             Ok(true)
         }
+        Command::Lsp => papyrus_lsp::run().map(|()| true).map_err(|e| e.to_string()),
     };
     match result {
         Ok(true) => ExitCode::SUCCESS,
