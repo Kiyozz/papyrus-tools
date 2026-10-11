@@ -1,0 +1,88 @@
+{
+  "name": "papyrus-tools",
+  "displayName": "Papyrus",
+  "description": "Diagnostics, formatage et lints pour Papyrus, le langage de script de Skyrim, Fallout 4 et Starfield",
+  "version": "0.4.0",
+  "publisher": "wk",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Wk/papyrus-tools"
+  },
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Formatters"
+  ],
+  "keywords": [
+    "papyrus",
+    "skyrim",
+    "fallout",
+    "starfield",
+    "creation kit"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "workspaceContains:**/papyrus.toml"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "papyrus",
+        "aliases": [
+          "Papyrus"
+        ],
+        "extensions": [
+          ".psc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "papyrus",
+        "scopeName": "source.papyrus",
+        "path": "./syntaxes/papyrus.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Papyrus",
+      "properties": {
+        "papyrus.server.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Chemin du binaire `papyrus`. Vide : celui de l'extension s'il est fourni, sinon `papyrus` dans le `PATH`."
+        },
+        "papyrus.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Trace des échanges avec le serveur, dans la sortie « Papyrus »."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "papyrus.restart",
+        "title": "Redémarrer le serveur",
+        "category": "Papyrus"
+      }
+    ]
+  },
+  "dependencies": {
+    "vscode-languageclient": "^10.1.2"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^4.0.0"
+  },
+  "scripts": {
+    "package": "vsce package --skip-license"
+  }
+}

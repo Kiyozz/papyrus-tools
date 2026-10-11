@@ -1,0 +1,60 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Papyrus",
+  "scopeName": "source.papyrus",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "name": "comment.block.papyrus", "begin": ";/", "end": "/;" },
+        { "name": "comment.line.semicolon.papyrus", "match": ";.*$" },
+        { "name": "comment.block.documentation.papyrus", "begin": "\\{", "end": "\\}" }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.papyrus",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [{ "name": "constant.character.escape.papyrus", "match": "\\\\." }]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        { "name": "constant.numeric.hex.papyrus", "match": "(?i)\\b0x[0-9a-f]+\\b" },
+        { "name": "constant.numeric.papyrus", "match": "\\b\\d+(\\.\\d+)?\\b" }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.papyrus",
+          "match": "(?i)\\b(if|elseif|else|endif|while|endwhile|return|lockguard|endlockguard|trylockguard|elsetrylockguard|endtrylockguard)\\b"
+        },
+        {
+          "name": "storage.type.papyrus",
+          "match": "(?i)\\b(bool|float|int|string|var)\\b"
+        },
+        {
+          "name": "constant.language.papyrus",
+          "match": "(?i)\\b(true|false|none)\\b"
+        },
+        {
+          "name": "variable.language.papyrus",
+          "match": "(?i)\\b(self|parent)\\b"
+        },
+        {
+          "name": "keyword.other.papyrus",
+          "match": "(?i)\\b(as|auto|autoreadonly|betaonly|collapsed|collapsedonbase|collapsedonref|conditional|const|customevent|customeventname|debugonly|default|endevent|endfunction|endgroup|endproperty|endstate|endstruct|event|extends|function|global|group|guard|hidden|import|is|length|mandatory|native|new|private|property|protected|protectsfunctionlogic|requiresguard|scripteventname|scriptname|selfonly|state|struct|structvarname)\\b"
+        }
+      ]
+    }
+  }
+}
