@@ -1,6 +1,6 @@
 [package]
 name = "papyrus-project"
-description = "Lecture des sources Papyrus : décodage, découverte des fichiers"
+description = "Lecture des sources Papyrus : configuration, décodage, découverte des fichiers"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,14 @@ repository.workspace = true
 [dependencies]
 papyrus-dialect.workspace = true
 papyrus-syntax.workspace = true
+papyrus-stdlib.workspace = true
 encoding_rs.workspace = true
+serde.workspace = true
+toml.workspace = true
 
 [lints]
 workspace = true
+
+[features]
+# Mesure la détection du jeu sur les sources vanilla d'une installation locale.
+external-corpus = []

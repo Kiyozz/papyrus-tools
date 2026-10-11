@@ -21,7 +21,9 @@ clap = { version = "4.6", features = ["derive"] }
 encoding_rs = "0.8"
 logos = "0.16"
 rowan = "0.17"
+serde = { version = "1", features = ["derive"] }
 text-size = "1.1"
+toml = "1.1"
 
 insta = "1.48"
 
