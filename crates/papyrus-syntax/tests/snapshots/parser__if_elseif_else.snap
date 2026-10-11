@@ -1,0 +1,58 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "body(\"If a\\n\\tx = 1\\nElseIf b\\n\\tx = 2\\nElse\\n\\tReturn\\nEndIf\",\nGameId::Skyrim)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  FUNCTION_DECL
+    FUNCTION_KW "Function"
+    NAME
+      IDENT "F"
+    PARAM_LIST
+      L_PAREN "("
+      R_PAREN ")"
+    FLAG_LIST
+    ⏎
+    STMT_LIST
+      IF_STMT
+        IF_KW "If"
+        NAME_REF
+          IDENT "a"
+        ⏎
+        STMT_LIST
+          ASSIGN_STMT
+            NAME_REF
+              IDENT "x"
+            EQ "="
+            LITERAL
+              INT_NUMBER "1"
+            ⏎
+        ELSEIF_CLAUSE
+          ELSEIF_KW "ElseIf"
+          NAME_REF
+            IDENT "b"
+          ⏎
+          STMT_LIST
+            ASSIGN_STMT
+              NAME_REF
+                IDENT "x"
+              EQ "="
+              LITERAL
+                INT_NUMBER "2"
+              ⏎
+        ELSE_CLAUSE
+          ELSE_KW "Else"
+          ⏎
+          STMT_LIST
+            RETURN_STMT
+              RETURN_KW "Return"
+              ⏎
+        ENDIF_KW "EndIf"
+        ⏎
+    ENDFUNCTION_KW "EndFunction"
+    ⏎

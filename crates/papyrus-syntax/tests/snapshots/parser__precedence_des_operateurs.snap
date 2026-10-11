@@ -1,0 +1,66 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "body(\"x = a + b * c\\ny = a || b && c\\nz = -w as Float\", GameId::Skyrim)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  FUNCTION_DECL
+    FUNCTION_KW "Function"
+    NAME
+      IDENT "F"
+    PARAM_LIST
+      L_PAREN "("
+      R_PAREN ")"
+    FLAG_LIST
+    ⏎
+    STMT_LIST
+      ASSIGN_STMT
+        NAME_REF
+          IDENT "x"
+        EQ "="
+        BIN_EXPR
+          NAME_REF
+            IDENT "a"
+          PLUS "+"
+          BIN_EXPR
+            NAME_REF
+              IDENT "b"
+            STAR "*"
+            NAME_REF
+              IDENT "c"
+        ⏎
+      ASSIGN_STMT
+        NAME_REF
+          IDENT "y"
+        EQ "="
+        BIN_EXPR
+          NAME_REF
+            IDENT "a"
+          PIPE2 "||"
+          BIN_EXPR
+            NAME_REF
+              IDENT "b"
+            AMP2 "&&"
+            NAME_REF
+              IDENT "c"
+        ⏎
+      ASSIGN_STMT
+        NAME_REF
+          IDENT "z"
+        EQ "="
+        UNARY_EXPR
+          MINUS "-"
+          CAST_EXPR
+            NAME_REF
+              IDENT "w"
+            AS_KW "as"
+            TYPE_REF
+              FLOAT_KW "Float"
+        ⏎
+    ENDFUNCTION_KW "EndFunction"
+    ⏎

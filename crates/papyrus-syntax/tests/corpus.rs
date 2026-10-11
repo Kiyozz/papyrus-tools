@@ -1,4 +1,4 @@
-//! Lexage du corpus vanilla — le critère de sortie de la v0.0.1.
+//! Lexage et parsing du corpus vanilla — le critère de sortie de la v0.1.
 //!
 //! Ces tests ne tournent qu'avec la feature `external-corpus`, et lisent les
 //! chemins dans l'environnement. Aucune installation de jeu n'est requise pour
@@ -17,7 +17,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use papyrus_dialect::{Dialect, GameId};
-use papyrus_syntax::{SyntaxKind, lex_with_dialect};
+use papyrus_syntax::{SyntaxKind, lex_with_dialect, parse_tokens};
 
 /// Variable d'environnement portant les sources d'un jeu.
 fn corpus_var(game: GameId) -> &'static str {
@@ -53,7 +53,28 @@ struct Stats {
     files: usize,
     tokens: usize,
     bytes: usize,
-    errors: Vec<String>,
+    /// Tokens `ERROR` du lexer.
+    lex_errors: Vec<String>,
+    /// Erreurs du parser, toutes comptées, les premières détaillées.
+    parse_errors: Vec<String>,
+    parse_error_count: usize,
+}
+
+/// `fichier:ligne:colonne`, colonnes en octets à partir de 1.
+fn locate(path: &Path, source: &str, offset: usize) -> String {
+    let before = &source[..offset];
+    let line = before.matches('\n').count() + 1;
+    let column = offset - before.rfind('\n').map_or(0, |i| i + 1) + 1;
+    format!("{}:{line}:{column}", path.display())
+}
+
+/// La ligne qui contient `offset`, sans sa fin de ligne.
+fn line_at(source: &str, offset: usize) -> &str {
+    let start = source[..offset].rfind('\n').map_or(0, |i| i + 1);
+    let end = source[offset..]
+        .find(['\r', '\n'])
+        .map_or(source.len(), |i| offset + i);
+    source[start..end].trim()
 }
 
 fn lex_corpus(game: GameId) -> Option<Stats> {
@@ -75,7 +96,9 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
         files: scripts.len(),
         tokens: 0,
         bytes: 0,
-        errors: Vec::new(),
+        lex_errors: Vec::new(),
+        parse_errors: Vec::new(),
+        parse_error_count: 0,
     };
 
     for path in &scripts {
@@ -115,12 +138,46 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
         );
 
         for token in tokens.iter().filter(|t| t.kind == SyntaxKind::ERROR) {
-            if stats.errors.len() < 20 {
-                stats.errors.push(format!(
+            if stats.lex_errors.len() < 20 {
+                stats.lex_errors.push(format!(
                     "{}: {:?} à {:?}",
                     path.display(),
                     token.text(&source),
                     token.range
+                ));
+            }
+        }
+
+        // Le parsing : l'arbre doit reproduire la source, et la lire sans
+        // erreur puisque ces scripts compilent.
+        let parse = parse_tokens(&source, &tokens, dialect);
+        assert_eq!(
+            parse.syntax().to_string(),
+            source,
+            "l'arbre de {} ne reproduit pas la source",
+            path.display()
+        );
+        // Une erreur sans message serait un bug : tout ERROR_TREE doit
+        // venir avec la sienne.
+        let silent = parse
+            .syntax()
+            .descendants()
+            .filter(|n| n.kind() == SyntaxKind::ERROR_TREE)
+            .count();
+        assert!(
+            silent == 0 || !parse.errors().is_empty(),
+            "{} : {silent} ERROR_TREE sans erreur signalée",
+            path.display()
+        );
+        for error in parse.errors() {
+            stats.parse_error_count += 1;
+            if stats.parse_errors.len() < 40 {
+                let offset = usize::from(error.range().start());
+                stats.parse_errors.push(format!(
+                    "{}: {}\n      | {}",
+                    locate(path, &source, offset),
+                    error.message(),
+                    line_at(&source, offset)
                 ));
             }
         }
@@ -151,11 +208,18 @@ fn report(game: GameId) {
     );
 
     assert!(
-        stats.errors.is_empty(),
+        stats.lex_errors.is_empty(),
         "{} tokens ERROR sur le corpus {} — le lexer a un trou :\n{}",
-        stats.errors.len(),
+        stats.lex_errors.len(),
         game.display_name(),
-        stats.errors.join("\n")
+        stats.lex_errors.join("\n")
+    );
+    assert!(
+        stats.parse_errors.is_empty(),
+        "{} erreurs de parsing sur le corpus {} :\n{}",
+        stats.parse_error_count,
+        game.display_name(),
+        stats.parse_errors.join("\n")
     );
 }
 

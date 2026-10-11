@@ -1,0 +1,50 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "tree(\"ScriptName T\\nFunction A()\\n\\tIf x\\n\\t\\ty()\\nEndFunction\\nFunction B()\\nEndFunction\\n\",\nGameId::Skyrim)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  FUNCTION_DECL
+    FUNCTION_KW "Function"
+    NAME
+      IDENT "A"
+    PARAM_LIST
+      L_PAREN "("
+      R_PAREN ")"
+    FLAG_LIST
+    ⏎
+    STMT_LIST
+      IF_STMT
+        IF_KW "If"
+        NAME_REF
+          IDENT "x"
+        ⏎
+        STMT_LIST
+          EXPR_STMT
+            CALL_EXPR
+              NAME_REF
+                IDENT "y"
+              ARG_LIST
+                L_PAREN "("
+                R_PAREN ")"
+            ⏎
+    ENDFUNCTION_KW "EndFunction"
+    ⏎
+  FUNCTION_DECL
+    FUNCTION_KW "Function"
+    NAME
+      IDENT "B"
+    PARAM_LIST
+      L_PAREN "("
+      R_PAREN ")"
+    FLAG_LIST
+    ⏎
+    STMT_LIST
+    ENDFUNCTION_KW "EndFunction"
+    ⏎
+erreur 38..49 "EndFunction" : `EndIf` attendu

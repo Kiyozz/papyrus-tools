@@ -1,0 +1,87 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "body(\"Actor[] list = new Actor[4]\\nlist[0] = Game.GetPlayer()\\nDebug.Trace(list.Length, aiSeverity = 2)\",\nGameId::Skyrim)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  FUNCTION_DECL
+    FUNCTION_KW "Function"
+    NAME
+      IDENT "F"
+    PARAM_LIST
+      L_PAREN "("
+      R_PAREN ")"
+    FLAG_LIST
+    ⏎
+    STMT_LIST
+      VARIABLE_DECL
+        TYPE_REF
+          IDENT "Actor"
+          L_BRACK "["
+          R_BRACK "]"
+        NAME
+          IDENT "list"
+        EQ "="
+        NEW_EXPR
+          NEW_KW "new"
+          TYPE_REF
+            IDENT "Actor"
+          L_BRACK "["
+          LITERAL
+            INT_NUMBER "4"
+          R_BRACK "]"
+        FLAG_LIST
+        ⏎
+      ASSIGN_STMT
+        INDEX_EXPR
+          NAME_REF
+            IDENT "list"
+          L_BRACK "["
+          LITERAL
+            INT_NUMBER "0"
+          R_BRACK "]"
+        EQ "="
+        CALL_EXPR
+          FIELD_EXPR
+            NAME_REF
+              IDENT "Game"
+            DOT "."
+            NAME_REF
+              IDENT "GetPlayer"
+          ARG_LIST
+            L_PAREN "("
+            R_PAREN ")"
+        ⏎
+      EXPR_STMT
+        CALL_EXPR
+          FIELD_EXPR
+            NAME_REF
+              IDENT "Debug"
+            DOT "."
+            NAME_REF
+              IDENT "Trace"
+          ARG_LIST
+            L_PAREN "("
+            ARG
+              FIELD_EXPR
+                NAME_REF
+                  IDENT "list"
+                DOT "."
+                NAME_REF
+                  LENGTH_KW "Length"
+            COMMA ","
+            ARG
+              NAME_REF
+                IDENT "aiSeverity"
+              EQ "="
+              LITERAL
+                INT_NUMBER "2"
+            R_PAREN ")"
+        ⏎
+    ENDFUNCTION_KW "EndFunction"
+    ⏎

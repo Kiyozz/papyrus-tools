@@ -1,6 +1,6 @@
 [package]
 name = "papyrus-syntax"
-description = "Lexer et arbre syntaxique concret du langage Papyrus"
+description = "Lexer, parser et arbre syntaxique concret du langage Papyrus"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,6 +11,10 @@ repository.workspace = true
 papyrus-dialect.workspace = true
 logos.workspace = true
 text-size.workspace = true
+rowan.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
 
 [features]
 # Fait tourner les tests sur les sources vanilla d'une installation locale.
@@ -20,3 +24,4 @@ external-corpus = []
 
 [lints]
 workspace = true
+

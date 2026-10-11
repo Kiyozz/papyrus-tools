@@ -1,0 +1,37 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "tree(\"ScriptName T\\nEvent ObjectReference.OnActivate(ObjectReference akSender, ObjectReference akActionRef)\\nEndEvent\\n\",\nGameId::Fallout4)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  EVENT_DECL
+    EVENT_KW "Event"
+    TYPE_REF
+      IDENT "ObjectReference"
+    DOT "."
+    NAME
+      IDENT "OnActivate"
+    PARAM_LIST
+      L_PAREN "("
+      PARAM
+        TYPE_REF
+          IDENT "ObjectReference"
+        NAME
+          IDENT "akSender"
+      COMMA ","
+      PARAM
+        TYPE_REF
+          IDENT "ObjectReference"
+        NAME
+          IDENT "akActionRef"
+      R_PAREN ")"
+    FLAG_LIST
+    ⏎
+    STMT_LIST
+    ENDEVENT_KW "EndEvent"
+    ⏎

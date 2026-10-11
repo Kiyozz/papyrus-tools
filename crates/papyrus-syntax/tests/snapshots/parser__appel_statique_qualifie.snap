@@ -1,0 +1,52 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "body(\"DLC04:Manager.GetScript().Attach(akRef as Actor)\", GameId::Fallout4)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  FUNCTION_DECL
+    FUNCTION_KW "Function"
+    NAME
+      IDENT "F"
+    PARAM_LIST
+      L_PAREN "("
+      R_PAREN ")"
+    FLAG_LIST
+    ⏎
+    STMT_LIST
+      EXPR_STMT
+        CALL_EXPR
+          FIELD_EXPR
+            CALL_EXPR
+              FIELD_EXPR
+                NAME_REF
+                  IDENT "DLC04"
+                  COLON ":"
+                  IDENT "Manager"
+                DOT "."
+                NAME_REF
+                  IDENT "GetScript"
+              ARG_LIST
+                L_PAREN "("
+                R_PAREN ")"
+            DOT "."
+            NAME_REF
+              IDENT "Attach"
+          ARG_LIST
+            L_PAREN "("
+            ARG
+              CAST_EXPR
+                NAME_REF
+                  IDENT "akRef"
+                AS_KW "as"
+                TYPE_REF
+                  IDENT "Actor"
+            R_PAREN ")"
+        ⏎
+    ENDFUNCTION_KW "EndFunction"
+    ⏎

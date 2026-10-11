@@ -14,7 +14,10 @@ papyrus-dialect = { path = "crates/papyrus-dialect", version = "0.0.1" }
 papyrus-syntax = { path = "crates/papyrus-syntax", version = "0.0.1" }
 
 logos = "0.16"
+rowan = "0.17"
 text-size = "1.1"
+
+insta = "1.48"
 
 [workspace.lints.rust]
 missing_debug_implementations = "warn"

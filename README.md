@@ -8,12 +8,15 @@ et IntelliJ.
 
 ## État
 
-**v0.0.1** — lexer seulement. Le parser, le CST et le formateur viennent ensuite.
+**v0.1** — lexer et parser. Le formateur et le linter viennent ensuite.
 
 | Crate | Rôle |
 |---|---|
 | `papyrus-dialect` | Cibles (`GameId`), fonctionnalités et leur jeu d'apparition |
-| `papyrus-syntax` | `SyntaxKind`, lexer, promotion des mots-clés selon la cible |
+| `papyrus-syntax` | Lexer, parser event-based, arbre syntaxique concret (`rowan`) |
+
+Sur les 29 641 scripts vanilla des trois jeux : arbre identique à la source
+octet pour octet, aucune erreur de parsing, aucune panique.
 
 ## Principes
 
@@ -29,8 +32,10 @@ jeux et produit `IDENT` pour tout identifiant ; la cible ne décide qu'ensuite
 quels mots sont réservés. Sans quoi les milliers de scripts Skyrim qui déclarent
 une variable `Var` ou `Guard` produiraient des erreurs de syntaxe.
 
-**Le lexage ne perd rien.** `concat(tokens) == source`, octet pour octet, y
-compris sur une entrée invalide. Le formateur et le LSP en dépendent.
+**L'arbre ne perd rien.** `parse(src).syntax().to_string() == src`, octet
+pour octet, y compris sur une entrée invalide : le parser rend toujours un
+arbre complet, et range ce qu'il ne comprend pas dans des nœuds d'erreur. Le
+formateur et le LSP en dépendent.
 
 ## Développement
 

@@ -1,0 +1,73 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "tree(\"ScriptName T\\n\\\n         Auto State Default\\n\\\n         \\tEvent OnInit()\\n\\\n         \\tEndEvent\\n\\\n         EndState\\n\\\n         Struct Entry\\n\\\n         \\tint Count = 1\\n\\\n         EndStruct\\n\\\n         Group Mandatory CollapsedOnRef\\n\\\n         \\tActor Property Who Auto\\n\\\n         EndGroup\\n\\\n         CustomEvent OnDone\\n\",\nGameId::Fallout4)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  STATE_DECL
+    AUTO_KW "Auto"
+    STATE_KW "State"
+    NAME
+      DEFAULT_KW "Default"
+    ⏎
+    EVENT_DECL
+      EVENT_KW "Event"
+      NAME
+        IDENT "OnInit"
+      PARAM_LIST
+        L_PAREN "("
+        R_PAREN ")"
+      FLAG_LIST
+      ⏎
+      STMT_LIST
+      ENDEVENT_KW "EndEvent"
+      ⏎
+    ENDSTATE_KW "EndState"
+    ⏎
+  STRUCT_DECL
+    STRUCT_KW "Struct"
+    NAME
+      IDENT "Entry"
+    ⏎
+    STRUCT_FIELD
+      TYPE_REF
+        INT_KW "int"
+      NAME
+        IDENT "Count"
+      EQ "="
+      LITERAL
+        INT_NUMBER "1"
+      FLAG_LIST
+      ⏎
+    ENDSTRUCT_KW "EndStruct"
+    ⏎
+  GROUP_DECL
+    GROUP_KW "Group"
+    NAME
+      MANDATORY_KW "Mandatory"
+    FLAG_LIST
+      FLAG
+        COLLAPSEDONREF_KW "CollapsedOnRef"
+    ⏎
+    PROPERTY_DECL
+      TYPE_REF
+        IDENT "Actor"
+      PROPERTY_KW "Property"
+      NAME
+        IDENT "Who"
+      FLAG_LIST
+        FLAG
+          AUTO_KW "Auto"
+      ⏎
+    ENDGROUP_KW "EndGroup"
+    ⏎
+  CUSTOM_EVENT_DECL
+    CUSTOMEVENT_KW "CustomEvent"
+    NAME
+      IDENT "OnDone"
+    ⏎

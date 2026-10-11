@@ -1,0 +1,30 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "tree(\"ScriptName T\\nint Property P\\nint Property Q Auto\\n\", GameId::Skyrim)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  PROPERTY_DECL
+    TYPE_REF
+      INT_KW "int"
+    PROPERTY_KW "Property"
+    NAME
+      IDENT "P"
+    FLAG_LIST
+    ⏎
+  PROPERTY_DECL
+    TYPE_REF
+      INT_KW "int"
+    PROPERTY_KW "Property"
+    NAME
+      IDENT "Q"
+    FLAG_LIST
+      FLAG
+        AUTO_KW "Auto"
+    ⏎
+erreur 28..31 "int" : `EndProperty` attendu

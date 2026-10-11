@@ -1,0 +1,26 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "tree(\"ScriptName DLC01:Foo extends ObjectReference Hidden Const\\nimport Utility\\n\",\nGameId::Fallout4)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "DLC01"
+      COLON ":"
+      IDENT "Foo"
+    EXTENDS_CLAUSE
+      EXTENDS_KW "extends"
+      TYPE_REF
+        IDENT "ObjectReference"
+    FLAG_LIST
+      FLAG
+        HIDDEN_KW "Hidden"
+      FLAG
+        CONST_KW "Const"
+    ⏎
+  IMPORT
+    IMPORT_KW "import"
+    TYPE_REF
+      IDENT "Utility"
+    ⏎

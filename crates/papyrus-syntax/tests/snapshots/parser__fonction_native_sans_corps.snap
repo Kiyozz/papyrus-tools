@@ -1,0 +1,38 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "tree(\"ScriptName T\\nint Function Count() global native\\nFunction Next()\\nEndFunction\\n\",\nGameId::Skyrim)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  FUNCTION_DECL
+    TYPE_REF
+      INT_KW "int"
+    FUNCTION_KW "Function"
+    NAME
+      IDENT "Count"
+    PARAM_LIST
+      L_PAREN "("
+      R_PAREN ")"
+    FLAG_LIST
+      FLAG
+        GLOBAL_KW "global"
+      FLAG
+        NATIVE_KW "native"
+    ⏎
+  FUNCTION_DECL
+    FUNCTION_KW "Function"
+    NAME
+      IDENT "Next"
+    PARAM_LIST
+      L_PAREN "("
+      R_PAREN ")"
+    FLAG_LIST
+    ⏎
+    STMT_LIST
+    ENDFUNCTION_KW "EndFunction"
+    ⏎

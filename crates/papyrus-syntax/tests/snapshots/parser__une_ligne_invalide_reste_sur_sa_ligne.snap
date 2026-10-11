@@ -1,0 +1,49 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "body(\"x = 1 2 3\\ny = )\\nz = 3\", GameId::Skyrim)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  FUNCTION_DECL
+    FUNCTION_KW "Function"
+    NAME
+      IDENT "F"
+    PARAM_LIST
+      L_PAREN "("
+      R_PAREN ")"
+    FLAG_LIST
+    ⏎
+    STMT_LIST
+      ASSIGN_STMT
+        NAME_REF
+          IDENT "x"
+        EQ "="
+        LITERAL
+          INT_NUMBER "1"
+        ERROR_TREE
+          INT_NUMBER "2"
+          INT_NUMBER "3"
+        ⏎
+      ASSIGN_STMT
+        NAME_REF
+          IDENT "y"
+        EQ "="
+        ERROR_TREE
+          R_PAREN ")"
+        ⏎
+      ASSIGN_STMT
+        NAME_REF
+          IDENT "z"
+        EQ "="
+        LITERAL
+          INT_NUMBER "3"
+        ⏎
+    ENDFUNCTION_KW "EndFunction"
+    ⏎
+erreur 32..33 "2" : fin de ligne attendue
+erreur 40..41 ")" : expression attendue

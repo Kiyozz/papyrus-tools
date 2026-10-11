@@ -1,0 +1,85 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "tree(\"ScriptName T\\n\\\n         Guard g ProtectsFunctionLogic\\n\\\n         int count RequiresGuard(g)\\n\\\n         Function F()\\n\\\n         \\tLockGuard g\\n\\\n         \\t\\tcount += 1\\n\\\n         \\tEndLockGuard\\n\\\n         \\tTryLockGuard g\\n\\\n         \\t\\tcount += 1\\n\\\n         \\tElse\\n\\\n         \\t\\tReturn\\n\\\n         \\tEndTryLockGuard\\n\\\n         EndFunction\\n\",\nGameId::Starfield)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  GUARD_DECL
+    GUARD_KW "Guard"
+    NAME
+      IDENT "g"
+    FLAG_LIST
+      FLAG
+        PROTECTSFUNCTIONLOGIC_KW "ProtectsFunctionLogic"
+    ⏎
+  VARIABLE_DECL
+    TYPE_REF
+      INT_KW "int"
+    NAME
+      IDENT "count"
+    FLAG_LIST
+      FLAG
+        REQUIRESGUARD_KW "RequiresGuard"
+        ARG_LIST
+          L_PAREN "("
+          ARG
+            NAME_REF
+              IDENT "g"
+          R_PAREN ")"
+    ⏎
+  FUNCTION_DECL
+    FUNCTION_KW "Function"
+    NAME
+      IDENT "F"
+    PARAM_LIST
+      L_PAREN "("
+      R_PAREN ")"
+    FLAG_LIST
+    ⏎
+    STMT_LIST
+      LOCK_GUARD_STMT
+        LOCKGUARD_KW "LockGuard"
+        GUARD_LIST
+          NAME_REF
+            IDENT "g"
+        ⏎
+        STMT_LIST
+          ASSIGN_STMT
+            NAME_REF
+              IDENT "count"
+            PLUS_EQ "+="
+            LITERAL
+              INT_NUMBER "1"
+            ⏎
+        ENDLOCKGUARD_KW "EndLockGuard"
+        ⏎
+      TRY_LOCK_GUARD_STMT
+        TRYLOCKGUARD_KW "TryLockGuard"
+        GUARD_LIST
+          NAME_REF
+            IDENT "g"
+        ⏎
+        STMT_LIST
+          ASSIGN_STMT
+            NAME_REF
+              IDENT "count"
+            PLUS_EQ "+="
+            LITERAL
+              INT_NUMBER "1"
+            ⏎
+        ELSE_TRY_LOCK_GUARD_CLAUSE
+          ELSE_KW "Else"
+          ⏎
+          STMT_LIST
+            RETURN_STMT
+              RETURN_KW "Return"
+              ⏎
+        ENDTRYLOCKGUARD_KW "EndTryLockGuard"
+        ⏎
+    ENDFUNCTION_KW "EndFunction"
+    ⏎

@@ -1,0 +1,56 @@
+---
+source: crates/papyrus-syntax/tests/parser.rs
+expression: "tree(\"ScriptName T\\n\\\n         Keyword Property K Mandatory Const Auto\\n\\\n         float Property X Hidden\\n\\\n         \\tfloat Function Get()\\n\\\n         \\t\\tReturn 1.0\\n\\\n         \\tEndFunction\\n\\\n         EndProperty\\n\",\nGameId::Fallout4)"
+---
+SOURCE_FILE
+  SCRIPT_HEADER
+    SCRIPTNAME_KW "ScriptName"
+    NAME
+      IDENT "T"
+    FLAG_LIST
+    ⏎
+  PROPERTY_DECL
+    TYPE_REF
+      IDENT "Keyword"
+    PROPERTY_KW "Property"
+    NAME
+      IDENT "K"
+    FLAG_LIST
+      FLAG
+        MANDATORY_KW "Mandatory"
+      FLAG
+        CONST_KW "Const"
+      FLAG
+        AUTO_KW "Auto"
+    ⏎
+  PROPERTY_DECL
+    TYPE_REF
+      FLOAT_KW "float"
+    PROPERTY_KW "Property"
+    NAME
+      IDENT "X"
+    FLAG_LIST
+      FLAG
+        HIDDEN_KW "Hidden"
+    ⏎
+    FUNCTION_DECL
+      TYPE_REF
+        FLOAT_KW "float"
+      FUNCTION_KW "Function"
+      NAME
+        IDENT "Get"
+      PARAM_LIST
+        L_PAREN "("
+        R_PAREN ")"
+      FLAG_LIST
+      ⏎
+      STMT_LIST
+        RETURN_STMT
+          RETURN_KW "Return"
+          LITERAL
+            FLOAT_NUMBER "1.0"
+          ⏎
+      ENDFUNCTION_KW "EndFunction"
+      ⏎
+    ENDPROPERTY_KW "EndProperty"
+    ⏎
