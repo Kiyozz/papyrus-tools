@@ -3,12 +3,12 @@
 Parser, formateur et linter pour **Papyrus**, le langage de script du Creation
 Kit de Bethesda — Skyrim, Fallout 4, Starfield.
 
-Un binaire natif sans runtime, qui servira une CLI et un serveur LSP pour VSCode
+Un binaire natif sans runtime, qui sert une CLI et un serveur LSP pour VSCode
 et IntelliJ.
 
 ## État
 
-**v0.3** — `papyrus check`, `papyrus fmt`, lints configurables.
+**v0.4** — `papyrus check`, `papyrus fmt`, lints configurables, serveur LSP.
 
 ```sh
 papyrus check --game skyrim Data/Source/Scripts   # syntaxe + lints
@@ -16,6 +16,7 @@ papyrus check --fix .                             # applique les correctifs sûr
 papyrus fmt .                                     # formate sur place
 papyrus fmt --check --indent tab .                # CI : échoue si à reformater
 papyrus lints                                     # liste les lints
+papyrus lsp                                       # serveur LSP, pour un éditeur
 ```
 
 | Crate | Rôle |
@@ -26,11 +27,12 @@ papyrus lints                                     # liste les lints
 | `papyrus-lint` | Registre de lints, suppression dans le code, correctifs |
 | `papyrus-stdlib` | Signatures des scripts natifs de chaque jeu, embarquées |
 | `papyrus-fmt` | Formateur canonique |
+| `papyrus-lsp` | Serveur LSP |
 | `papyrus-cli` | Le binaire `papyrus` |
 
 Sur les 29 641 scripts vanilla des trois jeux : arbre identique à la source
 octet pour octet, aucune erreur de parsing, formatage idempotent, aucun faux
-positif de `flags/placement`, `--fix` sûr et complet.
+positif de `flags/placement` ni de `events/unknown`, `--fix` sûr et complet.
 
 ### Configuration
 
@@ -66,6 +68,7 @@ PAP001 = "error"
 | `PAP001` | `encoding/lossy` | warn | Texte que le compilateur de la cible corrompra (avec `game`) |
 | `PAP002` | `flags/placement` | error | Flag que le `.flg` du jeu n'autorise pas sur cet objet |
 | `PAP003` | `allow/unknown` | warn | Nom inconnu dans `; papyrus: allow(...)`, qui ne supprime donc rien |
+| `PAP004` | `events/unknown` | warn | Événement que le moteur n'appellera jamais : `OnActivatee`, ou `OnCombatStateChanged` sur une quête |
 | `PAP101` | `naming/locals` | warn | Locales et paramètres hors lowerCamelCase — corrigeable |
 | `PAP102` | `naming/variables` | warn | Variables de script, properties, champs hors lowerCamelCase |
 | `PAP103` | `naming/functions` | warn | Fonctions, événements, states, structures hors PascalCase |
@@ -77,8 +80,50 @@ seul sur la ligne qui précède. `all` couvre tous les lints.
 change rien pour le compilateur et ne peut entrer en collision avec rien. Les
 properties ne sont jamais renommées : les `.esp` les lient par leur nom.
 
+### Les événements morts
+
+`Event OnActivatee()` compile sans un mot et ne se déclenche jamais.
+`PAP004` suit la chaîne `extends` jusqu'aux scripts natifs du jeu, à travers
+les scripts du projet, et signale un nom proche d'un événement reçu — avec la
+correction — ou un événement du moteur qu'aucun objet portant le script ne
+recevra. Le moteur envoie un événement à tous les scripts de l'objet : un
+script `extends ObjectReference` posé sur un acteur reçoit `OnDeath`, un
+`ReferenceAlias` les événements de sa référence, un `ActiveMagicEffect` ceux
+de son acteur. Sans certitude, le lint se tait : parent inconnu, nom écrit
+dans une chaîne (callback de `RegisterForModEvent`), nom sans rapport avec un
+événement connu.
+
+Le vanilla de Skyrim en contient sept, tous réels : `OnCellDetatch`,
+`OnCombatStateChange`, `OnContainerChanges`, `onDead`, `onLoad3d`, `Unload`,
+et une quête qui attend `OnCombatStateChanged`.
+
 Les fragments générés par le Creation Kit (`TIF__…`, `QF_…`, dossiers
 `Fragments`) sont ignorés par défaut ; `--include-fragments` les inclut.
+
+### Éditeurs
+
+`papyrus lsp` parle LSP sur l'entrée et la sortie standard : diagnostics à la
+frappe, correctifs et « Autoriser sur cette ligne », formatage, plan du
+fichier, repli, coloration sémantique. À l'ouverture, il indexe les scripts
+du projet pour suivre `extends` d'un fichier à l'autre et déduire le jeu.
+
+**VSCode** — l'extension est dans `editors/vscode` :
+
+```sh
+cd editors/vscode
+npm install
+npm run package          # papyrus-tools-0.4.0.vsix
+code --install-extension papyrus-tools-0.4.0.vsix
+```
+
+Elle lance `papyrus` depuis le `PATH`, ou le binaire désigné par
+`papyrus.server.path`.
+
+**IntelliJ** — avec le plugin [LSP4IJ](https://github.com/redhat-developer/lsp4ij) :
+*Settings › Languages & Frameworks › Language Servers › +*, commande
+`papyrus lsp`, et dans *Mappings › File name patterns* : `*.psc`, langage
+`papyrus`. Pour la coloration avant que le serveur réponde, ajouter
+`editors/vscode` dans *Settings › Editor › TextMate Bundles*.
 
 ### Le formateur
 
