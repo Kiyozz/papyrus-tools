@@ -15,6 +15,8 @@ papyrus-syntax = { path = "crates/papyrus-syntax", version = "0.0.1" }
 papyrus-project = { path = "crates/papyrus-project", version = "0.0.1" }
 papyrus-fmt = { path = "crates/papyrus-fmt", version = "0.0.1" }
 
+ariadne = "0.6"
+clap = { version = "4.6", features = ["derive"] }
 encoding_rs = "0.8"
 logos = "0.16"
 rowan = "0.17"
