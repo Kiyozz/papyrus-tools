@@ -1,8 +1,10 @@
 //! Le fichier, son en-tête et les déclarations de portée script.
 
+use papyrus_dialect::Feature;
+
 use super::{
-    Parser, STMT_RECOVERY, block_end, eol, error_line, exprs, flag_list, name, script_name, stmts,
-    type_len, type_ref, type_ref_without_array,
+    Parser, STMT_RECOVERY, block_end, eol, error_line, exprs, flag_list, incompatible, name,
+    script_name, stmts, type_len, type_ref, type_ref_without_array,
 };
 use crate::SyntaxKind::*;
 use crate::parser::Marker;
@@ -139,6 +141,10 @@ fn event(p: &mut Parser) {
     let m = p.start();
     p.bump(EVENT_KW);
     if type_len(p, 0).is_some_and(|len| p.nth(len) == DOT) {
+        if !p.dialect().supports(Feature::RemoteEvent) {
+            let range = p.current_range();
+            p.error_at(range, incompatible(p, Feature::RemoteEvent));
+        }
         type_ref(p);
         p.bump(DOT);
     }

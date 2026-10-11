@@ -151,6 +151,10 @@ pub enum Feature {
     Guard,
     /// Modificateurs d'accès `Private`, `Protected`, `SelfOnly`.
     AccessModifier,
+    /// Événement distant, `Event ObjectReference.OnActivate(…)`.
+    ///
+    /// Absent des 14 324 scripts de Skyrim, présent dans 695 de Fallout 4.
+    RemoteEvent,
 }
 
 impl Feature {
@@ -163,7 +167,8 @@ impl Feature {
             | Feature::IsOperator
             | Feature::NewStruct
             | Feature::NestedProperty
-            | Feature::ConstLocal => GameId::Fallout4,
+            | Feature::ConstLocal
+            | Feature::RemoteEvent => GameId::Fallout4,
             Feature::Guard | Feature::AccessModifier => GameId::Starfield,
         }
     }
@@ -180,6 +185,7 @@ impl Feature {
             Feature::ConstLocal => "les variables locales `Const`",
             Feature::Guard => "les verrous (`Guard`)",
             Feature::AccessModifier => "les modificateurs d'accès",
+            Feature::RemoteEvent => "les événements distants (`Event Type.OnX`)",
         }
     }
 }

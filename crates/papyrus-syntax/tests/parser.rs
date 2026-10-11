@@ -194,9 +194,35 @@ fn un_script_skyrim_peut_nommer_une_variable_var() {
 }
 
 #[test]
-fn is_est_refuse_en_skyrim() {
-    let source = "ScriptName T\nFunction F()\n\tbool b = x is Actor\nEndFunction\n";
-    assert!(!parse(source, Dialect::new(GameId::Skyrim)).ok());
+fn is_est_refuse_en_skyrim_et_dit_pourquoi() {
+    let source = "ScriptName T
+Function F()
+	bool b = x is Actor
+EndFunction
+";
+    let skyrim = parse(source, Dialect::new(GameId::Skyrim));
+    assert_eq!(skyrim.errors().len(), 1, "{:?}", skyrim.errors());
+    assert!(
+        skyrim.errors()[0]
+            .message()
+            .contains("`is` n'est un mot-clé qu'à partir de Fallout 4"),
+        "{}",
+        skyrim.errors()[0]
+    );
+    assert!(parse(source, Dialect::new(GameId::Fallout4)).ok());
+}
+
+#[test]
+fn les_evenements_distants_sont_signales_en_skyrim() {
+    let source = "ScriptName T
+Event Actor.OnDeath(Actor akSender, Actor akKiller)
+EndEvent
+";
+    let skyrim = parse(source, Dialect::new(GameId::Skyrim));
+    assert_eq!(skyrim.errors().len(), 1, "{:?}", skyrim.errors());
+    assert!(skyrim.errors()[0].message().contains("événements distants"));
+    assert_eq!(skyrim.syntax().to_string(), source);
+
     assert!(parse(source, Dialect::new(GameId::Fallout4)).ok());
 }
 

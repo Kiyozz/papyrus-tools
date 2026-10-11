@@ -28,7 +28,7 @@ use text_size::{TextRange, TextSize};
 
 use crate::lexer::Token;
 use crate::syntax_node::SyntaxNode;
-use crate::{SyntaxKind, lex_with_dialect};
+use crate::{SyntaxKind, lex_with_dialect, reserved_later};
 
 use event::Event;
 use token_set::TokenSet;
@@ -101,7 +101,7 @@ pub fn parse(source: &str, dialect: Dialect) -> Parse {
 ///
 /// Si `tokens` n'est pas le découpage de `source`.
 pub fn parse_tokens(source: &str, tokens: &[Token], dialect: Dialect) -> Parse {
-    let mut p = Parser::new(tokens, TextSize::of(source), dialect);
+    let mut p = Parser::new(source, tokens, dialect);
     grammar::source_file(&mut p);
     let Parser { events, errors, .. } = p;
     let green = tree_builder::build(source, tokens, events);
@@ -119,7 +119,9 @@ const FUEL: u32 = 256;
 /// L'état du parser : position dans les tokens significatifs, événements
 /// émis, erreurs.
 #[derive(Debug)]
-pub(crate) struct Parser {
+pub(crate) struct Parser<'t> {
+    /// Le texte, pour expliquer les erreurs.
+    source: &'t str,
     /// Kinds des tokens significatifs, trivia retirée, suivis de `EOF`.
     kinds: Vec<SyntaxKind>,
     /// Plages correspondantes, pour situer les erreurs.
@@ -131,8 +133,9 @@ pub(crate) struct Parser {
     fuel: Cell<u32>,
 }
 
-impl Parser {
-    fn new(tokens: &[Token], end: TextSize, dialect: Dialect) -> Parser {
+impl<'t> Parser<'t> {
+    fn new(source: &'t str, tokens: &[Token], dialect: Dialect) -> Parser<'t> {
+        let end = TextSize::of(source);
         let (mut kinds, mut ranges): (Vec<_>, Vec<_>) = tokens
             .iter()
             .filter(|t| !t.kind.is_trivia())
@@ -142,6 +145,7 @@ impl Parser {
         ranges.push(TextRange::empty(end));
 
         Parser {
+            source,
             kinds,
             ranges,
             pos: 0,
@@ -227,6 +231,18 @@ impl Parser {
         let range = self.current_range();
         if self.errors.last().is_some_and(|e| e.range == range) {
             return;
+        }
+        let mut message = message.into();
+        // `x is Actor` en Skyrim, `Guard g` en Fallout 4 : l'erreur tombe sur
+        // un mot que la cible ne réserve pas. Autant dire pourquoi.
+        if self.current() == SyntaxKind::IDENT {
+            let text = &self.source[range];
+            if let Some((_, since)) = reserved_later(text, self.dialect) {
+                message = format!(
+                    "{message} — `{text}` n'est un mot-clé qu'à partir de {}",
+                    since.display_name()
+                );
+            }
         }
         self.error_at(range, message);
     }
