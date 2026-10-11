@@ -325,7 +325,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "papyrus-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ariadne",
  "clap",
@@ -338,11 +338,11 @@ dependencies = [
 
 [[package]]
 name = "papyrus-dialect"
-version = "0.2.0"
+version = "0.3.0"
 
 [[package]]
 name = "papyrus-fmt"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "insta",
  "papyrus-dialect",
@@ -352,7 +352,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-lint"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "insta",
  "papyrus-dialect",
@@ -362,7 +362,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-project"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "encoding_rs",
  "papyrus-dialect",
@@ -374,14 +374,14 @@ dependencies = [
 
 [[package]]
 name = "papyrus-stdlib"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "papyrus-dialect",
 ]
 
 [[package]]
 name = "papyrus-syntax"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "insta",
  "logos",
@@ -635,7 +635,7 @@ checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 
 [[package]]
 name = "xtask"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "clap",
  "papyrus-dialect",
