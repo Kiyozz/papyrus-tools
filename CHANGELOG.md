@@ -1,5 +1,22 @@
 # papyrus-tools
 
+## 0.9.0
+
+### Minor Changes
+
+- 39974bc: Quick fixes that write to `papyrus.toml`, created if missing: "Allow `lint` in papyrus.toml", "Make `lint` an error / a warning in papyrus.toml", and "Enable SKSE in papyrus.toml" on `members/skse`. Comments and layout of the file are kept. The server also answers `papyrus.server.createConfig`, which writes a `papyrus.toml` with the inferred game.
+- 39974bc: JSON schema of `papyrus.toml`, `schemas/papyrus.schema.json`, generated from the lint registry by `cargo xtask schema`: completion and validation of its keys and lints in TOML editors such as Even Better TOML.
+- 39974bc: VSCode extension: "Papyrus: Create papyrus.toml" command; `papyrus: build` and `papyrus: check` tasks with a problem matcher; snippets; a richer TextMate grammar — declarations, types, calls, operators — highlighting before the server answers.
+- 39974bc: `papyrus check` and `papyrus build` take `--message-format short`: one line per problem, `path:line:column:end line:end column: error[code]: message`, for editors' problem matchers.
+- 39974bc: New lint `locals/duplicate` (PAP019): a local declared twice in a block, named like a parameter or a variable of the script, or hiding one of an enclosing block — what the Creation Kit's compiler refuses. Redeclared with a value, the quick fix assigns instead. `papyrus build` also says when the flags file is in no source folder: with Caprica, the game's sources belong in `imports`.
+- 39974bc: Completion of named arguments: at the start of an argument, the parameters not given yet are proposed first, `value = `, with their type and default value.
+- 39974bc: New lint `names/case` (PAP020): a name written with another case than its declaration — a call, a variable, a script, a type —, which the compiler accepts. The fix writes the declared name; `papyrus check --fix` and "fix all" apply it. When the use follows the naming convention its declaration breaks — `Initialize()` calling `Function initialize()` —, the editor offers instead to rename the declaration across the project, for the project's own functions, script variables and locals.
+- 39974bc: `members/unknown` (PAP008): a function named as a value — `MyScript.Run`, `self.Run`, `x = Run` — is reported as a function to call, with a fix adding the parentheses, instead of a missing property.
+
+### Patch Changes
+
+- 39974bc: The naming lints say which style a name is in before the expected one: "`a_reference` is in snake_case, but a parameter is written in lowerCamelCase: `aReference`."
+
 ## 0.8.0
 
 ### Minor Changes
