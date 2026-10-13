@@ -11,7 +11,8 @@ and IntelliJ.
 **v0.6** — `papyrus check`, `papyrus fmt`, configurable lints, checks of
 calls, types and members across files, language server with cross-file
 navigation: definition, hover, completion, references, rename, signature help,
-parameter names.
+parameter names. The milestones, done and next, are in
+[ROADMAP.md](ROADMAP.md).
 
 ```sh
 papyrus check --game skyrim Data/Source/Scripts   # syntax + lints
