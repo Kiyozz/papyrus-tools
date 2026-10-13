@@ -54,6 +54,11 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
 
 - **Publication**: the extension on the Marketplace and Open VSX (tokens),
   CI on the release PR.
+- **Tests of the VSCode extension**: the grammar against annotated `.psc`
+  files with `vscode-tmgrammar-test`, in CI; a few integration tests in a
+  real VSCode with `@vscode/test-cli` — activation, "Create papyrus.toml",
+  the `build` and `check` tasks, a diagnostic from the server —, on Linux
+  under `xvfb-run`.
 - **A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the binary
   embedded, settings, `papyrus build` as a run configuration. Parked until
   the VSCode extension is polished.
