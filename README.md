@@ -110,6 +110,7 @@ imported one of the same name.
 | `PAP014` | `code/unreachable` | warn | Statements after one that always returns |
 | `PAP015` | `locals/unused` | warn | Local variable never read |
 | `PAP016` | `params/unused` | warn | Parameter never read, after the last one read |
+| `PAP017` | `members/skse` | warn | SKSE member in a Skyrim project without `skse = true` nor SKSE's sources |
 | `PAP101` | `naming/locals` | warn | Locals and parameters not in lowerCamelCase — fixable |
 | `PAP102` | `naming/variables` | warn | Script variables, properties, fields not in lowerCamelCase |
 | `PAP103` | `naming/functions` | warn | Functions, events, states, structs not in PascalCase |
@@ -155,7 +156,9 @@ certain:
   its `import`s. The embedded Skyrim tables are vanilla: SKSE's functions,
   events and scripts come with `skse = true`, or when the project or its
   `imports` hold SKSE's sources (`SKSE.psc`). Without them,
-  `Game.GetPerkPoints()` is an unknown member. Another script extender's
+  `Game.GetPerkPoints()` is `PAP017 members/skse`, a warning inviting to
+  install SKSE: the compiler accepts it once SKSE's sources sit in the
+  game's, which papyrus cannot tell. Another script extender's
   (F4SE…) are known once its sources are in `imports`, as they are for the
   compiler.
 

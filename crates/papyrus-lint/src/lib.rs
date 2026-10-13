@@ -172,6 +172,14 @@ pub static PARAMS_UNUSED: Lint = Lint {
     description: "parameter never read, after the last one read; events and overrides excepted",
 };
 
+/// `PAP017`: SKSE member in a project without SKSE.
+pub static MEMBERS_SKSE: Lint = Lint {
+    code: "PAP017",
+    name: "members/skse",
+    default: Level::Warn,
+    description: "member only SKSE declares, in a Skyrim project that does not use SKSE",
+};
+
 /// `PAP101`: locals and parameters in lowerCamelCase.
 pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
@@ -214,6 +222,7 @@ pub static LINTS: &[&Lint] = &[
     &CODE_UNREACHABLE,
     &LOCALS_UNUSED,
     &PARAMS_UNUSED,
+    &MEMBERS_SKSE,
     &NAMING_LOCALS,
     &NAMING_VARIABLES,
     &NAMING_FUNCTIONS,

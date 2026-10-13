@@ -158,6 +158,14 @@ impl<'db> Semantics<'db> {
         }
     }
 
+    /// The same model, SKSE's additions included.
+    pub(crate) fn with_skse(&self) -> Semantics<'db> {
+        Semantics {
+            skse: true,
+            ..*self
+        }
+    }
+
     /// The game the files are read with.
     pub(crate) fn syntax(&self) -> Option<GameId> {
         self.syntax

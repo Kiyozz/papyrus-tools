@@ -45,11 +45,12 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
 
 - **v0.9 — The VSCode extension, polished.** To define: `papyrus build` as a
   task with its problems, settings for the lint levels, snippets, the
-  grammar's highlighting without the server, publication on the Marketplace
-  and Open VSX (tokens), CI on the release PR.
+  grammar's highlighting without the server.
 
 ## Later
 
+- **Publication**: the extension on the Marketplace and Open VSX (tokens),
+  CI on the release PR.
 - **A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the binary
   embedded, settings, `papyrus build` as a run configuration. Parked until
   the VSCode extension is polished.

@@ -387,9 +387,17 @@ fn skse_functions_need_skse() {
     assert_eq!(
         found(GameId::Skyrim, source),
         [
-            (Problem::UnknownMember, "GetPerkPoints".to_owned()),
-            (Problem::UnknownMember, "GetWornForm".to_owned())
+            (Problem::SkseMember, "GetPerkPoints".to_owned()),
+            (Problem::SkseMember, "GetWornForm".to_owned())
         ]
+    );
+    let message = &check(GameId::Skyrim, source)[0].2;
+    assert!(message.contains("set `skse = true`"), "{message}");
+    // A typo stays a typo.
+    let typo = source.replace("GetWornForm", "GetWornFrom");
+    assert_eq!(
+        found(GameId::Skyrim, &typo)[1],
+        (Problem::UnknownMember, "GetWornFrom".to_owned())
     );
 
     // `skse = true`.

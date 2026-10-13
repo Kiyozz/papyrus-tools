@@ -48,6 +48,8 @@ pub enum Problem {
     UnusedLocal,
     /// A parameter never read, after the last one read.
     UnusedParam,
+    /// A member only SKSE declares, in a Skyrim project without SKSE.
+    SkseMember,
 }
 
 /// A text replacement.
@@ -327,7 +329,36 @@ impl Semantics<'_> {
             .collect()
     }
 
+    /// [`Semantics::check_vanilla`], and the unknown members SKSE declares
+    /// told apart.
     fn check_for_target(&self, file: SourceFile) -> Vec<Diagnostic> {
+        let mut found = self.check_vanilla(file);
+        let unknown = |d: &Diagnostic| d.problem == Problem::UnknownMember;
+        if !self.skyrim() || self.library().skse || !found.iter().any(unknown) {
+            return found;
+        }
+        // Known with SKSE: the member is SKSE's.
+        let extended = self.with_skse().check_vanilla(file);
+        let text = file.text(self.db());
+        for diagnostic in found.iter_mut().filter(|d| unknown(d)) {
+            if !extended
+                .iter()
+                .any(|e| unknown(e) && e.range == diagnostic.range)
+            {
+                let name = &text[diagnostic.range];
+                diagnostic.problem = Problem::SkseMember;
+                diagnostic.message = format!(
+                    "`{name}` comes from SKSE, which this project does not use: install SKSE, \
+                     then set `skse = true` in papyrus.toml or add its sources to `imports`"
+                );
+                diagnostic.fixes.clear();
+            }
+        }
+        found
+    }
+
+    /// The problems of `file` against the native scripts in effect.
+    fn check_vanilla(&self, file: SourceFile) -> Vec<Diagnostic> {
         let root = self.root(file);
         let errors: Vec<TextRange> = crate::parse(self.db(), file, self.syntax())
             .errors()
