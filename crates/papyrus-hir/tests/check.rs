@@ -1016,6 +1016,27 @@ EndFunction
             (Problem::NameCase, "point".to_owned()),
         ]
     );
+    // Across files: a member and its script.
+    let main = "ScriptName A extends Quest
+Function Run()
+\tTestScript.test()
+\ttestScript.Test()
+\tTestScript.Test()
+EndFunction
+";
+    let lib = "ScriptName TestScript Hidden\nFunction Test() global\nEndFunction\n";
+    let found = check_all_in(
+        Some(GameId::Skyrim),
+        &[("A.psc", main), ("TestScript.psc", lib)],
+    );
+    assert_eq!(
+        only(found, &[Problem::NameCase]),
+        [
+            (Problem::NameCase, "test".to_owned()),
+            (Problem::NameCase, "testScript".to_owned()),
+        ]
+    );
+
     let fixed = fixes(GameId::Fallout4, source, Problem::NameCase);
     assert_eq!(fixed[0].0, "Write `initialize`");
     assert!(fixed[0].1.contains("\n\tinitialize()\n"), "{}", fixed[0].1);

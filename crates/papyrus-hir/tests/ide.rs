@@ -313,6 +313,29 @@ fn general_completion_lists_locals_members_and_types() {
     assert_eq!(kind("Actor"), Some(CompletionKind::Script));
 }
 
+/// Papyrus ignores case: a member written `test` still reaches `Test`.
+#[test]
+fn navigation_and_completion_ignore_case() {
+    const LIB: &str = "ScriptName TestScript Hidden\nFunction Test() global\nEndFunction\n";
+    let main =
+        |body: &str| format!("ScriptName A extends Quest\nFunction Run()\n\t{body}\nEndFunction\n");
+    let call = main("testScript.te$0st()");
+    let f = Fixture::new(GameId::Skyrim, &[("A.psc", &call), ("TestScript.psc", LIB)]);
+    assert_eq!(f.definition().as_deref(), Some("TestScript.psc:Test"));
+    let receiver = main("testsc$0ript.test()");
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[("A.psc", &receiver), ("TestScript.psc", LIB)],
+    );
+    assert_eq!(f.definition().as_deref(), Some("TestScript.psc:TestScript"));
+    let members = main("testscript.$0");
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[("A.psc", &members), ("TestScript.psc", LIB)],
+    );
+    assert!(f.labels().iter().any(|l| l == "Test"), "{:?}", f.labels());
+}
+
 #[test]
 fn parameters_complete_as_named_arguments() {
     let lib = "ScriptName Test Hidden\n\
