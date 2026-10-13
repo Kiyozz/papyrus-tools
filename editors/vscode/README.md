@@ -12,7 +12,9 @@ the Creation Kit — Skyrim, Fallout 4, Starfield.
   parameters, read-only properties assigned, unreachable code, unused
   variables and parameters;
 - one-click fixes — the closest name, a cast, the missing arguments, the
-  unknown function created —, and "Allow" to silence a lint on one line;
+  unknown function created —, "Allow" to silence a lint on one line, and,
+  written to `papyrus.toml`, a lint's level for the whole project or SKSE
+  enabled;
 - go to definition, hover, completion, references and rename across the
   project's scripts, down to the game's native ones;
 - the uses of the symbol under the cursor, the overrides of a function or an
@@ -20,7 +22,25 @@ the Creation Kit — Skyrim, Fallout 4, Starfield.
 - signature help while typing a call, and the names of the parameters before
   its arguments;
 - document formatting;
-- document outline, workspace symbols, block folding, semantic highlighting.
+- document outline, workspace symbols, block folding, semantic highlighting;
+- highlighting and snippets — `scriptname`, `function`, `event`,
+  `property`, `state`, `if`, `while`, `foreach`… — even before the server
+  answers;
+- `papyrus build` and `papyrus check` as tasks, their problems in the
+  Problems view.
+
+## Commands and tasks
+
+- **Papyrus: Create papyrus.toml** writes one at the root of a workspace
+  folder, the game inferred from its scripts, the other keys commented out.
+- **Papyrus: Restart the server**.
+- **Tasks: Run Build Task** › `papyrus: build` compiles the folder's projects
+  with the compiler of `papyrus.toml`; `papyrus: check` reports the lints of
+  every script, open or not. In `tasks.json`:
+
+  ```json
+  { "type": "papyrus", "command": "build", "args": ["--release"] }
+  ```
 
 ## Installation
 
@@ -53,3 +73,7 @@ indent = 2
 [lints]
 "naming/variables" = "allow"
 ```
+
+With [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml),
+`papyrus.toml` gets completion and validation of its keys and lints, from
+[its JSON schema](https://raw.githubusercontent.com/Kiyozz/papyrus-tools/main/schemas/papyrus.schema.json).

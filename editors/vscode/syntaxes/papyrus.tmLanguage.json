@@ -5,8 +5,13 @@
   "patterns": [
     { "include": "#comments" },
     { "include": "#strings" },
+    { "include": "#header" },
+    { "include": "#declarations" },
+    { "include": "#keywords" },
+    { "include": "#variables" },
+    { "include": "#calls" },
     { "include": "#numbers" },
-    { "include": "#keywords" }
+    { "include": "#operators" }
   ],
   "repository": {
     "comments": {
@@ -21,15 +26,93 @@
         {
           "name": "string.quoted.double.papyrus",
           "begin": "\"",
-          "end": "\"",
+          "end": "\"|$",
           "patterns": [{ "name": "constant.character.escape.papyrus", "match": "\\\\." }]
         }
       ]
     },
-    "numbers": {
+    "header": {
       "patterns": [
-        { "name": "constant.numeric.hex.papyrus", "match": "(?i)\\b0x[0-9a-f]+\\b" },
-        { "name": "constant.numeric.papyrus", "match": "\\b\\d+(\\.\\d+)?\\b" }
+        {
+          "match": "(?i)^\\s*(scriptname)\\s+([A-Za-z_][\\w:]*)(?:\\s+(extends)\\s+([A-Za-z_][\\w:]*))?",
+          "captures": {
+            "1": { "name": "keyword.other.scriptname.papyrus" },
+            "2": { "name": "entity.name.type.class.papyrus" },
+            "3": { "name": "storage.modifier.extends.papyrus" },
+            "4": { "name": "entity.other.inherited-class.papyrus" }
+          }
+        },
+        {
+          "match": "(?i)^\\s*(import)\\s+([A-Za-z_][\\w:]*)",
+          "captures": {
+            "1": { "name": "keyword.other.import.papyrus" },
+            "2": { "name": "entity.name.type.papyrus" }
+          }
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "comment": "Function and event, with their return type: `Int Function Count()`, `Event Actor.OnDeath(...)`.",
+          "match": "(?i)\\b(?:([A-Za-z_][\\w:]*(?:\\[\\])?)\\s+)?(function|event)\\s+([A-Za-z_][\\w:]*(?:\\.[A-Za-z_]\\w*)?)",
+          "captures": {
+            "1": { "patterns": [{ "include": "#types" }] },
+            "2": { "name": "storage.type.function.papyrus" },
+            "3": { "name": "entity.name.function.papyrus" }
+          }
+        },
+        {
+          "match": "(?i)\\b([A-Za-z_][\\w:]*(?:\\[\\])?)\\s+(property)\\s+([A-Za-z_]\\w*)",
+          "captures": {
+            "1": { "patterns": [{ "include": "#types" }] },
+            "2": { "name": "storage.type.property.papyrus" },
+            "3": { "name": "variable.other.property.papyrus" }
+          }
+        },
+        {
+          "match": "(?i)\\b(?:(auto)\\s+)?(state)\\s+([A-Za-z_]\\w*)",
+          "captures": {
+            "1": { "name": "storage.modifier.papyrus" },
+            "2": { "name": "storage.type.state.papyrus" },
+            "3": { "name": "entity.name.section.state.papyrus" }
+          }
+        },
+        {
+          "match": "(?i)\\b(struct)\\s+([A-Za-z_]\\w*)",
+          "captures": {
+            "1": { "name": "storage.type.struct.papyrus" },
+            "2": { "name": "entity.name.type.struct.papyrus" }
+          }
+        },
+        {
+          "match": "(?i)\\b(group)\\s+([A-Za-z_]\\w*)",
+          "captures": {
+            "1": { "name": "storage.type.group.papyrus" },
+            "2": { "name": "entity.name.section.group.papyrus" }
+          }
+        },
+        {
+          "match": "(?i)\\b(customevent)\\s+([A-Za-z_]\\w*)",
+          "captures": {
+            "1": { "name": "storage.type.event.papyrus" },
+            "2": { "name": "entity.name.function.event.papyrus" }
+          }
+        },
+        {
+          "comment": "Casts and instantiation: `x as Actor`, `new Point`, `new Int[5]`.",
+          "match": "(?i)\\b(as|is|new)\\s+([A-Za-z_][\\w:]*)",
+          "captures": {
+            "1": { "name": "keyword.operator.papyrus" },
+            "2": { "patterns": [{ "include": "#types" }] }
+          }
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        { "name": "storage.type.primitive.papyrus", "match": "(?i)\\b(bool|float|int|string|var)\\b(\\[\\])?" },
+        { "name": "entity.name.type.papyrus", "match": "[A-Za-z_][\\w:]*(\\[\\])?" }
       ]
     },
     "keywords": {
@@ -39,8 +122,12 @@
           "match": "(?i)\\b(if|elseif|else|endif|while|endwhile|return|lockguard|endlockguard|trylockguard|elsetrylockguard|endtrylockguard)\\b"
         },
         {
-          "name": "storage.type.papyrus",
-          "match": "(?i)\\b(bool|float|int|string|var)\\b"
+          "name": "storage.type.function.papyrus",
+          "match": "(?i)\\b(endfunction|endevent|endproperty|endstate|endstruct|endgroup|endguard)\\b"
+        },
+        {
+          "name": "storage.type.primitive.papyrus",
+          "match": "(?i)\\b(bool|float|int|string|var)\\b(\\[\\])?"
         },
         {
           "name": "constant.language.papyrus",
@@ -51,9 +138,48 @@
           "match": "(?i)\\b(self|parent)\\b"
         },
         {
+          "name": "storage.modifier.papyrus",
+          "match": "(?i)\\b(auto|autoreadonly|betaonly|collapsed|collapsedonbase|collapsedonref|conditional|const|debugonly|default|global|hidden|mandatory|native|private|protected|protectsfunctionlogic|requiresguard|selfonly)\\b"
+        },
+        {
           "name": "keyword.other.papyrus",
-          "match": "(?i)\\b(as|auto|autoreadonly|betaonly|collapsed|collapsedonbase|collapsedonref|conditional|const|customevent|customeventname|debugonly|default|endevent|endfunction|endgroup|endproperty|endstate|endstruct|event|extends|function|global|group|guard|hidden|import|is|length|mandatory|native|new|private|property|protected|protectsfunctionlogic|requiresguard|scripteventname|scriptname|selfonly|state|struct|structvarname)\\b"
+          "match": "(?i)\\b(customeventname|extends|guard|import|length|scripteventname|scriptname|structvarname)\\b"
         }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "comment": "A variable or parameter declared with its type: `Actor akTarget`, `Int[] counts = new Int[5]`.",
+          "match": "(?i)\\b(?!(?:if|elseif|else|while|return|as|is|new|not|auto|state|import|scriptname|extends|function|event|property|struct|group|customevent|global|native)\\b)([A-Za-z_][\\w:]*(?:\\[\\])?)\\s+(?!(?:function|event|property|as|is)\\b)([A-Za-z_]\\w*)(?=\\s*(?:[,)=]|$|;))",
+          "captures": {
+            "1": { "patterns": [{ "include": "#types" }] },
+            "2": { "name": "variable.other.declaration.papyrus" }
+          }
+        }
+      ]
+    },
+    "calls": {
+      "patterns": [
+        {
+          "match": "\\b([A-Za-z_]\\w*)\\s*(?=\\()",
+          "captures": { "1": { "name": "entity.name.function.call.papyrus" } }
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        { "name": "constant.numeric.hex.papyrus", "match": "(?i)\\b0x[0-9a-f]+\\b" },
+        { "name": "constant.numeric.papyrus", "match": "\\b\\d+(\\.\\d+)?\\b" }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        { "name": "punctuation.separator.continuation.papyrus", "match": "\\\\\\s*$" },
+        { "name": "keyword.operator.comparison.papyrus", "match": "==|!=|<=|>=|<|>" },
+        { "name": "keyword.operator.logical.papyrus", "match": "&&|\\|\\||!" },
+        { "name": "keyword.operator.assignment.papyrus", "match": "[-+*/%]?=" },
+        { "name": "keyword.operator.arithmetic.papyrus", "match": "[-+*/%]" }
       ]
     }
   }

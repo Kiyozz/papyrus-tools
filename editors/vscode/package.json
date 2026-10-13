@@ -26,7 +26,8 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "workspaceContains:**/papyrus.toml"
+    "workspaceContains:**/papyrus.toml",
+    "onTaskType:papyrus"
   ],
   "contributes": {
     "languages": [
@@ -88,6 +89,67 @@
         "command": "papyrus.restart",
         "title": "Restart the server",
         "category": "Papyrus"
+      },
+      {
+        "command": "papyrus.createConfig",
+        "title": "Create papyrus.toml",
+        "category": "Papyrus"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "papyrus",
+        "path": "./snippets/papyrus.json"
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "papyrus",
+        "required": [
+          "command"
+        ],
+        "properties": {
+          "command": {
+            "type": "string",
+            "enum": [
+              "build",
+              "check"
+            ],
+            "description": "`build`: compile with the compiler of papyrus.toml. `check`: report the lints of every script."
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "More arguments: `--release`, `--optimize`, a folder…"
+          }
+        }
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "papyrus",
+        "owner": "papyrus-task",
+        "source": "papyrus",
+        "fileLocation": "absolute",
+        "pattern": {
+          "regexp": "^(.+):(\\d+):(\\d+):(\\d+):(\\d+): (error|warning)\\[([^\\]]+)\\]: (.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "endLine": 4,
+          "endColumn": 5,
+          "severity": 6,
+          "code": 7,
+          "message": 8
+        }
+      }
+    ],
+    "tomlValidation": [
+      {
+        "fileMatch": "papyrus.toml",
+        "url": "https://raw.githubusercontent.com/Kiyozz/papyrus-tools/main/schemas/papyrus.schema.json"
       }
     ]
   },
