@@ -8,8 +8,11 @@ the Creation Kit — Skyrim, Fallout 4, Starfield.
   misplaced flags, text the compiler will corrupt, naming conventions;
 - checks across files: missing or extra arguments, values of the wrong type,
   unknown functions and members (with the closest name), typed functions
-  that can end without `Return`;
-- one-click fixes, and "Allow" to silence a lint on one line;
+  that can end without `Return`, undeclared states, events with the wrong
+  parameters, read-only properties assigned, unreachable code, unused
+  variables and parameters;
+- one-click fixes — the closest name, a cast, the missing arguments, the
+  unknown function created —, and "Allow" to silence a lint on one line;
 - go to definition, hover, completion, references and rename across the
   project's scripts, down to the game's native ones;
 - signature help while typing a call, and the names of the parameters before

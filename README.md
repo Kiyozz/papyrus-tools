@@ -179,7 +179,9 @@ folders) are skipped by default; `--include-fragments` includes them.
 ### Editors
 
 `papyrus lsp` speaks LSP over standard input and output: diagnostics as you
-type, fixes and "Allow on this line", formatting, document outline, folding,
+type, fixes and "Allow on this line" — and for the semantic lints, the closest
+name, a cast, the missing arguments, the unknown function created —,
+formatting, document outline, folding,
 semantic highlighting, and across files: go to definition, hover with the
 signature and docstring, completion, references, rename, workspace symbols,
 signature help with the current parameter, and the names of the parameters
