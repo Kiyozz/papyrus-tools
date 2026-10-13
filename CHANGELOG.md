@@ -1,5 +1,18 @@
 # papyrus-tools
 
+## 0.5.0
+
+### Minor Changes
+
+- e667ba6: The language server navigates across files: go to definition, hover with signature and docstring, completion, references, rename and workspace symbols. Names resolve through the `extends` chain down to the native scripts, `import`, `self` and `parent`, and members reached through declared types.
+- e667ba6: `imports = [...]` in `papyrus.toml` lists folders of scripts the project builds on, like the compiler's import folders. They are read to follow `extends` and calls, never checked nor changed.
+- e667ba6: `papyrus check --fix --unsafe` also fixes the case of properties, which plugins bind by name; the editor offers it as a separate quick fix.
+
+### Patch Changes
+
+- 98b4ae0: Each script follows the `papyrus.toml` that covers it. The CLI and the language server resolve settings, detect the game and index `extends` per project, so a Skyrim mod opened next to a Fallout 4 one is no longer checked as Fallout 4.
+- 98b4ae0: Diagnostics, errors, lint descriptions and language server actions are now in English.
+
 ## 0.4.0
 
 ### Minor Changes
