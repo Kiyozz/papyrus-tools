@@ -1,0 +1,25 @@
+[package]
+name = "papyrus-hir"
+description = "Papyrus semantic model: cross-file index, name resolution, declared types"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+papyrus-dialect.workspace = true
+papyrus-syntax.workspace = true
+papyrus-stdlib.workspace = true
+rowan.workspace = true
+salsa.workspace = true
+
+[dev-dependencies]
+papyrus-project.workspace = true
+
+[features]
+# Resolves the vanilla sources of a local installation.
+external-corpus = []
+
+[lints]
+workspace = true
