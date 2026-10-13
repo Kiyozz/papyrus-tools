@@ -1,5 +1,14 @@
 # papyrus-tools
 
+## 0.7.0
+
+### Minor Changes
+
+- 2d1c3ff: New lints: `states/unknown` (PAP010) for `GotoState` to an undeclared state, `events/signature` (PAP011) for an event whose parameters differ from the engine's, `properties/readonly` (PAP012) for an assignment to an `AutoReadOnly`, `Const` or `Set`-less property, `calls/not-global` (PAP013) for an instance member reached from a `Global` function or on the script itself, and as warnings `code/unreachable` (PAP014), `locals/unused` (PAP015) and `params/unused` (PAP016). Unused parameters are only reported after the last one read, never on events, overrides or fragments.
+- 27a3b70: The editor offers quick fixes for the semantic lints: cast a value with `as`, add the missing arguments of a call, create the unknown function with a parameter per argument, or replace a misspelled name with the closest one. A cast between objects is only suggested toward a descendant, which the compiler accepts.
+- f9d7f59: The language server highlights the uses of the symbol under the cursor, telling writes from reads, goes to the overrides of a function or an event — in states and derived scripts, or across the project for a native event —, shows the call hierarchy, and counts the references of each function, property, variable and struct above it.
+- 33e62c7: `papyrus build` compiles each project with the Creation Kit's `PapyrusCompiler.exe` or with Caprica, and shows their errors like the lints', on the line they name. The `[build]` section of `papyrus.toml` sets the compiler, the output folder and `optimize`, `release`, `final`. The project's sources, its `imports` and the game's own sources, found next to the official compiler, are passed as import folders; fragments are compiled too.
+
 ## 0.6.0
 
 ### Minor Changes
