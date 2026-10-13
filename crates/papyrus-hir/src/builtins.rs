@@ -102,6 +102,7 @@ pub(crate) static ARRAY: Script = Script {
         ),
     ],
     events: &[],
+    properties: &[],
 };
 
 /// The number of array functions Skyrim knows.
@@ -121,4 +122,5 @@ pub(crate) static SKYRIM_SCRIPT: Script = Script {
         function("OnEndState", None, &[]),
         function("OnInit", None, &[]),
     ],
+    properties: &[],
 };

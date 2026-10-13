@@ -3,7 +3,7 @@
 // 229 native scripts, extracted from 2752 vanilla sources. Signatures
 // only: no function bodies, no docstrings.
 
-use crate::{Function, Param, Script};
+use crate::{Function, Param, Property, Script};
 
 #[rustfmt::skip]
 pub(crate) static SCRIPTS: &[Script] = &[
@@ -14,6 +14,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Activator",
@@ -22,6 +24,8 @@ Script {
         Function { name: "IsRadio", returns: Some("bool"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -119,6 +123,8 @@ Script {
         Function { name: "OnWorkshopObjectMoved", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnWorkshopObjectPlaced", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnWorkshopObjectRepaired", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -387,6 +393,15 @@ Script {
         Function { name: "OnSit", returns: None, global: false, native: false, params: &[Param { name: "akFurniture", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnSpeechChallengeAvailable", returns: None, global: false, native: false, params: &[Param { name: "akSpeaker", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+        Property { name: "CritStage_DisintegrateEnd", ty: "int" },
+        Property { name: "CritStage_DisintegrateStart", ty: "int" },
+        Property { name: "CritStage_FreezeEnd", ty: "int" },
+        Property { name: "CritStage_FreezeStart", ty: "int" },
+        Property { name: "CritStage_GooEnd", ty: "int" },
+        Property { name: "CritStage_GooStart", ty: "int" },
+        Property { name: "CritStage_None", ty: "int" },
+    ],
 },
 Script {
     name: "ActorBase",
@@ -411,6 +426,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ActorValue",
@@ -418,6 +435,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -433,6 +452,8 @@ Script {
         Function { name: "OnAliasReset", returns: None, global: false, native: false, params: &[] },
         Function { name: "OnAliasShutdown", returns: None, global: false, native: false, params: &[] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Ammo",
@@ -440,6 +461,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -449,6 +472,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Armor",
@@ -456,6 +481,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -465,6 +492,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "AssociationType",
@@ -472,6 +501,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -481,6 +512,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "BOSR05Script",
@@ -488,6 +521,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -497,6 +532,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_AddictionEffectScript",
@@ -504,6 +541,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -513,6 +552,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Dislikes_Cait",
@@ -520,6 +561,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -529,6 +572,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Dislikes_Curie",
@@ -536,6 +581,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -545,6 +592,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Dislikes_Deacon",
@@ -552,6 +601,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -561,6 +612,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Dislikes_MacCready",
@@ -568,6 +621,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -577,6 +632,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Dislikes_Preston",
@@ -584,6 +641,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -593,6 +652,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Dislikes_Valentine",
@@ -600,6 +661,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -609,6 +672,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Hates",
@@ -616,6 +681,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -625,6 +692,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Hates_Codsworth",
@@ -632,6 +701,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -641,6 +712,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Hates_Danse",
@@ -648,6 +721,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -657,6 +732,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Hates_Hancock",
@@ -664,6 +741,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -673,6 +752,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Hates_Piper",
@@ -680,6 +761,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -689,6 +772,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Hates_Strong",
@@ -696,6 +781,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -705,6 +792,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Hates_X688",
@@ -712,6 +801,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -721,6 +812,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Likes_Cait",
@@ -728,6 +821,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -737,6 +832,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Likes_Curie",
@@ -744,6 +841,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -753,6 +852,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Likes_Deacon",
@@ -760,6 +861,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -769,6 +872,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Likes_MacCready",
@@ -776,6 +881,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -785,6 +892,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Likes_Preston",
@@ -792,6 +901,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -801,6 +912,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Likes_Valentine",
@@ -808,6 +921,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -817,6 +932,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Loves",
@@ -824,6 +941,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -833,6 +952,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Loves_Codsworth",
@@ -840,6 +961,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -849,6 +972,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Loves_Danse",
@@ -856,6 +981,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -865,6 +992,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Loves_Hancock",
@@ -872,6 +1001,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -881,6 +1012,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Loves_Piper",
@@ -888,6 +1021,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -897,6 +1032,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Loves_Strong",
@@ -904,6 +1041,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -913,6 +1052,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Loves_X688",
@@ -920,6 +1061,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -929,6 +1072,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Neutral_Codsworth",
@@ -936,6 +1081,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -945,6 +1092,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Neutral_Danse",
@@ -952,6 +1101,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -961,6 +1112,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Neutral_Hancock",
@@ -968,6 +1121,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -977,6 +1132,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Neutral_Piper",
@@ -984,6 +1141,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -993,6 +1152,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Neutral_Strong",
@@ -1000,6 +1161,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1009,6 +1172,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CA_Interjection_Neutral_X688",
@@ -1017,6 +1182,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CameraShot",
@@ -1024,6 +1191,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1046,6 +1215,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Class",
@@ -1053,6 +1224,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1062,6 +1235,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "COMMacCreadyScript",
@@ -1069,6 +1244,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1078,6 +1255,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ConstitutionLaunch01Script",
@@ -1085,6 +1264,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1094,6 +1275,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Container",
@@ -1101,6 +1284,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1145,6 +1330,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultAliasOnDeath2",
@@ -1152,6 +1339,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1161,6 +1350,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultAliasOnDeathA",
@@ -1168,6 +1359,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1177,6 +1370,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultCounterQuestA",
@@ -1184,6 +1379,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1193,6 +1390,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultCounterQuestC",
@@ -1200,6 +1399,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1209,6 +1410,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultCounterQuestE",
@@ -1216,6 +1419,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1225,6 +1430,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DialogueAbernathyFarmLucyTracking",
@@ -1232,6 +1439,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1241,6 +1450,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DLC01:DLC01_testJeffBScript",
@@ -1248,6 +1459,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1258,6 +1471,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DLC01:DLC01MQ01Script",
@@ -1265,6 +1480,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1274,6 +1491,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DLC01:TestDarylScript",
@@ -1282,6 +1501,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DLC02:DLC02TestDarylScript",
@@ -1289,6 +1510,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1299,6 +1522,8 @@ Script {
     events: &[
         Function { name: "OnActivate", returns: None, global: false, native: false, params: &[Param { name: "akActionRef", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DLC03:DLC03CoA_FFNucleus02ObjTriggerScript",
@@ -1306,6 +1531,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1315,6 +1542,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DLC03:VRDoorScript",
@@ -1323,6 +1552,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DLC03:WorkshopRadiantOwned05Script",
@@ -1330,6 +1561,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1340,6 +1573,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DLC06:DLC06WorkshopOverseerDeskScript",
@@ -1349,6 +1584,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DN015_PuzEmitterOutputScript",
@@ -1356,6 +1593,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1365,6 +1604,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DN084_LabCounterQuest01",
@@ -1372,6 +1613,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1381,6 +1624,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DN084_LabCounterQuest03",
@@ -1388,6 +1633,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1397,6 +1644,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DN084_LabCounterQuest05",
@@ -1404,6 +1653,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1413,6 +1664,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DN134PowerSupplyScript",
@@ -1420,6 +1673,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1429,6 +1684,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DogmeatFaceAliasScript",
@@ -1436,6 +1693,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1445,6 +1704,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DogmeatQuestScript",
@@ -1452,6 +1713,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1461,6 +1724,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Door",
@@ -1468,6 +1733,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1479,6 +1746,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Enchantment",
@@ -1487,6 +1756,8 @@ Script {
         Function { name: "IsHostile", returns: Some("bool"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1499,6 +1770,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Explosion",
@@ -1506,6 +1779,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1538,6 +1813,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Flora",
@@ -1546,6 +1823,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "FollowersDogmeatScript",
@@ -1553,6 +1832,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1569,6 +1850,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "FormList",
@@ -1584,6 +1867,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Furniture",
@@ -1592,6 +1877,8 @@ Script {
         Function { name: "GetAssociatedForm", returns: Some("Form"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1716,6 +2003,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "GlobalVariable",
@@ -1729,6 +2018,9 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+        Property { name: "Value", ty: "float" },
+    ],
 },
 Script {
     name: "GlowingSea",
@@ -1736,6 +2028,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1745,6 +2039,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Hazard",
@@ -1752,6 +2048,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1761,6 +2059,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Holotape",
@@ -1768,6 +2068,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1777,6 +2079,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "IdleMarker",
@@ -1784,6 +2088,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1798,6 +2104,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ImpactDataSet",
@@ -1805,6 +2113,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1817,6 +2127,8 @@ Script {
         Function { name: "LearnNextEffect", returns: Some("int"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1861,6 +2173,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Inst305RadioRackTerminalSCRIPT",
@@ -1868,6 +2182,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1878,6 +2194,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "InstM01PostScript",
@@ -1886,6 +2204,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Key",
@@ -1893,6 +2213,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1904,6 +2226,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "LeveledActor",
@@ -1913,6 +2237,8 @@ Script {
         Function { name: "Revert", returns: None, global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1924,6 +2250,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "LeveledSpell",
@@ -1934,6 +2262,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Light",
@@ -1941,6 +2271,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1970,6 +2302,8 @@ Script {
         Function { name: "OnLocationCleared", returns: None, global: false, native: false, params: &[] },
         Function { name: "OnLocationLoaded", returns: None, global: false, native: false, params: &[] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "LocationAlias",
@@ -1981,6 +2315,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "LocationRefType",
@@ -1988,6 +2324,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1997,6 +2335,8 @@ Script {
         Function { name: "GetAssociatedSkill", returns: Some("string"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2021,6 +2361,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Message",
@@ -2034,6 +2376,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "MinRadiantOwned04",
@@ -2041,6 +2385,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2051,6 +2397,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ModLegendaryFrenzyScript",
@@ -2058,6 +2406,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2067,6 +2417,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "MQ102SpouseCorpseScript",
@@ -2074,6 +2426,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2083,6 +2437,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "MQ202MemoryLoungerScript",
@@ -2090,6 +2446,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2099,6 +2457,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "MQ203MemoryB_BabyScript",
@@ -2106,6 +2466,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2115,6 +2477,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "MS16DisableOnLoadScript",
@@ -2122,6 +2486,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2133,6 +2499,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "MyMod01:Deep:Other",
@@ -2140,6 +2508,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2149,6 +2519,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "newscript",
@@ -2156,6 +2528,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2165,6 +2539,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ObjectMod",
@@ -2172,6 +2548,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2456,6 +2834,14 @@ Script {
         Function { name: "OnWorkshopObjectPlaced", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnWorkshopObjectRepaired", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+        Property { name: "Motion_Dynamic", ty: "int" },
+        Property { name: "Motion_Fixed", ty: "int" },
+        Property { name: "Motion_Keyframed", ty: "int" },
+        Property { name: "X", ty: "float" },
+        Property { name: "Y", ty: "float" },
+        Property { name: "Z", ty: "float" },
+    ],
 },
 Script {
     name: "Outfit",
@@ -2464,6 +2850,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "OutputModel",
@@ -2471,6 +2859,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2485,6 +2875,8 @@ Script {
         Function { name: "OnEnd", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
         Function { name: "OnStart", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Perk",
@@ -2494,6 +2886,8 @@ Script {
     events: &[
         Function { name: "OnEntryRun", returns: None, global: false, native: false, params: &[Param { name: "auiEntryID", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "akOwner", ty: "Actor", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "perkRoboHackingEffectSCRIPT",
@@ -2502,6 +2896,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "PlayerCompanionsScript",
@@ -2509,6 +2905,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2519,6 +2917,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Projectile",
@@ -2526,6 +2926,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2610,6 +3012,8 @@ Script {
         Function { name: "OnStoryServedTime", returns: None, global: false, native: false, params: &[Param { name: "akLocation", ty: "Location", default: None }, Param { name: "akCrimeGroup", ty: "Form", default: None }, Param { name: "aiCrimeGold", ty: "int", default: None }, Param { name: "aiDaysJail", ty: "int", default: None }, ] },
         Function { name: "OnStoryTrespass", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "ObjectReference", default: None }, Param { name: "akTrespasser", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "aiCrime", ty: "int", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Race",
@@ -2618,6 +3022,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "REAliasScriptPilot",
@@ -2625,6 +3031,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2741,6 +3149,8 @@ Script {
         Function { name: "OnWorkshopObjectPlaced", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnWorkshopObjectRepaired", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ReferenceAlias",
@@ -2855,6 +3265,8 @@ Script {
         Function { name: "OnWorkshopObjectPlaced", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnWorkshopObjectRepaired", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "RRKickOutScript",
@@ -2862,6 +3274,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2882,6 +3296,8 @@ Script {
         Function { name: "OnEnd", returns: None, global: false, native: false, params: &[] },
         Function { name: "OnPhaseBegin", returns: None, global: false, native: false, params: &[Param { name: "auiPhaseIndex", ty: "int", default: None }, ] },
         Function { name: "OnPhaseEnd", returns: None, global: false, native: false, params: &[Param { name: "auiPhaseIndex", ty: "int", default: None }, ] },
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2973,6 +3389,8 @@ Script {
         Function { name: "OnTrackedStatsEvent", returns: None, global: false, native: false, params: &[Param { name: "arStatName", ty: "string", default: None }, Param { name: "aiStatValue", ty: "int", default: None }, ] },
         Function { name: "OnTutorialEvent", returns: None, global: false, native: false, params: &[Param { name: "asEventName", ty: "String", default: None }, Param { name: "aMessage", ty: "Message", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Scroll",
@@ -2981,6 +3399,8 @@ Script {
         Function { name: "Cast", returns: None, global: false, native: true, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: Some("NONE") }, ] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2992,6 +3412,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Shout",
@@ -2999,6 +3421,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3008,6 +3432,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "SoulGem",
@@ -3015,6 +3441,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3027,6 +3455,8 @@ Script {
         Function { name: "StopInstance", returns: None, global: true, native: true, params: &[Param { name: "aiPlaybackInstance", ty: "int", default: None }, ] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3042,6 +3472,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "SoundCategorySnapshot",
@@ -3051,6 +3483,8 @@ Script {
         Function { name: "Remove", returns: None, global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3063,6 +3497,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Static",
@@ -3071,6 +3507,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "TalkingActivator",
@@ -3078,6 +3516,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3089,6 +3529,8 @@ Script {
     events: &[
         Function { name: "OnMenuItemRun", returns: None, global: false, native: false, params: &[Param { name: "auiMenuItemID", ty: "int", default: None }, Param { name: "akTerminalRef", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "TestJeffLScript",
@@ -3099,6 +3541,8 @@ Script {
         Function { name: "OnActivate", returns: None, global: false, native: false, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnInit", returns: None, global: false, native: false, params: &[] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "testJoelCarScript",
@@ -3108,6 +3552,8 @@ Script {
     events: &[
         Function { name: "onHit", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "akAggressor", ty: "ObjectReference", default: None }, Param { name: "akSource", ty: "Form", default: None }, Param { name: "akProjectile", ty: "Projectile", default: None }, Param { name: "abPowerAttack", ty: "bool", default: None }, Param { name: "abSneakAttack", ty: "bool", default: None }, Param { name: "abBashAttack", ty: "bool", default: None }, Param { name: "abHitBlocked", ty: "bool", default: None }, Param { name: "asMaterialName", ty: "string", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "TextureSet",
@@ -3115,6 +3561,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3124,6 +3572,8 @@ Script {
         Function { name: "Add", returns: None, global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3137,6 +3587,8 @@ Script {
         Function { name: "OnBegin", returns: None, global: false, native: false, params: &[Param { name: "akSpeakerRef", ty: "ObjectReference", default: None }, Param { name: "abHasBeenSaid", ty: "bool", default: None }, ] },
         Function { name: "OnEnd", returns: None, global: false, native: false, params: &[Param { name: "akSpeakerRef", ty: "ObjectReference", default: None }, Param { name: "abHasBeenSaid", ty: "bool", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "tpMotorEffectsSCRIPT",
@@ -3144,6 +3596,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3183,6 +3637,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Vault75DoorStartOpen",
@@ -3191,6 +3647,8 @@ Script {
     ],
     events: &[
         Function { name: "OnLoad", returns: None, global: false, native: false, params: &[] },
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3202,6 +3660,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "VoiceType",
@@ -3209,6 +3669,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3219,6 +3681,8 @@ Script {
         Function { name: "GetAmmo", returns: Some("Ammo"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3238,6 +3702,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "WordOfPower",
@@ -3245,6 +3711,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3254,6 +3722,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "WorldSpace",
@@ -3261,6 +3731,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 ];

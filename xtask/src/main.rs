@@ -66,11 +66,17 @@ struct Function {
     native: bool,
 }
 
+struct Property {
+    name: String,
+    ty: String,
+}
+
 struct Script {
     name: String,
     parent: Option<String>,
     functions: Vec<Function>,
     events: Vec<Function>,
+    properties: Vec<Property>,
 }
 
 fn child(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxNode> {
@@ -167,6 +173,23 @@ fn script(root: &SyntaxNode) -> Option<Script> {
         .filter_map(|e| function(&e))
         .collect();
 
+    // Properties, in a group or not: `Actor.CritStage_None`,
+    // `GlobalVariable.Value`.
+    let groups = root
+        .children()
+        .filter(|c| c.kind() == SyntaxKind::GROUP_DECL);
+    let mut properties: Vec<Property> = root
+        .children()
+        .chain(groups.flat_map(|g| g.children()))
+        .filter(|c| c.kind() == SyntaxKind::PROPERTY_DECL)
+        .filter_map(|p| {
+            Some(Property {
+                name: text(&child(&p, SyntaxKind::NAME)?),
+                ty: compact(&child(&p, SyntaxKind::TYPE_REF)?),
+            })
+        })
+        .collect();
+
     let native = has_flag(&header, SyntaxKind::NATIVE_KW) || functions.iter().any(|f| f.native);
     if !native && !declares_only(root) {
         return None;
@@ -181,11 +204,14 @@ fn script(root: &SyntaxNode) -> Option<Script> {
     functions.dedup_by(|a, b| a.name.eq_ignore_ascii_case(&b.name));
     events.sort_by(by_name);
     events.dedup_by(|a, b| a.name.eq_ignore_ascii_case(&b.name));
+    properties.sort_by_key(|p| p.name.to_ascii_lowercase());
+    properties.dedup_by(|a, b| a.name.eq_ignore_ascii_case(&b.name));
     Some(Script {
         name,
         parent,
         functions,
         events,
+        properties,
     })
 }
 
@@ -221,7 +247,7 @@ fn generate(game: GameId, scripts: &[Script], files: usize) -> String {
          //\n\
          // {} native scripts, extracted from {files} vanilla sources. Signatures\n\
          // only: no function bodies, no docstrings.\n\n\
-         use crate::{{Function, Param, Script}};\n\n\
+         use crate::{{Function, Param, Property, Script}};\n\n\
          #[rustfmt::skip]\n\
          pub(crate) static SCRIPTS: &[Script] = &[",
         game.as_str(),
@@ -238,7 +264,16 @@ fn generate(game: GameId, scripts: &[Script], files: usize) -> String {
         emit_functions(&mut out, &s.functions);
         out.push_str(",\n    events: ");
         emit_functions(&mut out, &s.events);
-        out.push_str(",\n},\n");
+        out.push_str(",\n    properties: &[");
+        for p in &s.properties {
+            write!(
+                out,
+                "\n        Property {{ name: {:?}, ty: {:?} }},",
+                p.name, p.ty
+            )
+            .unwrap();
+        }
+        out.push_str("\n    ],\n},\n");
     }
     out.push_str("];\n");
     out
@@ -274,8 +309,10 @@ fn stdlib(game: GameId, from: &Path) -> Result<(), String> {
 
     let functions: usize = scripts.iter().map(|s| s.functions.len()).sum();
     let events: usize = scripts.iter().map(|s| s.events.len()).sum();
+    let properties: usize = scripts.iter().map(|s| s.properties.len()).sum();
     eprintln!(
-        "{}: {} native scripts, {functions} functions, {events} events, {} KiB → {}",
+        "{}: {} native scripts, {functions} functions, {events} events, {properties} properties, \
+         {} KiB → {}",
         game.display_name(),
         scripts.len(),
         code.len() / 1024,

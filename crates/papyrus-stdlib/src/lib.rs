@@ -45,6 +45,15 @@ pub struct Function {
     pub native: bool,
 }
 
+/// A property: `int Property CritStage_None = 0 AutoReadOnly`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Property {
+    /// The name, with the vanilla case.
+    pub name: &'static str,
+    /// The type, as written.
+    pub ty: &'static str,
+}
+
 /// A native script.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Script {
@@ -56,6 +65,8 @@ pub struct Script {
     pub functions: &'static [Function],
     /// The events, sorted the same way.
     pub events: &'static [Function],
+    /// The properties, sorted the same way.
+    pub properties: &'static [Property],
 }
 
 /// Compares two names the way Papyrus does: case-insensitively.

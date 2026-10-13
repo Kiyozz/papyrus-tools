@@ -3,7 +3,7 @@
 // 139 native scripts, extracted from 1702 vanilla sources. Signatures
 // only: no function bodies, no docstrings.
 
-use crate::{Function, Param, Script};
+use crate::{Function, Param, Property, Script};
 
 #[rustfmt::skip]
 pub(crate) static SCRIPTS: &[Script] = &[
@@ -14,6 +14,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Activator",
@@ -22,6 +24,8 @@ Script {
         Function { name: "IsRadio", returns: Some("bool"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -182,6 +186,8 @@ Script {
         Function { name: "OnWorkshopObjectPlaced", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnWorkshopObjectRemoved", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnWorkshopOutputLink", returns: None, global: false, native: false, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -473,6 +479,20 @@ Script {
         Function { name: "OnSpeechChallengeAvailable", returns: None, global: false, native: false, params: &[Param { name: "akSpeaker", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnUnconscious", returns: None, global: false, native: false, params: &[Param { name: "akAttacker", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+        Property { name: "CritStage_DisintegrateEnd", ty: "int" },
+        Property { name: "CritStage_DisintegrateStart", ty: "int" },
+        Property { name: "CritStage_FreezeEnd", ty: "int" },
+        Property { name: "CritStage_FreezeStart", ty: "int" },
+        Property { name: "CritStage_GooEnd", ty: "int" },
+        Property { name: "CritStage_GooStart", ty: "int" },
+        Property { name: "CritStage_None", ty: "int" },
+        Property { name: "PathingResult_Cleared", ty: "int" },
+        Property { name: "PathingResult_Failure", ty: "int" },
+        Property { name: "PathingResult_Stopped", ty: "int" },
+        Property { name: "PathingResult_Success", ty: "int" },
+        Property { name: "PathingResult_Timeout", ty: "int" },
+    ],
 },
 Script {
     name: "ActorBase",
@@ -497,6 +517,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ActorValue",
@@ -505,6 +527,8 @@ Script {
         Function { name: "GetResource", returns: Some("Resource"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -516,6 +540,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "AkilaLife07_ItemAddedScript",
@@ -523,6 +549,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -544,6 +572,8 @@ Script {
         Function { name: "OnAliasShutdown", returns: None, global: false, native: false, params: &[] },
         Function { name: "OnAliasStarted", returns: None, global: false, native: false, params: &[] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Ammo",
@@ -551,6 +581,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -560,6 +592,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "AssociationType",
@@ -567,6 +601,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -576,6 +612,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CameraShot",
@@ -583,6 +621,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -608,6 +648,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Challenge",
@@ -617,6 +659,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Class",
@@ -625,6 +669,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "CombatStyle",
@@ -632,6 +678,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -642,6 +690,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ConstructibleObject",
@@ -650,6 +700,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Container",
@@ -657,6 +709,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -668,6 +722,8 @@ Script {
         Function { name: "HasValueAt", returns: Some("bool"), global: false, native: true, params: &[Param { name: "afInput", ty: "float", default: None }, ] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -716,6 +772,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultAliasOnActivateA",
@@ -723,6 +781,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -732,6 +792,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultAliasOnItemAddedScriptA",
@@ -739,6 +801,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -748,6 +812,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultAliasOnItemAddedScriptC",
@@ -755,6 +821,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -764,6 +832,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "defaultaliasonlocationchangeA",
@@ -771,6 +841,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -780,6 +852,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "defaultaliasonlocationchangeC",
@@ -787,6 +861,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -796,6 +872,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultAliasOnShipDockA",
@@ -803,6 +881,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -812,6 +892,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultAliasOnTriggerEnterMultiActorA",
@@ -819,6 +901,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -828,6 +912,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultCollectionAliasOnDeathA",
@@ -835,6 +921,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -844,6 +932,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultCollectionAliasOnDeathCount",
@@ -851,6 +941,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -860,6 +952,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultCounterQuestB",
@@ -867,6 +961,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -876,6 +972,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultCounterQuestD",
@@ -883,6 +981,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -892,6 +992,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DefaultRadiantQuestScript",
@@ -899,6 +1001,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -908,6 +1012,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "DLC03:SFTA00_FollowerToggleQuestScript",
@@ -916,6 +1022,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Door",
@@ -923,6 +1031,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -934,6 +1044,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Enchantment",
@@ -943,6 +1055,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Explosion",
@@ -950,6 +1064,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -984,6 +1100,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Flora",
@@ -991,6 +1109,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1009,6 +1129,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "FormList",
@@ -1025,6 +1147,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Furniture",
@@ -1033,6 +1157,8 @@ Script {
         Function { name: "GetAssociatedForm", returns: Some("Form"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1205,6 +1331,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "GameplayOption",
@@ -1216,6 +1344,8 @@ Script {
         Function { name: "NotifyGameplayOptionUpdateFinished", returns: None, global: true, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1230,6 +1360,9 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+        Property { name: "Value", ty: "float" },
+    ],
 },
 Script {
     name: "Hazard",
@@ -1237,6 +1370,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1246,6 +1381,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Idle",
@@ -1254,6 +1391,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "IdleMarker",
@@ -1261,6 +1400,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1275,6 +1416,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ImpactDataSet",
@@ -1282,6 +1425,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1294,6 +1439,8 @@ Script {
         Function { name: "LearnNextEffect", returns: Some("int"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1354,6 +1501,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "InstanceNamingRules",
@@ -1363,6 +1512,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Key",
@@ -1370,6 +1521,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1381,6 +1534,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "LegendaryItem",
@@ -1388,6 +1543,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1399,6 +1556,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "LeveledItem",
@@ -1408,6 +1567,8 @@ Script {
         Function { name: "Revert", returns: None, global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1419,6 +1580,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "LeveledSpell",
@@ -1429,6 +1592,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Light",
@@ -1436,6 +1601,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1483,6 +1650,8 @@ Script {
         Function { name: "OnLocationExplored", returns: None, global: false, native: false, params: &[] },
         Function { name: "OnLocationLoaded", returns: None, global: false, native: false, params: &[] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "LocationAlias",
@@ -1495,6 +1664,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "LocationRefType",
@@ -1502,6 +1673,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1511,6 +1684,8 @@ Script {
         Function { name: "GetAssociatedSkill", returns: Some("ActorValue"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1545,6 +1720,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Message",
@@ -1559,6 +1736,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "MiscObject",
@@ -1568,6 +1747,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ModLegendaryFrenzyScript",
@@ -1575,6 +1756,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1584,6 +1767,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "MQ00PlayerScript",
@@ -1591,6 +1776,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1600,6 +1787,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "MQ204PlayerShipScript",
@@ -1607,6 +1796,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -1618,6 +1809,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Note",
@@ -1626,6 +1819,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ObjectMod",
@@ -1633,6 +1828,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2022,6 +2219,63 @@ Script {
         Function { name: "OnWorkshopObjectRemoved", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnWorkshopOutputLink", returns: None, global: false, native: false, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+        Property { name: "CONST_NearDistance_Close", ty: "int" },
+        Property { name: "CONST_NearDistance_Close_Max", ty: "int" },
+        Property { name: "CONST_NearDistance_Close_Min", ty: "int" },
+        Property { name: "CONST_NearDistance_Long", ty: "int" },
+        Property { name: "CONST_NearDistance_Long_Max", ty: "int" },
+        Property { name: "CONST_NearDistance_Long_Min", ty: "int" },
+        Property { name: "CONST_NearDistance_Max", ty: "int" },
+        Property { name: "CONST_NearDistance_Min", ty: "int" },
+        Property { name: "CONST_NearDistance_Moderate", ty: "int" },
+        Property { name: "CONST_NearDistance_Moderate_Max", ty: "int" },
+        Property { name: "CONST_NearDistance_Moderate_Min", ty: "int" },
+        Property { name: "CONST_NearDistance_Random", ty: "int" },
+        Property { name: "CONST_NearDistance_RandomFar", ty: "int" },
+        Property { name: "CONST_NearDistance_Short", ty: "int" },
+        Property { name: "CONST_NearDistance_Short_Max", ty: "int" },
+        Property { name: "CONST_NearDistance_Short_Min", ty: "int" },
+        Property { name: "CONST_NearDistance_VeryClose", ty: "int" },
+        Property { name: "CONST_NearDistance_VeryLong", ty: "int" },
+        Property { name: "CONST_NearDistance_VeryLong_Max", ty: "int" },
+        Property { name: "CONST_NearDistance_VeryLong_Min", ty: "int" },
+        Property { name: "CONST_NearFacing_AwayLarge", ty: "int" },
+        Property { name: "CONST_NearFacing_AwaySmall", ty: "int" },
+        Property { name: "CONST_NearFacing_BottomSideOn", ty: "int" },
+        Property { name: "CONST_NearFacing_Direct", ty: "int" },
+        Property { name: "CONST_NearFacing_HeadingCorrectionToDirectFacing", ty: "float" },
+        Property { name: "CONST_NearFacing_LeftSideOn", ty: "int" },
+        Property { name: "CONST_NearFacing_Max", ty: "int" },
+        Property { name: "CONST_NearFacing_Min", ty: "int" },
+        Property { name: "CONST_NearFacing_Random", ty: "int" },
+        Property { name: "CONST_NearFacing_RightSideOn", ty: "int" },
+        Property { name: "CONST_NearFacing_TightAngle", ty: "float" },
+        Property { name: "CONST_NearFacing_TopSideOn", ty: "int" },
+        Property { name: "CONST_NearFacing_TotallyRandom", ty: "int" },
+        Property { name: "CONST_NearFacing_TowardLarge", ty: "int" },
+        Property { name: "CONST_NearFacing_TowardSmall", ty: "int" },
+        Property { name: "CONST_NearFacing_WideAngle", ty: "float" },
+        Property { name: "CONST_NearPosition_Above", ty: "int" },
+        Property { name: "CONST_NearPosition_Behind", ty: "int" },
+        Property { name: "CONST_NearPosition_Below", ty: "int" },
+        Property { name: "CONST_NearPosition_DeadAhead", ty: "int" },
+        Property { name: "CONST_NearPosition_ForwardTight", ty: "int" },
+        Property { name: "CONST_NearPosition_ForwardWide", ty: "int" },
+        Property { name: "CONST_NearPosition_Left", ty: "int" },
+        Property { name: "CONST_NearPosition_Max", ty: "int" },
+        Property { name: "CONST_NearPosition_Min", ty: "int" },
+        Property { name: "CONST_NearPosition_Random", ty: "int" },
+        Property { name: "CONST_NearPosition_Right", ty: "int" },
+        Property { name: "CONST_NearPosition_TightArc", ty: "float" },
+        Property { name: "CONST_NearPosition_WideArc", ty: "float" },
+        Property { name: "Motion_Dynamic", ty: "int" },
+        Property { name: "Motion_Fixed", ty: "int" },
+        Property { name: "Motion_Keyframed", ty: "int" },
+        Property { name: "X", ty: "float" },
+        Property { name: "Y", ty: "float" },
+        Property { name: "Z", ty: "float" },
+    ],
 },
 Script {
     name: "OE_Civilians_StoryQuestScript",
@@ -2030,6 +2284,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Outfit",
@@ -2037,6 +2293,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2051,6 +2309,8 @@ Script {
         Function { name: "OnEnd", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
         Function { name: "OnStart", returns: None, global: false, native: false, params: &[Param { name: "akActor", ty: "Actor", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "PackIn",
@@ -2058,6 +2318,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2067,6 +2329,8 @@ Script {
     ],
     events: &[
         Function { name: "OnEntryRun", returns: None, global: false, native: false, params: &[Param { name: "auiEntryID", ty: "int", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, Param { name: "akOwner", ty: "Actor", default: None }, ] },
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2087,6 +2351,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Potion",
@@ -2096,6 +2362,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Projectile",
@@ -2103,6 +2371,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2213,6 +2483,8 @@ Script {
         Function { name: "OnStorySpeechChallengeCompletion", returns: None, global: false, native: false, params: &[Param { name: "akChallenge", ty: "SpeechChallengeObject", default: None }, Param { name: "abSuccess", ty: "bool", default: None }, ] },
         Function { name: "OnStoryTrespass", returns: None, global: false, native: false, params: &[Param { name: "akVictim", ty: "ObjectReference", default: None }, Param { name: "akTrespasser", ty: "ObjectReference", default: None }, Param { name: "akLocation", ty: "Location", default: None }, Param { name: "abCrime", ty: "bool", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Race",
@@ -2221,6 +2493,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "REAliasScriptPilot",
@@ -2228,6 +2502,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2423,6 +2699,8 @@ Script {
         Function { name: "OnWorkshopObjectRemoved", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnWorkshopOutputLink", returns: None, global: false, native: false, params: &[Param { name: "akSenderRef", ty: "ObjectReference", default: None }, Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ReferenceAlias",
@@ -2610,6 +2888,8 @@ Script {
         Function { name: "OnWorkshopObjectRemoved", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnWorkshopOutputLink", returns: None, global: false, native: false, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "ResearchProject",
@@ -2619,6 +2899,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Resource",
@@ -2627,6 +2909,8 @@ Script {
         Function { name: "GetCreatedObject", returns: Some("Form"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2647,6 +2931,8 @@ Script {
         Function { name: "OnEnd", returns: None, global: false, native: false, params: &[] },
         Function { name: "OnPhaseBegin", returns: None, global: false, native: false, params: &[Param { name: "auiPhaseIndex", ty: "int", default: None }, ] },
         Function { name: "OnPhaseEnd", returns: None, global: false, native: false, params: &[Param { name: "auiPhaseIndex", ty: "int", default: None }, ] },
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2768,6 +3054,8 @@ Script {
         Function { name: "OnTrackedStatsEvent", returns: None, global: false, native: false, params: &[Param { name: "arStatName", ty: "string", default: None }, Param { name: "aiStatValue", ty: "int", default: None }, ] },
         Function { name: "OnTutorialEvent", returns: None, global: false, native: false, params: &[Param { name: "asEventName", ty: "String", default: None }, Param { name: "aMessage", ty: "Message", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Scroll",
@@ -2776,6 +3064,8 @@ Script {
         Function { name: "Cast", returns: None, global: false, native: true, params: &[Param { name: "akSource", ty: "ObjectReference", default: None }, Param { name: "akTarget", ty: "ObjectReference", default: Some("NONE") }, ] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2787,6 +3077,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Shout",
@@ -2794,6 +3086,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2803,6 +3097,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "SpaceshipBase",
@@ -2811,6 +3107,8 @@ Script {
         Function { name: "IsUnique", returns: Some("bool"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2942,6 +3240,8 @@ Script {
         Function { name: "OnSpaceshipCombatListAdded", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "SpaceshipReference", default: None }, ] },
         Function { name: "OnSpaceshipCombatListRemoved", returns: None, global: false, native: false, params: &[Param { name: "akTarget", ty: "SpaceshipReference", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "SpeechChallengeObject",
@@ -2949,6 +3249,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2961,6 +3263,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Static",
@@ -2968,6 +3272,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -2977,6 +3283,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "Terminal",
@@ -2984,6 +3292,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3000,6 +3310,8 @@ Script {
         Function { name: "OnTerminalMenuEnter", returns: None, global: false, native: false, params: &[Param { name: "akTerminalBase", ty: "TerminalMenu", default: None }, Param { name: "akTerminalRef", ty: "ObjectReference", default: None }, ] },
         Function { name: "OnTerminalMenuItemRun", returns: None, global: false, native: false, params: &[Param { name: "auiMenuItemID", ty: "int", default: None }, Param { name: "akTerminalBase", ty: "TerminalMenu", default: None }, Param { name: "akTerminalRef", ty: "ObjectReference", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "TextureSet",
@@ -3007,6 +3319,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3016,6 +3330,8 @@ Script {
         Function { name: "Add", returns: None, global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3029,6 +3345,8 @@ Script {
         Function { name: "OnBegin", returns: None, global: false, native: false, params: &[Param { name: "akSpeakerRef", ty: "ObjectReference", default: None }, Param { name: "abHasBeenSaid", ty: "bool", default: None }, ] },
         Function { name: "OnEnd", returns: None, global: false, native: false, params: &[Param { name: "akSpeakerRef", ty: "ObjectReference", default: None }, Param { name: "abHasBeenSaid", ty: "bool", default: None }, ] },
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "UC01_ReleaseAliasScript",
@@ -3036,6 +3354,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3045,6 +3365,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "UC01_SectorBTriggerAliasScript",
@@ -3052,6 +3374,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3061,6 +3385,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "UC04_ConfiscatedGoodsContScript",
@@ -3069,6 +3395,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "UC_GG_Connect_CorpseAliasScript",
@@ -3076,6 +3404,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3124,6 +3454,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "VisualEffect",
@@ -3134,6 +3466,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "VoiceType",
@@ -3142,6 +3476,8 @@ Script {
         Function { name: "GetSex", returns: Some("int"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3152,6 +3488,8 @@ Script {
         Function { name: "GetAmmo", returns: Some("Ammo"), global: false, native: true, params: &[] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3171,6 +3509,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "WordOfPower",
@@ -3179,6 +3519,8 @@ Script {
     ],
     events: &[
     ],
+    properties: &[
+    ],
 },
 Script {
     name: "WorldSpace",
@@ -3186,6 +3528,8 @@ Script {
     functions: &[
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 Script {
@@ -3217,6 +3561,8 @@ Script {
         Function { name: "UpdateInstanceRTPCsImpl", returns: None, global: true, native: true, params: &[Param { name: "aiPlaybackInstance", ty: "int", default: None }, Param { name: "aRTPCNames", ty: "string[]", default: None }, Param { name: "aRTPCValues", ty: "float[]", default: None }, ] },
     ],
     events: &[
+    ],
+    properties: &[
     ],
 },
 ];
