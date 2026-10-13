@@ -394,13 +394,13 @@ Script {
         Function { name: "OnSpeechChallengeAvailable", returns: None, global: false, native: false, params: &[Param { name: "akSpeaker", ty: "ObjectReference", default: None }, ] },
     ],
     properties: &[
-        Property { name: "CritStage_DisintegrateEnd", ty: "int" },
-        Property { name: "CritStage_DisintegrateStart", ty: "int" },
-        Property { name: "CritStage_FreezeEnd", ty: "int" },
-        Property { name: "CritStage_FreezeStart", ty: "int" },
-        Property { name: "CritStage_GooEnd", ty: "int" },
-        Property { name: "CritStage_GooStart", ty: "int" },
-        Property { name: "CritStage_None", ty: "int" },
+        Property { name: "CritStage_DisintegrateEnd", ty: "int", readonly: true },
+        Property { name: "CritStage_DisintegrateStart", ty: "int", readonly: true },
+        Property { name: "CritStage_FreezeEnd", ty: "int", readonly: true },
+        Property { name: "CritStage_FreezeStart", ty: "int", readonly: true },
+        Property { name: "CritStage_GooEnd", ty: "int", readonly: true },
+        Property { name: "CritStage_GooStart", ty: "int", readonly: true },
+        Property { name: "CritStage_None", ty: "int", readonly: true },
     ],
 },
 Script {
@@ -2019,7 +2019,7 @@ Script {
     events: &[
     ],
     properties: &[
-        Property { name: "Value", ty: "float" },
+        Property { name: "Value", ty: "float", readonly: false },
     ],
 },
 Script {
@@ -2835,12 +2835,12 @@ Script {
         Function { name: "OnWorkshopObjectRepaired", returns: None, global: false, native: false, params: &[Param { name: "akReference", ty: "ObjectReference", default: None }, ] },
     ],
     properties: &[
-        Property { name: "Motion_Dynamic", ty: "int" },
-        Property { name: "Motion_Fixed", ty: "int" },
-        Property { name: "Motion_Keyframed", ty: "int" },
-        Property { name: "X", ty: "float" },
-        Property { name: "Y", ty: "float" },
-        Property { name: "Z", ty: "float" },
+        Property { name: "Motion_Dynamic", ty: "int", readonly: true },
+        Property { name: "Motion_Fixed", ty: "int", readonly: true },
+        Property { name: "Motion_Keyframed", ty: "int", readonly: true },
+        Property { name: "X", ty: "float", readonly: true },
+        Property { name: "Y", ty: "float", readonly: true },
+        Property { name: "Z", ty: "float", readonly: true },
     ],
 },
 Script {

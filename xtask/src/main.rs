@@ -69,6 +69,7 @@ struct Function {
 struct Property {
     name: String,
     ty: String,
+    readonly: bool,
 }
 
 struct Script {
@@ -100,6 +101,20 @@ fn compact(node: &SyntaxNode) -> String {
 fn has_flag(owner: &SyntaxNode, flag: SyntaxKind) -> bool {
     child(owner, SyntaxKind::FLAG_LIST)
         .is_some_and(|list| list.descendants_with_tokens().any(|e| e.kind() == flag))
+}
+
+/// True for a property that cannot be assigned: `AutoReadOnly`, `Const`,
+/// or a full property without `Set`.
+fn readonly(property: &SyntaxNode) -> bool {
+    if has_flag(property, SyntaxKind::AUTOREADONLY_KW) || has_flag(property, SyntaxKind::CONST_KW) {
+        return true;
+    }
+    !has_flag(property, SyntaxKind::AUTO_KW)
+        && !property
+            .children()
+            .filter(|c| c.kind() == SyntaxKind::FUNCTION_DECL)
+            .filter_map(|f| child(&f, SyntaxKind::NAME))
+            .any(|n| text(&n).eq_ignore_ascii_case("Set"))
 }
 
 fn function(decl: &SyntaxNode) -> Option<Function> {
@@ -186,6 +201,7 @@ fn script(root: &SyntaxNode) -> Option<Script> {
             Some(Property {
                 name: text(&child(&p, SyntaxKind::NAME)?),
                 ty: compact(&child(&p, SyntaxKind::TYPE_REF)?),
+                readonly: readonly(&p),
             })
         })
         .collect();
@@ -268,8 +284,8 @@ fn generate(game: GameId, scripts: &[Script], files: usize) -> String {
         for p in &s.properties {
             write!(
                 out,
-                "\n        Property {{ name: {:?}, ty: {:?} }},",
-                p.name, p.ty
+                "\n        Property {{ name: {:?}, ty: {:?}, readonly: {} }},",
+                p.name, p.ty, p.readonly
             )
             .unwrap();
         }

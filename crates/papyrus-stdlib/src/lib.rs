@@ -52,6 +52,8 @@ pub struct Property {
     pub name: &'static str,
     /// The type, as written.
     pub ty: &'static str,
+    /// `AutoReadOnly`, `Const`, or without `Set`: cannot be assigned.
+    pub readonly: bool,
 }
 
 /// A native script.
