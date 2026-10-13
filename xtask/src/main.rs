@@ -2,6 +2,7 @@
 //!
 //! ```sh
 //! cargo xtask stdlib --game skyrim --from ".../Data/Source/Scripts"
+//! cargo xtask schema
 //! ```
 //!
 //! Only runs on the machine of a developer who owns the game: the `papyrus`
@@ -9,6 +10,8 @@
 //! committed.
 
 #![forbid(unsafe_code)]
+
+mod schema;
 
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
@@ -36,6 +39,8 @@ enum Task {
         #[arg(long)]
         from: PathBuf,
     },
+    /// Write the JSON schema of `papyrus.toml`, from the lint registry.
+    Schema,
 }
 
 fn main() -> ExitCode {
@@ -47,6 +52,22 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        Task::Schema => {
+            let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join(schema::PATH);
+            let written = path
+                .parent()
+                .map_or(Ok(()), std::fs::create_dir_all)
+                .and_then(|()| std::fs::write(&path, schema::schema()));
+            match written {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(error) => {
+                    eprintln!("error: {}: {error}", path.display());
+                    ExitCode::FAILURE
+                }
+            }
+        }
     }
 }
 

@@ -1256,8 +1256,10 @@ version = "0.8.0"
 dependencies = [
  "clap",
  "papyrus-dialect",
+ "papyrus-lint",
  "papyrus-project",
  "papyrus-syntax",
+ "serde_json",
 ]
 
 [[package]]
