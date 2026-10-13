@@ -105,6 +105,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                 permitted.join(", ")
             ),
             fix: None,
+            unsafe_fix: None,
             suggestion: None,
         });
     }

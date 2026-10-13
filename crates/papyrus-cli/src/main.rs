@@ -19,7 +19,7 @@ use std::str::FromStr;
 use clap::{Args, Parser, Subcommand};
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_fmt::{FormatError, FormatOptions, Indent};
-use papyrus_lint::{LINTS, Levels, ScriptSummary, Workspace, apply_fixes, vanilla_flags};
+use papyrus_lint::{LINTS, Levels, ScriptSummary, Workspace, apply_fixes_with, vanilla_flags};
 use papyrus_project::flags::{FlagDef, parse_flags};
 use papyrus_project::{Decoded, IndentSetting, Level, Project, decode, encode};
 use papyrus_syntax::Parse;
@@ -72,6 +72,11 @@ struct CheckArgs {
     /// Apply safe fixes in place.
     #[arg(long)]
     fix: bool,
+
+    /// With `--fix`, also apply unsafe fixes: the case of properties, which
+    /// plugins (.esp, .esm) bind by name.
+    #[arg(long = "unsafe", requires = "fix")]
+    unsafe_fixes: bool,
 }
 
 #[derive(Debug, Args)]
@@ -113,6 +118,8 @@ impl FromStr for IndentArg {
 #[derive(Debug)]
 struct Settings {
     scripts: Vec<PathBuf>,
+    /// The scripts of the `imports` folders: read, never checked.
+    imported: Vec<PathBuf>,
     game: Option<GameId>,
     indent: Indent,
     flags: Vec<FlagDef>,
@@ -176,6 +183,7 @@ impl Settings {
         };
         Ok(Settings {
             scripts: project.scripts,
+            imported: project.imported,
             game,
             indent,
             flags,
@@ -221,7 +229,7 @@ fn main() -> ExitCode {
     let mut reporter = Reporter::new(std::io::stderr().is_terminal());
     let result = match cli.command {
         Command::Check(args) => Settings::resolve(&args.common, None)
-            .map(|projects| check(&projects, args.fix, &mut reporter)),
+            .map(|projects| check(&projects, args.fix, args.unsafe_fixes, &mut reporter)),
         Command::Fmt(args) => Settings::resolve(&args.common, args.indent)
             .map(|projects| fmt(&projects, args.check, &mut reporter)),
         Command::Lints => {
@@ -284,29 +292,49 @@ fn analyze(
     (parse, lints)
 }
 
-/// What a project's scripts declare, to follow `extends` from one file to
-/// another.
-fn index(scripts: &[PathBuf], dialect: Dialect) -> Workspace {
+/// What a project's scripts, then its imported ones, declare, to follow
+/// `extends` from one file to another.
+fn index(settings: &Settings) -> Workspace {
     let mut workspace = Workspace::default();
-    for path in scripts {
+    let dialect = settings.dialect();
+    for (path, imported) in settings
+        .scripts
+        .iter()
+        .map(|p| (p, false))
+        .chain(settings.imported.iter().map(|p| (p, true)))
+    {
         let Ok(bytes) = std::fs::read(path) else {
             continue;
         };
         let parse = papyrus_syntax::parse(&decode(&bytes).text, dialect);
         if let Some(summary) = ScriptSummary::of(&parse.syntax()) {
-            workspace.insert(summary);
+            // The project's own script wins over an imported one.
+            if !imported || workspace.get(&summary.name).is_none() {
+                workspace.insert(summary);
+            }
         }
     }
     workspace
 }
 
-fn check(projects: &[Settings], fix: bool, reporter: &mut Reporter) -> bool {
+/// Which fixes to apply.
+#[derive(Debug, Clone, Copy)]
+struct Fixes {
+    safe: bool,
+    risky: bool,
+}
+
+fn check(projects: &[Settings], fix: bool, unsafe_fixes: bool, reporter: &mut Reporter) -> bool {
     let mut fixed = 0;
+    let fixes = Fixes {
+        safe: fix,
+        risky: fix && unsafe_fixes,
+    };
     for settings in projects {
-        // A project only sees its own scripts.
-        let workspace = index(&settings.scripts, settings.dialect());
+        // A project only sees its own scripts, and those it imports.
+        let workspace = index(settings);
         for path in &settings.scripts {
-            fixed += usize::from(check_file(path, settings, &workspace, fix, reporter));
+            fixed += usize::from(check_file(path, settings, &workspace, fixes, reporter));
         }
     }
 
@@ -323,7 +351,7 @@ fn check_file(
     path: &Path,
     settings: &Settings,
     workspace: &Workspace,
-    fix: bool,
+    fixes: Fixes,
     reporter: &mut Reporter,
 ) -> bool {
     let Some(bytes) = read(path, reporter) else {
@@ -334,9 +362,11 @@ fn check_file(
 
     // Never on an incomplete tree, nor on a badly decoded file.
     let mut fixed = false;
-    let fixable = lints.iter().any(|d| d.fix.is_some());
-    if fix && fixable && parse.ok() && !decoded.lossy {
-        let result = apply_fixes(&decoded.text, &lints)
+    let fixable = lints
+        .iter()
+        .any(|d| d.fix.is_some() || (fixes.risky && d.unsafe_fix.is_some()));
+    if fixes.safe && fixable && parse.ok() && !decoded.lossy {
+        let result = apply_fixes_with(&decoded.text, &lints, fixes.risky)
             .and_then(|text| encode(&text, decoded.encoding).map(|bytes| (text, bytes)));
         match result {
             Some((text, bytes)) => {
@@ -365,6 +395,8 @@ fn check_file(
     diagnostics.extend(lints.into_iter().map(|d| {
         let hint = if d.fix.is_some() {
             " Fixable with `papyrus check --fix`."
+        } else if d.unsafe_fix.is_some() {
+            " Fixable with `papyrus check --fix --unsafe`."
         } else {
             ""
         };

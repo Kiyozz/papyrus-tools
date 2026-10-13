@@ -16,6 +16,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             range: issue.range,
             message: issue.message,
             fix: None,
+            unsafe_fix: None,
             suggestion: None,
         });
     }

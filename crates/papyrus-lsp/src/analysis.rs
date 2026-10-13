@@ -273,6 +273,16 @@ pub(crate) fn code_actions(
             };
             quickfix(title, text_edits(fix, map), true);
         }
+        // Never preferred, never part of "fix all": the user picks it.
+        if let Some(fix) = &lint.unsafe_fix {
+            if let Some(first) = fix.first() {
+                let title = format!(
+                    "Rename to `{}` (unsafe: plugins bind properties by name)",
+                    first.text
+                );
+                quickfix(title, text_edits(fix, map), false);
+            }
+        }
         if let Some(suggestion) = &lint.suggestion {
             quickfix(
                 suggestion.title.clone(),

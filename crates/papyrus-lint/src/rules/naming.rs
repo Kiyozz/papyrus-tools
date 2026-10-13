@@ -127,9 +127,13 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             Role::Local | Role::Param if case_only => Some(rename_in_function(&token, &suggestion)),
             _ => None,
         };
+        // Plugins bind properties by name: changing even the case is a risk
+        // the user takes explicitly.
+        let unsafe_fix = (matches!(role, Role::Property) && case_only)
+            .then(|| rename_in_script(context.root, &token, &suggestion));
         let note = match role {
-            Role::Property => " No automatic fix: .esp files bind properties by name.",
             _ if !case_only => " The name changes beyond case: rename it by hand.",
+            Role::Property => " Unsafe fix: plugins (.esp, .esm) bind properties by name.",
             _ => "",
         };
         findings.push(Finding {
@@ -140,6 +144,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                 role.describe()
             ),
             fix,
+            unsafe_fix,
             suggestion: None,
         });
     }
@@ -177,6 +182,44 @@ fn rename_in_function(decl: &SyntaxToken, new_name: &str) -> Vec<Edit> {
             continue;
         }
         if is_value_position(&name_ref) {
+            edits.push(Edit {
+                range: token.text_range(),
+                text: new_name.to_owned(),
+            });
+        }
+    }
+    edits
+}
+
+/// Renames the declaration and its uses in the whole script: simple names
+/// in value position, and `self.Name`. Only the case changes, so a name
+/// caught by mistake changes nothing for the compiler.
+fn rename_in_script(root: &SyntaxNode, decl: &SyntaxToken, new_name: &str) -> Vec<Edit> {
+    let mut edits = vec![Edit {
+        range: decl.text_range(),
+        text: new_name.to_owned(),
+    }];
+    for name_ref in root
+        .descendants()
+        .filter(|n| n.kind() == SyntaxKind::NAME_REF)
+    {
+        let mut tokens = name_ref
+            .children_with_tokens()
+            .filter_map(|e| e.into_token())
+            .filter(|t| !t.kind().is_trivia());
+        let (Some(token), None) = (tokens.next(), tokens.next()) else {
+            continue;
+        };
+        if token.kind() != SyntaxKind::IDENT || !token.text().eq_ignore_ascii_case(decl.text()) {
+            continue;
+        }
+        let on_self = name_ref.parent().is_some_and(|p| {
+            p.kind() == SyntaxKind::FIELD_EXPR
+                && p.first_child()
+                    .and_then(|r| r.first_token())
+                    .is_some_and(|t| t.kind() == SyntaxKind::SELF_KW)
+        });
+        if on_self || is_value_position(&name_ref) {
             edits.push(Edit {
                 range: token.text_range(),
                 text: new_name.to_owned(),

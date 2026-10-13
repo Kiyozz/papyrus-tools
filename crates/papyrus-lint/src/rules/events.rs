@@ -217,6 +217,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                      — did you mean `{best}`?"
                 ),
                 fix: None,
+                unsafe_fix: None,
                 suggestion: Some(Suggestion {
                     title: format!("Rename to `{best}`"),
                     edits: vec![Edit {
@@ -234,6 +235,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                      the engine will never call it on this script"
                 ),
                 fix: None,
+                unsafe_fix: None,
                 suggestion: None,
             });
         }

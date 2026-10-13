@@ -1,7 +1,9 @@
 //! The rules, on chosen cases.
 
 use papyrus_dialect::{Dialect, GameId};
-use papyrus_lint::{Context, Levels, ScriptSummary, Workspace, apply_fixes, run, vanilla_flags};
+use papyrus_lint::{
+    Context, Levels, ScriptSummary, Workspace, apply_fixes, apply_fixes_with, run, vanilla_flags,
+};
 use papyrus_project::{Level, decode};
 
 /// `(code, targeted text)` of each diagnostic.
@@ -107,6 +109,24 @@ fn le_message_explique_l_absence_de_correctif() {
     assert!(d[0].message.contains("`myActor`"));
     assert!(d[0].message.contains(".esp"));
     assert!(d[0].fix.is_none());
+}
+
+#[test]
+fn a_property_case_fix_is_unsafe() {
+    let source = "ScriptName T
+Actor Property MyActor Auto
+Function F()
+	MyActor.Kill()
+	self.MyActor = None
+EndFunction
+";
+    let d = diagnostics(source, None);
+    assert!(d[0].fix.is_none());
+    assert!(d[0].unsafe_fix.is_some());
+    // Left alone by the safe fixes, applied on request.
+    assert_eq!(apply_fixes(source, &d).unwrap(), source);
+    let fixed = apply_fixes_with(source, &d, true).unwrap();
+    assert_eq!(fixed, source.replace("MyActor", "myActor"));
 }
 
 // ── Fix ───────────────────────────────────────────────────────────────────

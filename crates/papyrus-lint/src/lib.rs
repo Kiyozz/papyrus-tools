@@ -214,6 +214,9 @@ pub struct Diagnostic {
     pub message: String,
     /// The fix, when it is safe.
     pub fix: Option<Vec<Edit>>,
+    /// A fix that compiles but may break what lies outside the scripts:
+    /// applied only when asked explicitly, `papyrus check --fix --unsafe`.
+    pub unsafe_fix: Option<Vec<Edit>>,
     /// A fix to suggest, when it is not.
     pub suggestion: Option<Suggestion>,
 }
@@ -240,6 +243,7 @@ pub(crate) struct Finding {
     pub(crate) range: TextRange,
     pub(crate) message: String,
     pub(crate) fix: Option<Vec<Edit>>,
+    pub(crate) unsafe_fix: Option<Vec<Edit>>,
     pub(crate) suggestion: Option<Suggestion>,
 }
 
@@ -256,6 +260,7 @@ pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
             range: *range,
             message: format!("{}; this suppression has no effect", unknown_message(key)),
             fix: None,
+            unsafe_fix: None,
             suggestion: None,
         });
     }
@@ -272,6 +277,7 @@ pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
                 range: f.range,
                 message: f.message,
                 fix: f.fix,
+                unsafe_fix: f.unsafe_fix,
                 suggestion: f.suggestion,
             })
         })
@@ -280,15 +286,28 @@ pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
     diagnostics
 }
 
-/// Applies the fixes of `diagnostics` to `source`.
+/// Applies the safe fixes of `diagnostics` to `source`.
 ///
 /// Fixes only change case: the result is checked token by token, ignoring
 /// case, and `None` signals that it differs. That would be a bug; the file
 /// must then stay untouched.
 pub fn apply_fixes(source: &str, diagnostics: &[Diagnostic]) -> Option<String> {
+    apply_fixes_with(source, diagnostics, false)
+}
+
+/// Applies the safe fixes of `diagnostics` to `source`, and the unsafe ones
+/// with `unsafe_fixes`. Checked like [`apply_fixes`].
+pub fn apply_fixes_with(
+    source: &str,
+    diagnostics: &[Diagnostic],
+    unsafe_fixes: bool,
+) -> Option<String> {
     let mut edits: Vec<&Edit> = diagnostics
         .iter()
-        .filter_map(|d| d.fix.as_ref())
+        .flat_map(|d| {
+            let risky = d.unsafe_fix.as_ref().filter(|_| unsafe_fixes);
+            d.fix.iter().chain(risky)
+        })
         .flatten()
         .collect();
     edits.sort_by(|a, b| {
