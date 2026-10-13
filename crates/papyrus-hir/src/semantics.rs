@@ -95,7 +95,10 @@ pub(crate) const MAX_DEPTH: usize = 64;
 pub struct Semantics<'db> {
     db: &'db dyn salsa::Database,
     project: Project,
+    /// The game whose native scripts apply.
     game: Option<GameId>,
+    /// The game whose syntax the files are read with: the project's.
+    syntax: Option<GameId>,
 }
 
 impl std::fmt::Debug for Semantics<'_> {
@@ -139,7 +142,22 @@ impl<'db> Semantics<'db> {
             db,
             project,
             game: project.game(db),
+            syntax: project.game(db),
         }
+    }
+
+    /// The same model, as if the project targeted `game`: its native
+    /// scripts apply, the files are still read as the project says.
+    pub(crate) fn assuming(&self, game: GameId) -> Semantics<'db> {
+        Semantics {
+            game: Some(game),
+            ..*self
+        }
+    }
+
+    /// The game the files are read with.
+    pub(crate) fn syntax(&self) -> Option<GameId> {
+        self.syntax
     }
 
     /// The database.
@@ -164,12 +182,12 @@ impl<'db> Semantics<'db> {
 
     /// The tree of `file`.
     pub fn root(&self, file: SourceFile) -> SyntaxNode {
-        crate::parse(self.db, file, self.game).syntax()
+        crate::parse(self.db, file, self.syntax).syntax()
     }
 
     /// What `file` declares.
     pub fn items(&self, file: SourceFile) -> &'db ScriptItems {
-        script_items(self.db, file, self.game)
+        script_items(self.db, file, self.syntax)
     }
 
     /// The item a [`Def::Item`] designates.

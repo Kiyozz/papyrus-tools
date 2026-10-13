@@ -137,9 +137,10 @@ certain:
   of another script extender (F4SE…) are known once its sources are in
   `imports`, as they are for the compiler.
 
-Without a known target, the native scripts are unknown: only calls to the
-project's own functions, values of the base types (`int`, `float`, `bool`,
-`string`) and returns are checked. On the vanilla
+Without a known target, each file is checked against the native scripts of
+every game, and only what all of them reject is reported: `Debug.Trace()`
+lacks an argument everywhere, `StartTimer` is only unknown to Skyrim. On the
+vanilla
 scripts of the three games, `PAP005` to `PAP008` find nothing; `PAP009` finds
 93 typed functions that fall through to the default value.
 

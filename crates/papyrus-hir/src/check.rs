@@ -5,6 +5,7 @@
 //! every script it could come from is known. Whatever is unknown stays
 //! quiet: missing information is never an error.
 
+use papyrus_dialect::GameId;
 use papyrus_syntax::{SyntaxKind, SyntaxNode, TextRange};
 
 use crate::SourceFile;
@@ -136,15 +137,6 @@ fn stmt_returns(stmt: &SyntaxNode) -> bool {
     }
 }
 
-/// True for a type every game agrees on: no script, no struct, no `var`.
-fn game_free(ty: &Ty) -> bool {
-    match ty {
-        Ty::Bool | Ty::Int | Ty::Float | Ty::String | Ty::None => true,
-        Ty::Array(element) => game_free(element),
-        _ => false,
-    }
-}
-
 /// The name of a function or an event declaration.
 fn decl_name(decl: &SyntaxNode) -> Option<SyntaxNode> {
     child(decl, SyntaxKind::NAME)
@@ -168,12 +160,30 @@ fn cast_hint(from: &Ty, to: &Ty) -> String {
 impl Semantics<'_> {
     /// The semantic problems of `file`.
     ///
-    /// Without a target, the native scripts are unknown: only what the
-    /// project's own scripts decide is checked — calls to their functions,
-    /// values of the base types, returns.
+    /// The native scripts depend on the target. Without one, the file is
+    /// checked against each game's, and only what all of them report is
+    /// kept: wrong whatever the game.
     pub fn check(&self, file: SourceFile) -> Vec<Diagnostic> {
+        if self.game().is_some() {
+            return self.check_for_target(file);
+        }
+        let [skyrim, fallout4, starfield] = [GameId::Skyrim, GameId::Fallout4, GameId::Starfield]
+            .map(|game| self.assuming(game).check_for_target(file));
+        starfield
+            .into_iter()
+            .filter(|d| {
+                [&skyrim, &fallout4].iter().all(|others| {
+                    others
+                        .iter()
+                        .any(|o| o.problem == d.problem && o.range == d.range)
+                })
+            })
+            .collect()
+    }
+
+    fn check_for_target(&self, file: SourceFile) -> Vec<Diagnostic> {
         let root = self.root(file);
-        let errors: Vec<TextRange> = crate::parse(self.db(), file, self.game())
+        let errors: Vec<TextRange> = crate::parse(self.db(), file, self.syntax())
             .errors()
             .iter()
             .map(|e| e.range())
@@ -286,24 +296,6 @@ impl Semantics<'_> {
 
     // ── Types ─────────────────────────────────────────────────────────────
 
-    /// True if `expr` reads something of the native scripts, whose
-    /// signatures depend on the target.
-    fn uses_natives(&self, file: SourceFile, expr: &SyntaxNode) -> bool {
-        expr.descendants_with_tokens()
-            .filter_map(|e| e.into_node())
-            .filter(|n| n.kind() == SyntaxKind::NAME_REF)
-            .any(|n| {
-                matches!(
-                    self.resolve_name_ref(file, &n),
-                    Some(
-                        Def::NativeFunction { .. }
-                            | Def::NativeProperty { .. }
-                            | Def::NativeScript(_)
-                    )
-                )
-            })
-    }
-
     /// Reports `value` if it cannot go where `expected` is expected.
     fn mismatch(
         &self,
@@ -314,11 +306,6 @@ impl Semantics<'_> {
         message: impl FnOnce(&Ty, &Ty) -> String,
     ) {
         let found = self.type_of(file, value);
-        if self.game().is_none()
-            && !(game_free(&found) && game_free(expected) && !self.uses_natives(file, value))
-        {
-            return;
-        }
         if self.coerces(&found, expected) == Some(false) {
             out.push(Diagnostic {
                 problem: Problem::Mismatch,
@@ -390,10 +377,6 @@ impl Semantics<'_> {
             self.unknown_function(file, &callee, out);
             return;
         };
-        // Without a target, a native signature may be another game's.
-        if self.game().is_none() && !matches!(def, Def::Item { .. }) {
-            return;
-        }
         let Some(signature) = self.signature(&def) else {
             return;
         };
@@ -610,10 +593,6 @@ impl Semantics<'_> {
     /// A call that resolves to nothing, though everything it could reach is
     /// known.
     fn unknown_function(&self, file: SourceFile, callee: &SyntaxNode, out: &mut Vec<Diagnostic>) {
-        // Without a target, the native scripts' members are unknown.
-        if self.game().is_none() {
-            return;
-        }
         let name = compact(callee);
         let receiver = callee
             .parent()
@@ -688,9 +667,6 @@ impl Semantics<'_> {
         name_ref: &SyntaxNode,
         out: &mut Vec<Diagnostic>,
     ) {
-        if self.game().is_none() {
-            return;
-        }
         let Some(token) = name_ref.first_token() else {
             return;
         };
