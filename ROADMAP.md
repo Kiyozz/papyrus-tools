@@ -43,9 +43,12 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-- **v0.9 — The VSCode extension, polished.** To define: `papyrus build` as a
-  task with its problems, settings for the lint levels, snippets, the
-  grammar's highlighting without the server.
+- **v0.9 — The VSCode extension, polished.** `papyrus.toml` stays the source
+  of truth: quick fixes setting a lint's level or SKSE there, created if
+  missing; "Create papyrus.toml"; its JSON schema for TOML editors.
+  `papyrus build` and `check` as tasks with their problems
+  (`--message-format short`), snippets, a TextMate grammar highlighting
+  without the server.
 
 ## Later
 
