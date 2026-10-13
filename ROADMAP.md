@@ -26,20 +26,31 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
   game without a target; the properties of native scripts; signature help
   and parameter name hints. No false positive on the vanilla corpus.
 
+- **v0.7 — States, overrides and builds.** `PAP010` to `PAP016`:
+  undeclared states, event signatures, read-only properties, instance members
+  without an instance, unreachable code, unused locals and parameters; quick
+  fixes for the semantic lints — cast, missing arguments, function created,
+  closest name —; highlights, go to implementation, call hierarchy, reference
+  lenses; `papyrus build` with `PapyrusCompiler.exe` or Caprica. The 0.6.0
+  release built for every platform.
+
 ## Next
 
-- **v0.7 — Planned, not started.**
-  - **Release 0.6.0**: Marketplace and Open VSX tokens, CI on the release PR.
-  - **Lints**, certain only: `GotoState` to an undeclared state, an event
-    whose parameters differ from the native one, assignment to an
-    `AutoReadOnly` or `Const` property, a non-`Global` function called on its
-    script or `self` in a `Global` one, code after `Return`, unused locals and
-    parameters.
-  - **Quick fixes** for the semantic lints: add `as int`, add the missing
-    argument, create the unknown function, replace with the closest name.
-  - **Navigation**: highlight the symbol under the cursor, go to overrides,
-    call hierarchy, references CodeLens.
-  - **`papyrus build`**: drive `PapyrusCompiler.exe` or Caprica with the
-    imports of `papyrus.toml`, its errors reported like the lints'.
-  - **Upkeep**: Skyrim tables without SKSE, or SKSE as an option; an IntelliJ
-    integration beyond LSP4IJ; large projects in the language server.
+- **v0.8 — Skyrim without SKSE, large projects.**
+  - **SKSE as an option**: the Skyrim tables hold vanilla only; SKSE's
+    functions come with `skse = true` in `papyrus.toml`, or when its sources
+    are in `imports`. Calling one without it is `members/unknown`.
+  - **Large projects**: measure a project importing a game's ~14,000 vanilla
+    scripts, then index names in `salsa` so that references, lenses and
+    rename read only the files that mention a name; cancel outdated requests;
+    report indexing progress.
+- **v0.9 — The VSCode extension, polished.** To define: `papyrus build` as a
+  task with its problems, settings for the lint levels, snippets, the
+  grammar's highlighting without the server, publication on the Marketplace
+  and Open VSX (tokens), CI on the release PR.
+
+## Later
+
+- **A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the binary
+  embedded, settings, `papyrus build` as a run configuration. Parked until
+  the VSCode extension is polished.

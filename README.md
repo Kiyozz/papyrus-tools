@@ -8,10 +8,11 @@ and IntelliJ.
 
 ## Status
 
-**v0.6** — `papyrus check`, `papyrus fmt`, configurable lints, checks of
-calls, types and members across files, language server with cross-file
-navigation: definition, hover, completion, references, rename, signature help,
-parameter names. The milestones, done and next, are in
+**v0.7** — `papyrus check`, `papyrus fmt`, `papyrus build`, configurable
+lints, checks of calls, types, members, states and dead code across files,
+quick fixes, language server with cross-file navigation: definition, hover,
+completion, references, rename, signature help, parameter names, call
+hierarchy, overrides. The milestones, done and next, are in
 [ROADMAP.md](ROADMAP.md).
 
 ```sh
