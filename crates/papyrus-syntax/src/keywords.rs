@@ -217,7 +217,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn la_table_est_triee_et_sans_doublon() {
+    fn the_table_is_sorted_without_duplicates() {
         for pair in KEYWORDS.windows(2) {
             let (a, _, _) = pair[0];
             let (b, _, _) = pair[1];
@@ -226,7 +226,7 @@ mod tests {
     }
 
     #[test]
-    fn les_noms_sont_en_minuscules_ascii() {
+    fn names_are_ascii_lowercase() {
         for (name, _, _) in KEYWORDS {
             assert!(
                 name.is_ascii() && *name == name.to_ascii_lowercase(),
@@ -236,7 +236,7 @@ mod tests {
     }
 
     #[test]
-    fn chaque_token_n_apparait_qu_une_fois() {
+    fn each_token_appears_once() {
         let mut kinds: Vec<_> = KEYWORDS.iter().map(|(_, k, _)| *k).collect();
         let total = kinds.len();
         kinds.sort();
@@ -245,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn la_recherche_ignore_la_casse() {
+    fn lookup_ignores_case() {
         for spelling in ["if", "IF", "If", "iF"] {
             assert_eq!(lookup(spelling), Some((SyntaxKind::IF_KW, GameId::Skyrim)));
         }
@@ -256,7 +256,7 @@ mod tests {
     }
 
     #[test]
-    fn tous_les_mots_de_la_table_se_retrouvent() {
+    fn every_word_of_the_table_is_found() {
         for (name, kind, since) in KEYWORDS {
             assert_eq!(lookup(name), Some((*kind, *since)), "`{name}` not found");
             assert_eq!(lookup(&name.to_ascii_uppercase()), Some((*kind, *since)));
@@ -264,7 +264,7 @@ mod tests {
     }
 
     #[test]
-    fn un_identifiant_ordinaire_n_est_pas_un_mot_cle() {
+    fn an_ordinary_identifier_is_not_a_keyword() {
         for word in [
             "myVariable",
             "actor",
@@ -279,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    fn les_prefixes_ne_matchent_pas() {
+    fn prefixes_do_not_match() {
         // The comparison must tell a word from its prefix.
         assert_eq!(lookup("self"), Some((SyntaxKind::SELF_KW, GameId::Skyrim)));
         assert_eq!(
@@ -291,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn le_reverse_lookup_est_coherent() {
+    fn the_reverse_lookup_is_consistent() {
         for (name, kind, since) in KEYWORDS {
             assert_eq!(super::since(*kind), Some(*since));
             assert_eq!(canonical_lower(*kind), Some(*name));

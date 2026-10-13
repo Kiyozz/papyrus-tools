@@ -446,7 +446,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn from_raw_est_l_inverse_du_discriminant() {
+    fn from_raw_inverts_the_discriminant() {
         for (index, kind) in SyntaxKind::ALL.iter().enumerate() {
             assert_eq!(u16::from(*kind) as usize, index, "{kind:?} misplaced");
             assert_eq!(SyntaxKind::from_raw(index as u16), Some(*kind));
@@ -455,7 +455,7 @@ mod tests {
     }
 
     #[test]
-    fn tokens_et_noeuds_ne_se_melangent_pas() {
+    fn tokens_and_nodes_do_not_mix() {
         // The border is a plain `>=` on the discriminant; provided no token
         // slipped in after it.
         assert!(!SyntaxKind::EOF.is_node());

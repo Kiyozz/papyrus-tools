@@ -35,14 +35,14 @@ fn run(game: GameId) {
             include_fragments: true,
         },
     )
-    .expect("parcours du corpus");
+    .expect("corpus walk");
 
     let dialect = Dialect::new(game);
     let options = FormatOptions::default();
     let mut failures = Vec::new();
     let mut changed = 0;
     for path in &scripts {
-        let decoded = decode(&std::fs::read(path).expect("lecture"));
+        let decoded = decode(&std::fs::read(path).expect("read"));
         let once = match format(&decoded.text, dialect, &options) {
             Ok(out) => out,
             Err(e) => {
@@ -52,7 +52,7 @@ fn run(game: GameId) {
         };
         let twice = format(&once, dialect, &options).expect("the result formats again");
         if twice != once {
-            failures.push(format!("{} : non idempotent", path.display()));
+            failures.push(format!("{}: not idempotent", path.display()));
         }
         changed += usize::from(once != decoded.text);
     }

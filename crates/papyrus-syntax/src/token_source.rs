@@ -59,7 +59,7 @@ mod tests {
     }
 
     #[test]
-    fn is_est_un_mot_cle_a_partir_de_fallout4() {
+    fn is_is_a_keyword_from_fallout4_on() {
         // Checked with the compiler: Skyrim SE rejects `x is Actor`.
         assert_eq!(kinds("is", GameId::Skyrim), [SyntaxKind::IDENT]);
         assert_eq!(kinds("is", GameId::Fallout4), [SyntaxKind::IS_KW]);
@@ -68,14 +68,14 @@ mod tests {
     }
 
     #[test]
-    fn as_est_un_mot_cle_des_skyrim() {
+    fn as_is_a_keyword_since_skyrim() {
         for game in [GameId::Skyrim, GameId::Fallout4, GameId::Starfield] {
             assert_eq!(kinds("as", game), [SyntaxKind::AS_KW], "cible {game}");
         }
     }
 
     #[test]
-    fn les_verrous_sont_propres_a_starfield() {
+    fn guards_are_specific_to_starfield() {
         for word in ["guard", "lockguard", "trylockguard", "endtrylockguard"] {
             assert_eq!(
                 kinds(word, GameId::Fallout4),
@@ -91,7 +91,7 @@ mod tests {
     }
 
     #[test]
-    fn un_script_skyrim_peut_nommer_une_variable_var() {
+    fn a_skyrim_script_may_name_a_variable_var() {
         // The case that makes demotion mandatory: this code is valid in
         // Skyrim, and refusing it would doom the tool on the existing corpus.
         let source = "int Var = 1";
@@ -112,7 +112,7 @@ mod tests {
     }
 
     #[test]
-    fn la_promotion_ignore_la_casse() {
+    fn promotion_ignores_case() {
         for spelling in ["endfunction", "EndFunction", "ENDFUNCTION", "eNdFuNcTiOn"] {
             assert_eq!(
                 kinds(spelling, GameId::Skyrim),
@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn seuls_les_identifiants_sont_promus() {
+    fn only_identifiers_are_promoted() {
         // `if` in a string or a comment stays what it is.
         assert_eq!(kinds("\"if\"", GameId::Skyrim), [SyntaxKind::STRING]);
         assert_eq!(kinds("; if", GameId::Skyrim), [SyntaxKind::LINE_COMMENT]);
@@ -130,7 +130,7 @@ mod tests {
     }
 
     #[test]
-    fn reserved_later_explique_la_retrogradation() {
+    fn reserved_later_explains_the_demotion() {
         let skyrim = Dialect::new(GameId::Skyrim);
         assert_eq!(
             reserved_later("Var", skyrim),

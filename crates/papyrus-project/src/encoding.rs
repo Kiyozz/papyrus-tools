@@ -202,7 +202,7 @@ mod tests {
     ];
 
     #[test]
-    fn la_detection_suit_les_octets() {
+    fn detection_follows_the_bytes() {
         assert_eq!(decode(b"int x").encoding, SourceEncoding::Ascii);
         assert_eq!(
             decode("s = \"é\"".as_bytes()).encoding,
@@ -219,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn windows_1252_se_decode_sans_perte() {
+    fn windows_1252_decodes_losslessly() {
         let decoded = decode(b"s = \"caf\xE9\"");
         assert_eq!(decoded.text, "s = \"café\"");
         assert!(!decoded.lossy);
@@ -230,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn le_bom_survit_a_l_aller_retour() {
+    fn the_bom_survives_the_round_trip() {
         let bytes = "\u{feff}s = \"é\"".as_bytes();
         let decoded = decode(bytes);
         assert!(decoded.text.starts_with('\u{feff}'));
@@ -238,19 +238,19 @@ mod tests {
     }
 
     #[test]
-    fn un_bom_mensonger_est_marque_avec_perte() {
+    fn a_lying_bom_is_marked_lossy() {
         let decoded = decode(b"\xEF\xBB\xBFs = \"\xE9\"");
         assert_eq!(decoded.encoding, SourceEncoding::Utf8Bom);
         assert!(decoded.lossy);
     }
 
     #[test]
-    fn windows_1252_refuse_ce_qu_il_ne_connait_pas() {
+    fn windows_1252_refuses_what_it_does_not_know() {
         assert_eq!(encode("→", SourceEncoding::Windows1252), None);
     }
 
     #[test]
-    fn utf8_sans_bom_ne_pose_probleme_qu_a_skyrim() {
+    fn utf8_without_bom_only_hurts_skyrim() {
         let decoded = decode("s = \"café\"".as_bytes());
         let issue = check(&decoded, GameId::Skyrim).expect("Skyrim corrompt");
         assert!(
@@ -266,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    fn windows_1252_ne_pose_probleme_qu_apres_skyrim() {
+    fn windows_1252_only_hurts_after_skyrim() {
         let decoded = decode(b"s = \"caf\xE9\"");
         assert_eq!(check(&decoded, GameId::Skyrim), None);
         for game in [GameId::Fallout4, GameId::Fallout76, GameId::Starfield] {
@@ -276,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn utf8_avec_bom_et_ascii_passent_partout() {
+    fn utf8_with_bom_and_ascii_work_everywhere() {
         for bytes in ["\u{feff}s = \"café\"".as_bytes(), b"s = \"cafe\""] {
             let decoded = decode(bytes);
             for game in ALL_GAMES {
@@ -286,7 +286,7 @@ mod tests {
     }
 
     #[test]
-    fn un_accent_en_commentaire_ne_compte_pas() {
+    fn an_accent_in_a_comment_does_not_count() {
         // The comment is not compiled: no byte reaches the `.pex`.
         let decoded = decode("; café\n;/ été /;\nint x\n".as_bytes());
         assert_eq!(check(&decoded, GameId::Skyrim), None);
@@ -299,7 +299,7 @@ mod tests {
     }
 
     #[test]
-    fn toutes_les_chaines_touchees_sont_comptees() {
+    fn every_affected_string_is_counted() {
         let decoded = decode("a = \"é\"\nb = \"ok\"\nc = \"à\"\n".as_bytes());
         assert_eq!(check(&decoded, GameId::Skyrim).unwrap().affected, 2);
     }

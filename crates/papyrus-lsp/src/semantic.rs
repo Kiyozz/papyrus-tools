@@ -216,11 +216,11 @@ mod tests {
     }
 
     #[test]
-    fn chaque_nom_est_classe_selon_sa_place() {
+    fn each_name_is_classified_by_its_place() {
         let text = "\
 ScriptName Foo extends ObjectReference
 { doc
-sur deux lignes }
+on two lines }
 Actor Property target Auto
 Function Run(int aiCount) ; note
   target.Kill(abForce = true)
@@ -238,10 +238,7 @@ EndFunction
         assert_eq!(expect("Foo"), Some(("class", DECLARATION)));
         assert_eq!(expect("ObjectReference"), Some(("type", 0)));
         assert_eq!(expect("{ doc"), Some(("comment", DOCUMENTATION)));
-        assert_eq!(
-            expect("sur deux lignes }"),
-            Some(("comment", DOCUMENTATION))
-        );
+        assert_eq!(expect("on two lines }"), Some(("comment", DOCUMENTATION)));
         assert_eq!(expect("Actor"), Some(("type", 0)));
         assert_eq!(expect("target"), Some(("property", DECLARATION)));
         assert_eq!(expect("Run"), Some(("function", DECLARATION)));

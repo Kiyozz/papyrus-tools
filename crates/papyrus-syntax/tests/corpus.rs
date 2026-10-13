@@ -81,7 +81,7 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
     let root = PathBuf::from(root);
     assert!(
         root.is_dir(),
-        "{} pointe sur {}, qui n'est pas un dossier",
+        "{} points to {}, which is not a folder",
         corpus_var(game),
         root.display()
     );
@@ -101,7 +101,7 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
     };
 
     for path in &scripts {
-        let raw = fs::read(path).expect("lecture");
+        let raw = fs::read(path).expect("read");
         // Real decoding — Windows-1252 for Skyrim, UTF-8 for the others —
         // will come with `papyrus-project`. Here, any valid `&str` is enough
         // to exercise the lexer.
@@ -115,7 +115,7 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
             assert_eq!(
                 usize::from(token.range.start()),
                 offset,
-                "trou dans {} avant {:?}",
+                "gap in {} before {:?}",
                 path.display(),
                 token.kind
             );
@@ -124,7 +124,7 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
         assert_eq!(
             offset,
             source.len(),
-            "fin non couverte dans {}",
+            "end not covered in {}",
             path.display()
         );
 
@@ -153,7 +153,7 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
         assert_eq!(
             parse.syntax().to_string(),
             source,
-            "l'arbre de {} ne reproduit pas la source",
+            "the tree of {} does not reproduce the source",
             path.display()
         );
         // An error without a message would be a bug: every ERROR_TREE must
@@ -208,7 +208,7 @@ fn report(game: GameId) {
 
     assert!(
         stats.lex_errors.is_empty(),
-        "{} tokens ERROR sur le corpus {} — le lexer a un trou :\n{}",
+        "{} ERROR tokens on the {} corpus — the lexer has a gap:\n{}",
         stats.lex_errors.len(),
         game.display_name(),
         stats.lex_errors.join("\n")

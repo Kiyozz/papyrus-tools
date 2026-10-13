@@ -25,13 +25,13 @@ fn run(game: GameId) {
         eprintln!("· {} skipped", game.display_name());
         return;
     };
-    let scripts = discover(&[root], DiscoverOptions::default()).expect("parcours");
+    let scripts = discover(&[root], DiscoverOptions::default()).expect("walk");
     let skyrim = game == GameId::Skyrim;
 
     let (mut right, mut undecided, mut wrong) = (0, 0, Vec::new());
     let mut verdicts = Vec::new();
     for path in &scripts {
-        let decoded = decode(&std::fs::read(path).expect("lecture"));
+        let decoded = decode(&std::fs::read(path).expect("read"));
         let parse = papyrus_syntax::parse(&decoded.text, Dialect::new(GameId::Starfield));
         let root = parse.syntax();
         // The native scripts are the source of the tables: detecting them

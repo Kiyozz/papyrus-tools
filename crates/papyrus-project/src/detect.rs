@@ -287,47 +287,47 @@ mod tests {
     }
 
     #[test]
-    fn la_syntaxe_de_starfield_tranche_seule() {
+    fn starfield_syntax_decides_alone() {
         let source =
             "ScriptName T\nGuard g\nFunction F()\n\tLockGuard g\n\tEndLockGuard\nEndFunction\n";
         assert_eq!(detect(source), Some(GameId::Starfield));
     }
 
     #[test]
-    fn onupdate_designe_skyrim() {
+    fn onupdate_points_to_skyrim() {
         let source = "ScriptName T extends Quest\nEvent OnInit()\n\tRegisterForSingleUpdate(1.0)\nEndEvent\nEvent OnUpdate()\nEndEvent\n";
         assert_eq!(detect(source), Some(GameId::Skyrim));
     }
 
     #[test]
-    fn les_timers_ecartent_skyrim() {
+    fn timers_rule_out_skyrim() {
         let source = "ScriptName T extends Quest\nEvent OnInit()\n\tStartTimer(1.0)\nEndEvent\nEvent OnTimer(int aiTimerID)\nEndEvent\n";
         assert_ne!(detect(source), Some(GameId::Skyrim));
         assert!(detect(source).is_some());
     }
 
     #[test]
-    fn la_syntaxe_ecarte_skyrim_malgre_les_noms() {
+    fn syntax_rules_out_skyrim_despite_names() {
         // `OnUpdate` votes Skyrim, but a struct rules it out.
         let source = "ScriptName T extends Quest\nStruct S\n\tint x\nEndStruct\nEvent OnUpdate()\nEndEvent\n";
         assert_ne!(detect(source), Some(GameId::Skyrim));
     }
 
     #[test]
-    fn un_script_neutre_ne_tranche_pas() {
+    fn a_neutral_script_does_not_decide() {
         let source = "ScriptName T extends Quest\nFunction F()\n\tint x = 1\nEndFunction\n";
         assert_eq!(detect(source), None);
     }
 
     #[test]
-    fn un_appel_a_une_fonction_du_script_ne_vote_pas() {
+    fn a_call_to_a_script_function_does_not_vote() {
         // `StartTimer` declared here is not the engine's.
         let source = "ScriptName T extends Quest\nFunction StartTimer(float x)\nEndFunction\nEvent OnInit()\n\tStartTimer(1.0)\nEndEvent\n";
         assert_eq!(detect(source), None);
     }
 
     #[test]
-    fn la_majorite_du_projet_l_emporte() {
+    fn the_project_majority_wins() {
         use GameId::*;
         assert_eq!(
             majority([Some(Skyrim), None, Some(Skyrim), Some(Fallout4)]),

@@ -118,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn les_prefixes_hongrois_sont_du_lower_camel() {
+    fn hungarian_prefixes_are_lower_camel() {
         for name in [
             "akTarget", "abFlag", "aiCount", "afValue", "asName", "auiIndex",
         ] {

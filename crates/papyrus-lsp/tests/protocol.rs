@@ -104,7 +104,7 @@ fn connect() -> Client {
 }
 
 #[tokio::test]
-async fn une_session_complete() {
+async fn a_full_session() {
     let dir = project();
     let mut client = connect();
 
@@ -116,7 +116,7 @@ async fn une_session_complete() {
                     "general": { "positionEncodings": ["utf-8", "utf-16"] },
                     "workspace": { "didChangeWatchedFiles": { "dynamicRegistration": true } },
                 },
-                "workspaceFolders": [{ "uri": uri(&dir), "name": "projet" }],
+                "workspaceFolders": [{ "uri": uri(&dir), "name": "project" }],
             }),
         )
         .await;

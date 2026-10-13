@@ -17,16 +17,12 @@ fn assert_lossless(source: &str) {
         assert_eq!(
             usize::from(token.range.start()),
             offset,
-            "trou ou recouvrement avant {:?} dans {source:?}",
+            "gap or overlap before {:?} in {source:?}",
             token.kind
         );
         offset = usize::from(token.range.end());
     }
-    assert_eq!(
-        offset,
-        source.len(),
-        "la fin de {source:?} n'est pas couverte"
-    );
+    assert_eq!(offset, source.len(), "the end of {source:?} is not covered");
 
     let rebuilt: String = tokens.iter().map(|t| t.text(source)).collect();
     assert_eq!(rebuilt, source, "rebuilt text differs from the source");
@@ -37,7 +33,7 @@ fn kinds(source: &str) -> Vec<SyntaxKind> {
 }
 
 #[test]
-fn le_lexage_est_lossless_sur_du_code_ordinaire() {
+fn lexing_is_lossless_on_ordinary_code() {
     let sources = [
         "",
         "\n",
@@ -57,14 +53,14 @@ fn le_lexage_est_lossless_sur_du_code_ordinaire() {
 }
 
 #[test]
-fn le_lexage_est_lossless_sur_une_entree_invalide() {
+fn lexing_is_lossless_on_invalid_input() {
     // A broken source must stay rebuildable: the language server constantly
     // works on half-written code.
     let sources = [
-        "\u{4}\u{7}",            // control bytes
-        "\"chaîne non fermée\n", // stray quote
-        ";/ bloc non fermé",     // open block comment
-        "{docstring non fermée", // stray brace
+        "\u{4}\u{7}",          // control bytes
+        "\"unclosed strïng\n", // stray quote
+        ";/ unclosed block",   // open block comment
+        "{unclosed docstring", // stray brace
         "Function #!? EndFunction",
         "int x = @@@\n",
         "\\",                     // continuation without line end
@@ -77,7 +73,7 @@ fn le_lexage_est_lossless_sur_une_entree_invalide() {
 }
 
 #[test]
-fn le_commentaire_de_ligne_n_avale_pas_la_fin_de_ligne() {
+fn a_line_comment_does_not_swallow_the_line_end() {
     // The classic trap. If the comment takes the line break, the parser
     // loses the declaration's terminator and the whole line-oriented grammar
     // collapses.
@@ -96,13 +92,13 @@ fn le_commentaire_de_ligne_n_avale_pas_la_fin_de_ligne() {
 }
 
 #[test]
-fn le_commentaire_bloc_prime_sur_le_commentaire_de_ligne() {
+fn a_block_comment_wins_over_a_line_comment() {
     // `;/ … /;` starts with `;`: without arbitration, the line comment would
     // win and the rest of the block would be lexed as code.
     assert_eq!(kinds(";/ bloc /;"), [SyntaxKind::BLOCK_COMMENT]);
     assert_eq!(kinds(";//;"), [SyntaxKind::BLOCK_COMMENT]);
     assert_eq!(
-        kinds(";/ sur\ndeux lignes /;\n"),
+        kinds(";/ on\ntwo lines /;\n"),
         [SyntaxKind::BLOCK_COMMENT, SyntaxKind::NEWLINE]
     );
 
@@ -111,7 +107,7 @@ fn le_commentaire_bloc_prime_sur_le_commentaire_de_ligne() {
 }
 
 #[test]
-fn la_continuation_de_ligne_est_un_token_a_part() {
+fn a_line_continuation_is_its_own_token() {
     // Trivia, but the formatter must be able to find it so as not to remove
     // it.
     assert_eq!(
@@ -134,7 +130,7 @@ fn la_continuation_de_ligne_est_un_token_a_part() {
 }
 
 #[test]
-fn les_litteraux_numeriques_sont_non_signes() {
+fn numeric_literals_are_unsigned() {
     // `a-1` is a subtraction, not an identifier followed by a negative integer.
     assert_eq!(
         kinds("a-1"),
@@ -144,7 +140,7 @@ fn les_litteraux_numeriques_sont_non_signes() {
 }
 
 #[test]
-fn les_flottants_exigent_des_chiffres_des_deux_cotes() {
+fn floats_need_digits_on_both_sides() {
     assert_eq!(kinds("1.5"), [SyntaxKind::FLOAT_NUMBER]);
     // `1.` is not a float: integer, then member access.
     assert_eq!(kinds("1."), [SyntaxKind::INT_NUMBER, SyntaxKind::DOT]);
@@ -159,7 +155,7 @@ fn les_flottants_exigent_des_chiffres_des_deux_cotes() {
 }
 
 #[test]
-fn les_hexadecimaux_priment_sur_les_entiers() {
+fn hexadecimals_win_over_integers() {
     assert_eq!(kinds("0xDEADBEEF"), [SyntaxKind::HEX_NUMBER]);
     assert_eq!(kinds("0XFF"), [SyntaxKind::HEX_NUMBER]);
     // `0x` without a digit: integer `0` then identifier `x`.
@@ -167,7 +163,7 @@ fn les_hexadecimaux_priment_sur_les_entiers() {
 }
 
 #[test]
-fn une_chaine_non_fermee_s_arrete_a_la_fin_de_ligne() {
+fn an_unclosed_string_stops_at_the_line_end() {
     // Without this bound, a typo would carry away the rest of the file — and
     // the editor would show everything in string color.
     let source = "\"oups\nint x = 1\n";
@@ -179,7 +175,7 @@ fn une_chaine_non_fermee_s_arrete_a_la_fin_de_ligne() {
 }
 
 #[test]
-fn les_echappements_de_chaine_sont_respectes() {
+fn string_escapes_are_honored() {
     let source = r#""un \" guillemet" apres"#;
     let tokens = lex(source);
     assert_eq!(tokens[0].kind, SyntaxKind::STRING);
@@ -187,7 +183,7 @@ fn les_echappements_de_chaine_sont_respectes() {
 }
 
 #[test]
-fn la_docstring_peut_courir_sur_plusieurs_lignes() {
+fn a_docstring_may_span_several_lines() {
     let source = "{doc\nsur deux lignes}\n";
     let tokens = lex(source);
     assert_eq!(tokens[0].kind, SyntaxKind::DOC_COMMENT);
@@ -196,7 +192,7 @@ fn la_docstring_peut_courir_sur_plusieurs_lignes() {
 }
 
 #[test]
-fn les_octets_invalides_consecutifs_sont_fusionnes() {
+fn consecutive_invalid_bytes_are_merged() {
     // One diagnostic per byte would be unreadable.
     let tokens = lex("###");
     assert_eq!(tokens.len(), 1);
@@ -205,7 +201,7 @@ fn les_octets_invalides_consecutifs_sont_fusionnes() {
 }
 
 #[test]
-fn le_dialecte_ne_change_jamais_le_decoupage() {
+fn the_dialect_never_changes_the_split() {
     // Keyword promotion relabels tokens, it moves none: the CST must be the
     // same whatever the target.
     let source = "int Var = 1\nGuard g\nif x is Actor\n";

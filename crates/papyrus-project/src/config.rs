@@ -227,11 +227,11 @@ mod tests {
     use super::*;
 
     fn parse(text: &str) -> Result<Config, ConfigError> {
-        Config::parse(text, Path::new("/projet/papyrus.toml"))
+        Config::parse(text, Path::new("/project/papyrus.toml"))
     }
 
     #[test]
-    fn un_fichier_vide_donne_les_valeurs_par_defaut() {
+    fn an_empty_file_gives_the_defaults() {
         let config = parse("").unwrap();
         assert_eq!(config.game, None);
         assert_eq!(config.indent, None);
@@ -239,7 +239,7 @@ mod tests {
     }
 
     #[test]
-    fn un_fichier_complet_se_lit() {
+    fn a_full_file_reads() {
         let config = parse(
             "game = \"sse\"\n\
              include-fragments = true\n\
@@ -257,7 +257,7 @@ mod tests {
         assert_eq!(
             config.flags.as_deref(),
             Some(
-                Path::new("/projet")
+                Path::new("/project")
                     .join("TESV_Papyrus_Flags.flg")
                     .as_path()
             )
@@ -267,7 +267,7 @@ mod tests {
     }
 
     #[test]
-    fn les_fautes_sont_signalees() {
+    fn mistakes_are_reported() {
         // A typo in a key must not go unnoticed.
         assert!(parse("gmae = \"skyrim\"").is_err());
         assert!(parse("game = \"morrowind\"").is_err());

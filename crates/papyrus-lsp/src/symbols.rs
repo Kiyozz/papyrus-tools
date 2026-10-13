@@ -300,7 +300,7 @@ EndEvent
 ";
 
     #[test]
-    fn le_plan_suit_les_declarations() {
+    fn the_outline_follows_the_declarations() {
         let (root, map) = parse(SOURCE);
         let symbols = document_symbols(&root, &map);
         assert_eq!(symbols.len(), 1);
@@ -331,7 +331,7 @@ EndEvent
     }
 
     #[test]
-    fn chaque_bloc_se_replie_jusqu_a_son_mot_de_fin() {
+    fn each_block_folds_up_to_its_end_keyword() {
         let (root, map) = parse(SOURCE);
         let folds: Vec<(u32, u32)> = folding_ranges(&root, &map)
             .iter()

@@ -181,9 +181,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn le_format_vanilla_se_lit() {
+    fn the_vanilla_format_reads() {
         let defs = parse_flags(
-            "/*\n en-tête { Flag ignoré 9 }\n*/\n\
+            "/*\n header { Flag ignored 9 }\n*/\n\
              // Flag hides the script\n\
              Flag Hidden 0\n{\n\tScript\n\tProperty\n}\n\
              Flag CollapsedOnRef 3 { Group }\n\
@@ -201,7 +201,7 @@ mod tests {
     }
 
     #[test]
-    fn les_erreurs_sont_signalees() {
+    fn errors_are_reported() {
         assert!(parse_flags("Flag X 32").is_err());
         assert!(parse_flags("Flag X 1 { Truc }").is_err());
         assert!(parse_flags("Flag X 1 { Script").is_err());

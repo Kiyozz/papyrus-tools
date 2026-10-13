@@ -141,7 +141,7 @@ mod tests {
     }
 
     #[test]
-    fn en_fin_de_ligne_couvre_la_ligne() {
+    fn at_line_end_covers_the_line() {
         let source = "int HP = 0 ; papyrus: allow(naming/locals)\nint XP = 0\n";
         let s = Suppressions::collect(source);
         assert!(s.covers(&NAMING_LOCALS, offset_of(source, "HP")));
@@ -150,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    fn seule_sur_sa_ligne_couvre_le_code_suivant() {
+    fn alone_on_its_line_covers_the_next_code() {
         let source =
             "; papyrus: allow(PAP101, PAP001)\n\n; autre commentaire\nint HP = 0\nint XP\n";
         let s = Suppressions::collect(source);
@@ -160,7 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn all_couvre_tout() {
+    fn all_covers_everything() {
         let source = "int HP ; papyrus: allow(all)\n";
         let s = Suppressions::collect(source);
         assert!(s.covers(&NAMING_LOCALS, offset_of(source, "HP")));
@@ -169,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn un_commentaire_ordinaire_ne_supprime_rien() {
+    fn an_ordinary_comment_suppresses_nothing() {
         for comment in [
             "; allow(naming/locals)",
             "; papyrus allow(PAP101)",
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn un_nom_inconnu_est_releve_a_sa_place() {
+    fn an_unknown_name_is_reported_where_it_is() {
         let source = "int HP ; papyrus: allow(PAP101,  naming/lokals)\n";
         let s = Suppressions::collect(source);
         assert_eq!(s.unknown.len(), 1);

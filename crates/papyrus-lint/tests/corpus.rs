@@ -57,7 +57,7 @@ fn run_game(game: GameId) {
 
     // The embedded table reproduces the game's `.flg`.
     let real = parse_flags(&std::fs::read_to_string(flg_path(game, &root)).expect(".flg"))
-        .expect(".flg lisible");
+        .expect("readable .flg");
     assert_eq!(real, vanilla_flags(Some(game)), "table de flags {game}");
 
     let scripts = discover(
@@ -66,7 +66,7 @@ fn run_game(game: GameId) {
             include_fragments: true,
         },
     )
-    .expect("parcours");
+    .expect("walk");
     let dialect = Dialect::new(game);
     let levels = Levels::default();
     let flags = vanilla_flags(Some(game));
@@ -74,7 +74,7 @@ fn run_game(game: GameId) {
     // The game's non-native scripts extend the `extends` chain.
     let mut workspace = Workspace::default();
     for path in &scripts {
-        let decoded = decode(&std::fs::read(path).expect("lecture"));
+        let decoded = decode(&std::fs::read(path).expect("read"));
         let parse = papyrus_syntax::parse(&decoded.text, dialect);
         if let Some(summary) = ScriptSummary::of(&parse.syntax()) {
             workspace.insert(summary);
@@ -86,7 +86,7 @@ fn run_game(game: GameId) {
     let mut false_positives = Vec::new();
     let mut fixed_files = 0;
     for path in &scripts {
-        let decoded = decode(&std::fs::read(path).expect("lecture"));
+        let decoded = decode(&std::fs::read(path).expect("read"));
         let parse = papyrus_syntax::parse(&decoded.text, dialect);
         let root = parse.syntax();
         let context = Context {
@@ -148,10 +148,10 @@ fn run_game(game: GameId) {
     );
     events.sort();
     events.dedup();
-    assert_eq!(events, dead_events(game), "PAP004 sur {game}");
+    assert_eq!(events, dead_events(game), "PAP004 on {game}");
     assert!(
         false_positives.is_empty(),
-        "PAP002 sur du code qui compile :\n{}",
+        "PAP002 on code that compiles:\n{}",
         false_positives.join("\n")
     );
 }

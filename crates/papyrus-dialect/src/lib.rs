@@ -243,14 +243,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn fallout76_est_un_alias_de_fallout4() {
+    fn fallout76_is_an_alias_of_fallout4() {
         assert_eq!(GameId::Fallout76.rank(), GameId::Fallout4.rank());
         assert!(GameId::Fallout76.accepts(GameId::Fallout4));
         assert!(GameId::Fallout4.accepts(GameId::Fallout76));
     }
 
     #[test]
-    fn les_jeux_forment_une_suite_de_sur_ensembles() {
+    fn games_form_a_chain_of_supersets() {
         assert!(GameId::Starfield.accepts(GameId::Fallout4));
         assert!(GameId::Starfield.accepts(GameId::Skyrim));
         assert!(GameId::Fallout4.accepts(GameId::Skyrim));
@@ -260,12 +260,12 @@ mod tests {
     }
 
     #[test]
-    fn la_cible_par_defaut_est_le_sur_ensemble_le_plus_large() {
+    fn the_default_target_is_the_widest_superset() {
         assert_eq!(GameId::default(), GameId::Starfield);
     }
 
     #[test]
-    fn les_features_sont_rattachees_au_bon_jeu() {
+    fn features_belong_to_the_right_game() {
         let skyrim = Dialect::new(GameId::Skyrim);
         let fo4 = Dialect::new(GameId::Fallout4);
         let sf = Dialect::new(GameId::Starfield);
@@ -281,7 +281,7 @@ mod tests {
     }
 
     #[test]
-    fn les_noms_de_jeu_acceptent_les_alias_de_la_communaute() {
+    fn game_names_accept_community_aliases() {
         assert_eq!("skyrim".parse(), Ok(GameId::Skyrim));
         assert_eq!("Skyrim SE".parse(), Ok(GameId::Skyrim));
         assert_eq!("skyrim-le".parse(), Ok(GameId::Skyrim));
@@ -293,7 +293,7 @@ mod tests {
     }
 
     #[test]
-    fn le_nom_canonique_se_relit() {
+    fn the_canonical_name_reads_back() {
         for game in [
             GameId::Skyrim,
             GameId::Fallout4,

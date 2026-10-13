@@ -116,7 +116,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn les_colonnes_suivent_l_unite_negociee() {
+    fn columns_follow_the_negotiated_unit() {
         let text = "a = \"é𝄞\" x\nb";
         let x = TextSize::from(text.find(" x").unwrap() as u32 + 1);
         let utf8 = LineMap::new(text, Columns::Utf8);
@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn une_position_au_dela_de_la_ligne_est_ramenee() {
+    fn a_position_past_the_line_is_clamped() {
         let map = LineMap::new("ab\ncd", Columns::Utf8);
         assert_eq!(map.offset(Position::new(0, 99)), Some(TextSize::from(2)));
         assert_eq!(map.offset(Position::new(5, 0)), None);

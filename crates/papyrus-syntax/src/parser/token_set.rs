@@ -42,7 +42,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn l_appartenance_est_exacte() {
+    fn membership_is_exact() {
         let set = TokenSet::new(&[SyntaxKind::IF_KW, SyntaxKind::ENDIF_KW]);
         assert!(set.contains(SyntaxKind::IF_KW));
         assert!(set.contains(SyntaxKind::ENDIF_KW));
@@ -50,7 +50,7 @@ mod tests {
     }
 
     #[test]
-    fn tous_les_kinds_sont_representables() {
+    fn every_kind_is_representable() {
         // The bitset indexes by discriminant: an out-of-bounds kind would
         // silently corrupt another word.
         for kind in SyntaxKind::ALL {

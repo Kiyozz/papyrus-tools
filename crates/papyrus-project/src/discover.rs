@@ -97,7 +97,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn les_fragments_se_reconnaissent_a_leur_nom() {
+    fn fragments_are_recognized_by_name() {
         for name in [
             "TIF__0010CB55.psc",
             "QF_MQ101_0002610C.psc",
@@ -112,7 +112,7 @@ mod tests {
     }
 
     #[test]
-    fn les_scripts_ordinaires_ne_sont_pas_des_fragments() {
+    fn ordinary_scripts_are_not_fragments() {
         for name in [
             "ObjectReference.psc",
             "SQ_ParentScript.psc",

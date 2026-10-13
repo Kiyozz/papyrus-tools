@@ -55,7 +55,7 @@ fn render(parse: &Parse, source: &str) -> String {
 #[track_caller]
 fn tree(source: &str, game: GameId) -> String {
     let parse = parse(source, Dialect::new(game));
-    assert_eq!(parse.syntax().to_string(), source, "round-trip rompu");
+    assert_eq!(parse.syntax().to_string(), source, "round trip broken");
     render(&parse, source)
 }
 
@@ -69,7 +69,7 @@ fn body(stmts: &str, game: GameId) -> String {
 }
 
 #[test]
-fn en_tete_complet() {
+fn full_header() {
     insta::assert_snapshot!(tree(
         "ScriptName DLC01:Foo extends ObjectReference Hidden Const\nimport Utility\n",
         GameId::Fallout4
@@ -77,7 +77,7 @@ fn en_tete_complet() {
 }
 
 #[test]
-fn precedence_des_operateurs() {
+fn operator_precedence() {
     // `*` binds tighter than `+`, `&&` tighter than `||`, and unary wraps the
     // cast.
     insta::assert_snapshot!(body(
@@ -87,7 +87,7 @@ fn precedence_des_operateurs() {
 }
 
 #[test]
-fn declaration_affectation_ou_appel() {
+fn declaration_assignment_or_call() {
     // All three start with an identifier; only the first is a type followed
     // by a name.
     insta::assert_snapshot!(body(
@@ -105,7 +105,7 @@ fn if_elseif_else() {
 }
 
 #[test]
-fn property_courte_et_longue() {
+fn short_and_long_property() {
     // The form is decided by the flags, not by their position.
     insta::assert_snapshot!(tree(
         "ScriptName T\n\
@@ -120,7 +120,7 @@ fn property_courte_et_longue() {
 }
 
 #[test]
-fn fonction_native_sans_corps() {
+fn native_function_without_body() {
     insta::assert_snapshot!(tree(
         "ScriptName T\nint Function Count() global native\nFunction Next()\nEndFunction\n",
         GameId::Skyrim
@@ -128,7 +128,7 @@ fn fonction_native_sans_corps() {
 }
 
 #[test]
-fn evenement_distant() {
+fn remote_event() {
     insta::assert_snapshot!(tree(
         "ScriptName T\nEvent ObjectReference.OnActivate(ObjectReference akSender, ObjectReference akActionRef)\nEndEvent\n",
         GameId::Fallout4
@@ -155,7 +155,7 @@ fn state_struct_group_customevent() {
 }
 
 #[test]
-fn verrous_starfield() {
+fn starfield_guards() {
     insta::assert_snapshot!(tree(
         "ScriptName T\n\
          Guard g ProtectsFunctionLogic\n\
@@ -175,7 +175,7 @@ fn verrous_starfield() {
 }
 
 #[test]
-fn appel_statique_qualifie() {
+fn qualified_static_call() {
     insta::assert_snapshot!(body(
         "DLC04:Manager.GetScript().Attach(akRef as Actor)",
         GameId::Fallout4
@@ -185,7 +185,7 @@ fn appel_statique_qualifie() {
 // ── Dialects ──────────────────────────────────────────────────────────────
 
 #[test]
-fn un_script_skyrim_peut_nommer_une_variable_var() {
+fn a_skyrim_script_may_name_a_variable_var() {
     let parse = parse(
         "ScriptName T\nFunction F()\n\tint Var = 1\n\tVar = 2\nEndFunction\n",
         Dialect::new(GameId::Skyrim),
@@ -194,7 +194,7 @@ fn un_script_skyrim_peut_nommer_une_variable_var() {
 }
 
 #[test]
-fn is_est_refuse_en_skyrim_et_dit_pourquoi() {
+fn is_is_refused_in_skyrim_with_the_reason() {
     let source = "ScriptName T
 Function F()
 	bool b = x is Actor
@@ -213,7 +213,7 @@ EndFunction
 }
 
 #[test]
-fn les_evenements_distants_sont_signales_en_skyrim() {
+fn remote_events_are_reported_in_skyrim() {
     let source = "ScriptName T
 Event Actor.OnDeath(Actor akSender, Actor akKiller)
 EndEvent
@@ -227,7 +227,7 @@ EndEvent
 }
 
 #[test]
-fn les_namespaces_sont_signales_en_skyrim() {
+fn namespaces_are_reported_in_skyrim() {
     // The dialect's second intervention point: the construct is read, the
     // tree is complete, and the target is reported as incompatible.
     let source = "ScriptName T\nFoo:Bar Property P Auto\n";
@@ -246,12 +246,12 @@ fn les_namespaces_sont_signales_en_skyrim() {
 // ── Recovery ──────────────────────────────────────────────────────────────
 
 #[test]
-fn une_ligne_invalide_reste_sur_sa_ligne() {
+fn an_invalid_line_stays_on_its_line() {
     insta::assert_snapshot!(body("x = 1 2 3\ny = )\nz = 3", GameId::Skyrim));
 }
 
 #[test]
-fn un_endif_oublie_n_emporte_pas_la_fonction_suivante() {
+fn a_missing_endif_does_not_swallow_the_next_function() {
     insta::assert_snapshot!(tree(
         "ScriptName T\nFunction A()\n\tIf x\n\t\ty()\nEndFunction\nFunction B()\nEndFunction\n",
         GameId::Skyrim
@@ -259,7 +259,7 @@ fn un_endif_oublie_n_emporte_pas_la_fonction_suivante() {
 }
 
 #[test]
-fn un_endproperty_oublie_n_emporte_pas_la_suite() {
+fn a_missing_endproperty_does_not_swallow_what_follows() {
     insta::assert_snapshot!(tree(
         "ScriptName T\nint Property P\nint Property Q Auto\n",
         GameId::Skyrim
@@ -267,7 +267,7 @@ fn un_endproperty_oublie_n_emporte_pas_la_suite() {
 }
 
 #[test]
-fn un_script_sans_en_tete_est_signale() {
+fn a_script_without_header_is_reported() {
     let parse = parse("Function F()\nEndFunction\n", Dialect::default());
     assert_eq!(parse.errors().len(), 1);
     assert!(parse.errors()[0].message().contains("ScriptName"));
@@ -276,7 +276,7 @@ fn un_script_sans_en_tete_est_signale() {
 // ── Lossless ──────────────────────────────────────────────────────────────
 
 /// A script covering most of the grammar, comments included.
-const COMPLET: &str = "\u{feff}ScriptName Foo:Bar extends Quest Conditional ; en-tête\n\
+const FULL: &str = "\u{feff}ScriptName Foo:Bar extends Quest Conditional ; naïve header\n\
 {Documentation}\n\
 import Utility\n\
 \n\
@@ -292,7 +292,7 @@ EndProperty\n\
 Event ObjectReference.OnActivate(ObjectReference akSender, ObjectReference akRef)\n\
 \tint[] t = new int[Count]\n\
 \tWhile t.Length > 0 && !(akRef is Actor)\n\
-\t\tt[0] += 1 ; incrément\n\
+\t\tt[0] += 1 ; increment → next\n\
 \t\tDebug.Trace(\"x\" + \\\n\
 \t\t\tt[0], aiSeverity = 2)\n\
 \tEndWhile\n\
@@ -302,27 +302,27 @@ Auto State Waiting\n\
 EndState\n";
 
 #[test]
-fn le_script_complet_se_lit_sans_erreur() {
-    let parse = parse(COMPLET, Dialect::new(GameId::Fallout4));
+fn the_full_script_reads_without_errors() {
+    let parse = parse(FULL, Dialect::new(GameId::Fallout4));
     assert!(parse.ok(), "{:#?}", parse.errors());
-    assert_eq!(parse.syntax().to_string(), COMPLET);
+    assert_eq!(parse.syntax().to_string(), FULL);
 }
 
 #[test]
-fn chaque_prefixe_du_script_se_reconstruit() {
+fn every_prefix_of_the_script_rebuilds() {
     // The language server parses half-typed code: every truncation must give
     // a complete tree, without panicking.
-    for (end, _) in COMPLET.char_indices() {
-        let prefix = &COMPLET[..end];
+    for (end, _) in FULL.char_indices() {
+        let prefix = &FULL[..end];
         let parse = parse(prefix, Dialect::new(GameId::Fallout4));
         assert_eq!(parse.syntax().to_string(), prefix, "{end}-byte prefix");
     }
 }
 
 #[test]
-fn chaque_ligne_retiree_garde_l_arbre_complet() {
+fn every_removed_line_keeps_the_tree_complete() {
     // A missing line is a forgotten `EndIf` or `EndFunction`.
-    let lines: Vec<&str> = COMPLET.split_inclusive('\n').collect();
+    let lines: Vec<&str> = FULL.split_inclusive('\n').collect();
     for skip in 0..lines.len() {
         let source: String = lines
             .iter()
@@ -336,7 +336,7 @@ fn chaque_ligne_retiree_garde_l_arbre_complet() {
 }
 
 #[test]
-fn les_entrees_invalides_restent_sans_perte() {
+fn invalid_inputs_stay_lossless() {
     for source in [
         "",
         "\n\n",
@@ -350,7 +350,7 @@ fn les_entrees_invalides_restent_sans_perte() {
         "ScriptName T\nFunction F()\n\tx = a.\nEndFunction",
         "ScriptName T\nFunction F()\n\tFoo(a, \nEndFunction",
         "ScriptName T\nState S\n\tint x\nEndState",
-        "\u{4}\u{7}@@@ ### \"non fermée\n;/ bloc ouvert",
+        "\u{4}\u{7}@@@ ### \"unclosed é\n;/ open block",
     ] {
         let parse = parse(source, Dialect::default());
         assert_eq!(parse.syntax().to_string(), source, "{source:?}");
@@ -358,7 +358,7 @@ fn les_entrees_invalides_restent_sans_perte() {
 }
 
 #[test]
-fn un_noeud_commence_sur_son_premier_token() {
+fn a_node_starts_at_its_first_token() {
     // Leading trivia goes to the parent: a function's range does not start on
     // the indentation or the comment preceding it.
     let source = "ScriptName T\n; avant\n\tFunction F()\nEndFunction\n";

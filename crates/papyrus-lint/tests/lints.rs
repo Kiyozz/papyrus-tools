@@ -45,7 +45,7 @@ fn fixed(source: &str) -> String {
 // ── Naming ────────────────────────────────────────────────────────────────
 
 #[test]
-fn le_style_go_ne_declenche_rien() {
+fn the_go_style_triggers_nothing() {
     let source = "\
 ScriptName T
 Actor Property myActor Auto
@@ -68,7 +68,7 @@ EndState
 }
 
 #[test]
-fn chaque_role_a_sa_convention() {
+fn each_role_has_its_convention() {
     let source = "\
 ScriptName T
 Actor Property MyActor Auto
@@ -98,13 +98,13 @@ EndEvent
 }
 
 #[test]
-fn les_accesseurs_de_property_echappent_au_nommage() {
+fn property_accessors_escape_naming() {
     let source = "ScriptName T\nint Property count\n\tint Function get()\n\t\tReturn 1\n\tEndFunction\nEndProperty\n";
     assert_eq!(lint(source, None), []);
 }
 
 #[test]
-fn le_message_explique_l_absence_de_correctif() {
+fn the_message_explains_the_missing_fix() {
     let d = diagnostics("ScriptName T\nActor Property MyActor Auto\n", None);
     assert!(d[0].message.contains("`myActor`"));
     assert!(d[0].message.contains(".esp"));
@@ -132,7 +132,7 @@ EndFunction
 // ── Fix ───────────────────────────────────────────────────────────────────
 
 #[test]
-fn le_correctif_renomme_la_locale_et_ses_usages() {
+fn the_fix_renames_the_local_and_its_uses() {
     let source = "\
 ScriptName T
 Function F()
@@ -155,7 +155,7 @@ EndFunction
 }
 
 #[test]
-fn le_correctif_ne_touche_ni_membres_ni_arguments_nommes_ni_appels() {
+fn the_fix_leaves_members_named_arguments_and_calls() {
     let source = "\
 ScriptName T
 Function F(int Count)
@@ -178,7 +178,7 @@ EndFunction
 }
 
 #[test]
-fn le_correctif_reste_dans_sa_fonction() {
+fn the_fix_stays_in_its_function() {
     let source = "\
 ScriptName T
 Function A()
@@ -192,7 +192,7 @@ EndFunction
 }
 
 #[test]
-fn un_renommage_au_dela_de_la_casse_n_a_pas_de_correctif() {
+fn a_rename_beyond_case_has_no_fix() {
     let d = diagnostics(
         "ScriptName T\nFunction F()\n\tint hit_count\nEndFunction\n",
         None,
@@ -205,7 +205,7 @@ fn un_renommage_au_dela_de_la_casse_n_a_pas_de_correctif() {
 // ── Suppression and levels ────────────────────────────────────────────────
 
 #[test]
-fn allow_dans_le_code() {
+fn allow_in_code() {
     let source = "\
 ScriptName T
 Function F()
@@ -219,7 +219,7 @@ EndFunction
 }
 
 #[test]
-fn les_niveaux_viennent_de_la_configuration() {
+fn levels_come_from_the_configuration() {
     let config = [
         ("naming/locals".to_owned(), Level::Allow),
         ("PAP103".to_owned(), Level::Error),
@@ -240,7 +240,7 @@ fn les_niveaux_viennent_de_la_configuration() {
 // ── Flags ─────────────────────────────────────────────────────────────────
 
 #[test]
-fn un_flag_hors_de_sa_place_est_signale() {
+fn a_misplaced_flag_is_reported() {
     let source = "\
 ScriptName t Hidden Conditional
 int property x Mandatory
@@ -264,14 +264,14 @@ EndGroup
 }
 
 #[test]
-fn une_property_auto_accepte_les_flags_de_variable() {
+fn an_auto_property_accepts_variable_flags() {
     // Fallout 4's vanilla writes it: the hidden variable carries the flag.
     let source = "ScriptName t\nActorValue Property pod Auto Conditional Const\n";
     assert_eq!(lint(source, Some(GameId::Fallout4)), []);
 }
 
 #[test]
-fn skyrim_n_a_pas_hidden_sur_les_champs() {
+fn skyrim_has_no_hidden_on_fields() {
     // A real difference between the two `.flg` files; Skyrim has no structs
     // anyway, so it is checked on the table.
     let skyrim = vanilla_flags(Some(GameId::Skyrim));
@@ -282,14 +282,14 @@ fn skyrim_n_a_pas_hidden_sur_les_champs() {
 // ── Encoding ──────────────────────────────────────────────────────────────
 
 #[test]
-fn l_encodage_n_est_verifie_qu_avec_une_cible() {
+fn encoding_is_only_checked_with_a_target() {
     let source = "ScriptName t\nstring property s = \"café\" Auto\n";
     assert_eq!(lint(source, None), []);
     assert_eq!(lint(source, Some(GameId::Skyrim)), [("PAP001", "é".into())]);
 }
 
 #[test]
-fn un_nom_inconnu_dans_allow_est_signale_avec_une_suggestion() {
+fn an_unknown_name_in_allow_is_reported_with_a_suggestion() {
     let source =
         "ScriptName T\nFunction F()\n\tint HP ; papyrus: allow(naming/lokals)\nEndFunction\n";
     let found = diagnostics(source, None);
@@ -309,7 +309,7 @@ fn un_nom_inconnu_dans_allow_est_signale_avec_une_suggestion() {
 }
 
 #[test]
-fn la_configuration_suggere_aussi() {
+fn the_configuration_suggests_too() {
     let config = [("PAP10".to_owned(), Level::Allow)].into_iter().collect();
     let error = Levels::from_config(&config).unwrap_err();
     assert!(error.contains("did you mean"), "{error}");
@@ -326,7 +326,7 @@ fn events(source: &str, game: Option<GameId>, workspace: &Workspace) -> Vec<Stri
 }
 
 #[test]
-fn un_evenement_mal_orthographie_est_signale() {
+fn a_misspelled_event_is_reported() {
     let source = "ScriptName T extends ObjectReference\nEvent OnActivatee(ObjectReference akActionRef)\nEndEvent\n";
     let found = diagnostics(source, Some(GameId::Skyrim));
     let event = found
@@ -342,7 +342,7 @@ fn un_evenement_mal_orthographie_est_signale() {
 }
 
 #[test]
-fn un_script_recoit_les_evenements_des_types_derives() {
+fn a_script_receives_the_events_of_derived_types() {
     // Attached to an actor, an `extends ObjectReference` script receives `OnDeath`.
     let source = "ScriptName T extends ObjectReference\nEvent OnDeath(Actor akKiller)\nEndEvent\n";
     assert_eq!(
@@ -358,7 +358,7 @@ fn un_script_recoit_les_evenements_des_types_derives() {
 }
 
 #[test]
-fn un_evenement_qu_aucun_objet_porteur_ne_recoit_est_signale() {
+fn an_event_no_carrier_receives_is_reported() {
     let source = "ScriptName T extends Quest\nEvent OnCombatStateChanged(Actor akTarget, int aeCombatState)\nEndEvent\n";
     assert_eq!(
         events(source, Some(GameId::Skyrim), &Workspace::default()),
@@ -367,7 +367,7 @@ fn un_evenement_qu_aucun_objet_porteur_ne_recoit_est_signale() {
 }
 
 #[test]
-fn sans_certitude_le_lint_se_tait() {
+fn without_certainty_the_lint_stays_quiet() {
     let none = Vec::<String>::new();
     let typo = "ScriptName T extends ObjectReference\nEvent OnActivatee()\nEndEvent\n";
     // No target.
@@ -395,7 +395,7 @@ fn sans_certitude_le_lint_se_tait() {
 }
 
 #[test]
-fn la_chaine_extends_traverse_les_scripts_du_projet() {
+fn the_extends_chain_crosses_project_scripts() {
     let base = "ScriptName MyBase extends ObjectReference\nEvent OnRitualDone()\nEndEvent\n";
     let parse = papyrus_syntax::parse(base, Dialect::new(GameId::Skyrim));
     let mut workspace = Workspace::default();
@@ -409,7 +409,7 @@ fn la_chaine_extends_traverse_les_scripts_du_projet() {
 }
 
 #[test]
-fn les_evenements_distants_sont_verifies() {
+fn remote_events_are_checked() {
     let source = "ScriptName T\nEvent ObjectReference.OnActivatee(ObjectReference akSender, ObjectReference akActionRef)\nEndEvent\nEvent ObjectReference.OnActivate(ObjectReference akSender, ObjectReference akActionRef)\nEndEvent\n";
     assert_eq!(
         events(source, Some(GameId::Fallout4), &Workspace::default()),

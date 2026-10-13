@@ -515,7 +515,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn l_indentation_se_lit_en_espaces_ou_en_tabulations() {
+    fn the_indent_reads_as_spaces_or_tabs() {
         assert_eq!("4".parse::<IndentArg>().unwrap().0, Indent::Spaces(4));
         assert_eq!("tab".parse::<IndentArg>().unwrap().0, Indent::Tabs);
         assert_eq!("TABS".parse::<IndentArg>().unwrap().0, Indent::Tabs);
@@ -524,13 +524,13 @@ mod tests {
     }
 
     #[test]
-    fn la_ligne_de_commande_est_coherente() {
+    fn the_command_line_is_consistent() {
         use clap::CommandFactory;
         Cli::command().debug_assert();
     }
 
     #[test]
-    fn les_alias_de_jeu_sont_acceptes() {
+    fn game_aliases_are_accepted() {
         let cli = Cli::try_parse_from(["papyrus", "check", "--game", "sse", "x"]).unwrap();
         let Command::Check(args) = cli.command else {
             panic!("subcommand");

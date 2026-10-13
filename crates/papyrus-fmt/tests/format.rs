@@ -14,7 +14,7 @@ fn fmt(source: &str) -> String {
         Err(FormatError::Syntax(errors)) => {
             let shown: Vec<String> = errors
                 .iter()
-                .map(|e| format!("{} sur {:?}", e.message(), &source[e.range()]))
+                .map(|e| format!("{} on {:?}", e.message(), &source[e.range()]))
                 .collect();
             panic!("syntax errors: {shown:#?}")
         }
@@ -26,7 +26,7 @@ fn fmt(source: &str) -> String {
         &FormatOptions::default(),
     )
     .expect("the result must format again");
-    assert_eq!(again, out, "le formatage n'est pas idempotent");
+    assert_eq!(again, out, "formatting is not idempotent");
     out
 }
 
@@ -66,31 +66,31 @@ EndState\r
 ";
 
 #[test]
-fn un_script_en_desordre() {
+fn a_messy_script() {
     insta::assert_snapshot!(fmt(DESORDRE));
 }
 
 #[test]
-fn les_mots_cles_servant_de_noms_gardent_leur_casse() {
+fn keywords_used_as_names_keep_their_case() {
     let out = fmt("ScriptName T\nAuto State Default\nEndState\nGroup Mandatory\nEndGroup\n");
     assert!(out.contains("auto state Default"), "{out}");
     assert!(out.contains("group Mandatory"), "{out}");
 }
 
 #[test]
-fn les_identifiants_ne_changent_jamais() {
+fn identifiers_never_change() {
     let out = fmt("ScriptName MyScript\nACTOR Property MyActor Auto\n");
     assert_eq!(out, "scriptname MyScript\nACTOR property MyActor auto\n");
 }
 
 #[test]
-fn le_bom_est_conserve_mais_jamais_ajoute() {
+fn the_bom_is_kept_but_never_added() {
     assert!(fmt("\u{feff}ScriptName T\n").starts_with("\u{feff}scriptname"));
     assert!(!fmt("ScriptName T\n").starts_with('\u{feff}'));
 }
 
 #[test]
-fn une_source_invalide_n_est_pas_formatee() {
+fn an_invalid_source_is_not_formatted() {
     let result = format(
         "ScriptName T\nFunction F(\n",
         Dialect::default(),
@@ -100,7 +100,7 @@ fn une_source_invalide_n_est_pas_formatee() {
 }
 
 #[test]
-fn l_indentation_se_regle() {
+fn the_indent_is_configurable() {
     let source = "ScriptName T\nFunction F()\nIf x\nReturn\nEndIf\nEndFunction\n";
     let tabs = format(
         source,
@@ -117,7 +117,7 @@ fn l_indentation_se_regle() {
 }
 
 #[test]
-fn le_fichier_finit_par_une_seule_fin_de_ligne() {
+fn the_file_ends_with_a_single_line_end() {
     assert_eq!(fmt("ScriptName T"), "scriptname T\n");
     assert_eq!(fmt("\n\nScriptName T\n\n\n"), "scriptname T\n");
 }
