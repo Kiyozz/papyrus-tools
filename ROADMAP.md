@@ -34,16 +34,15 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
   lenses; `papyrus build` with `PapyrusCompiler.exe` or Caprica. The 0.6.0
   release built for every platform.
 
+- **v0.8 — Skyrim without SKSE, large projects.** Skyrim's tables hold
+  vanilla only, SKSE's come with `skse = true` or its sources; the names each
+  file mentions, so that references, lenses and rename read only the files
+  that may hold a name; the requests reading a whole project run on a copy of
+  the model, cancelled by an edit; indexing progress. Measured on Skyrim's
+  14,000 vanilla scripts imported: every request within 80 ms.
+
 ## Next
 
-- **v0.8 — Skyrim without SKSE, large projects.**
-  - **SKSE as an option**: the Skyrim tables hold vanilla only; SKSE's
-    functions come with `skse = true` in `papyrus.toml`, or when its sources
-    are in `imports`. Calling one without it is `members/unknown`.
-  - **Large projects**: measure a project importing a game's ~14,000 vanilla
-    scripts, then index names in `salsa` so that references, lenses and
-    rename read only the files that mention a name; cancel outdated requests;
-    report indexing progress.
 - **v0.9 — The VSCode extension, polished.** To define: `papyrus build` as a
   task with its problems, settings for the lint levels, snippets, the
   grammar's highlighting without the server, publication on the Marketplace

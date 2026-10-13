@@ -8,11 +8,11 @@ and IntelliJ.
 
 ## Status
 
-**v0.7** — `papyrus check`, `papyrus fmt`, `papyrus build`, configurable
+**v0.8** — `papyrus check`, `papyrus fmt`, `papyrus build`, configurable
 lints, checks of calls, types, members, states and dead code across files,
-quick fixes, language server with cross-file navigation: definition, hover,
-completion, references, rename, signature help, parameter names, call
-hierarchy, overrides. The milestones, done and next, are in
+SKSE as an option, quick fixes, language server with cross-file navigation:
+definition, hover, completion, references, rename, signature help, parameter
+names, call hierarchy, overrides — fast on projects importing a whole game. The milestones, done and next, are in
 [ROADMAP.md](ROADMAP.md).
 
 ```sh
@@ -223,8 +223,15 @@ the overrides of a function or an event (go to implementation), the call
 hierarchy, and the count of references above each function, property,
 variable and struct.
 On startup, it indexes each project's scripts and those of its `imports`
-folders, infers the game, and rescans when a `papyrus.toml` appears or
-changes.
+folders, showing its progress, infers the game, and rescans when a
+`papyrus.toml` appears or changes.
+
+A project may import a whole game: with Skyrim's 14,000 vanilla scripts in
+`imports`, fragments included, hover and checks answer in under a
+millisecond, completion in 35 ms, references in 3 to 80 ms. Each file
+remembers which names it mentions, so a search only reads the files that may
+use the name; and the requests that read the whole project run apart, an edit
+cancelling them.
 
 Names resolve through declarations alone: locals and parameters, members
 inherited down to the game's native scripts, global functions of `import`ed
