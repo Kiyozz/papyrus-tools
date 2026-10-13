@@ -348,6 +348,16 @@ pub struct Context<'a> {
     pub model: Option<Model<'a>>,
 }
 
+impl Context<'_> {
+    /// The native scripts of the target, SKSE's included when the project
+    /// has them.
+    pub fn library(&self) -> Option<papyrus_stdlib::Library> {
+        let game = self.game?;
+        let skse = self.model.is_some_and(|m| m.semantics.library().skse);
+        Some(papyrus_stdlib::Library::new(game).with_skse(skse))
+    }
+}
+
 /// A file within the semantic model of its project.
 #[derive(Debug, Clone, Copy)]
 pub struct Model<'a> {

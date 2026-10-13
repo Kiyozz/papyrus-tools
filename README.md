@@ -65,6 +65,7 @@ scripts: no verdict crosses the border between Skyrim and the other games.
 ```toml
 game = "skyrim"
 include-fragments = false
+skse = true                  # Skyrim: SKSE's functions, events and scripts
 # flags = "MyFlags.flg"      # replaces the game's vanilla flags
 imports = ["../SkyUI/Scripts/Source"]  # read, never checked
 
@@ -151,9 +152,12 @@ certain:
   unknown ancestor might be the expected type;
 - a member is only unknown when every script it could come from is known —
   the chain of the receiver, and for a bare name the script's chain and all
-  its `import`s. The embedded Skyrim tables include SKSE's functions; those
-  of another script extender (F4SE…) are known once its sources are in
-  `imports`, as they are for the compiler.
+  its `import`s. The embedded Skyrim tables are vanilla: SKSE's functions,
+  events and scripts come with `skse = true`, or when the project or its
+  `imports` hold SKSE's sources (`SKSE.psc`). Without them,
+  `Game.GetPerkPoints()` is an unknown member. Another script extender's
+  (F4SE…) are known once its sources are in `imports`, as they are for the
+  compiler.
 
 Without a known target, each file is checked against the native scripts of
 every game, and only what all of them reject is reported: `Debug.Trace()`

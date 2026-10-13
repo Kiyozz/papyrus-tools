@@ -331,6 +331,8 @@ struct Scanned {
     summaries: Vec<ScriptSummary>,
     detected: Option<GameId>,
     configured: Option<GameId>,
+    /// `skse = true` in its papyrus.toml.
+    skse: bool,
     /// Its scripts and their text.
     scripts: Vec<(PathBuf, String)>,
     /// The scripts of its `imports` folders and their text.
@@ -391,6 +393,7 @@ fn scan(folders: &[PathBuf]) -> (Vec<Scanned>, Vec<String>) {
                 summaries,
                 detected: papyrus_project::detect::majority(verdicts).map(|(game, _, _)| game),
                 configured: project.config.game,
+                skse: project.config.skse,
                 scripts,
                 imported,
             });
@@ -488,6 +491,7 @@ impl Backend {
                     let imports = feed(project.imported);
                     let game = project.configured.or(project.detected);
                     let model = papyrus_hir::Project::new(&state.db, files, imports, game);
+                    model.set_skse(&mut state.db).to(project.skse);
                     projects.insert(
                         project.root,
                         Project {

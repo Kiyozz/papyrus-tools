@@ -88,6 +88,11 @@ pub struct Project {
     /// Its target, configured or inferred; `None` when unknown.
     #[returns(copy)]
     pub game: Option<GameId>,
+    /// `skse = true`: Skyrim's native scripts include SKSE's additions.
+    /// Also on when the project or its imports declare the `SKSE` script.
+    #[default]
+    #[returns(copy)]
+    pub skse: bool,
 }
 
 /// The database.

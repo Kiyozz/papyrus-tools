@@ -26,7 +26,7 @@
 
 use std::collections::HashSet;
 
-use papyrus_dialect::GameId;
+use papyrus_stdlib::Library;
 use papyrus_syntax::{SyntaxKind, SyntaxNode};
 
 use crate::workspace::compact;
@@ -46,18 +46,18 @@ fn child(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxNode> {
     node.children().find(|c| c.kind() == kind)
 }
 
-fn is_a(game: GameId, script: &str, ancestor: &str) -> bool {
-    papyrus_stdlib::ancestors(game, script).any(|a| a.name.eq_ignore_ascii_case(ancestor))
+fn is_a(library: Library, script: &str, ancestor: &str) -> bool {
+    papyrus_stdlib::ancestors(library, script).any(|a| a.name.eq_ignore_ascii_case(ancestor))
 }
 
 /// The events of `native`, of its ancestors and of the scripts deriving from
 /// it.
-fn family(game: GameId, native: &str, events: &mut Vec<String>) {
-    for script in papyrus_stdlib::ancestors(game, native) {
+fn family(library: Library, native: &str, events: &mut Vec<String>) {
+    for script in papyrus_stdlib::ancestors(library, native) {
         events.extend(script.events.iter().map(|e| e.name.to_owned()));
     }
-    for script in papyrus_stdlib::scripts(game) {
-        if is_a(game, script.name, native) {
+    for script in papyrus_stdlib::scripts(library) {
+        if is_a(library, script.name, native) {
             events.extend(script.events.iter().map(|e| e.name.to_owned()));
         }
     }
@@ -65,7 +65,7 @@ fn family(game: GameId, native: &str, events: &mut Vec<String>) {
 
 /// The events that can reach a script deriving from `start`, or `None` if a
 /// link of the chain is unknown.
-fn reachable(context: &Context<'_>, game: GameId, start: &str) -> Option<Vec<String>> {
+fn reachable(context: &Context<'_>, library: Library, start: &str) -> Option<Vec<String>> {
     let mut events = Vec::new();
     let mut first_native = None;
     let mut current = Some(start.to_owned());
@@ -78,7 +78,7 @@ fn reachable(context: &Context<'_>, game: GameId, start: &str) -> Option<Vec<Str
         // The project may provide its own version of a native script, a
         // script extender's for instance: both count.
         let user = context.workspace.get(&name);
-        let native = papyrus_stdlib::script(game, &name);
+        let native = papyrus_stdlib::script(library, &name);
         if user.is_none() && native.is_none() {
             return None;
         }
@@ -92,15 +92,18 @@ fn reachable(context: &Context<'_>, game: GameId, start: &str) -> Option<Vec<Str
             .and_then(|u| u.parent.clone())
             .or_else(|| native.and_then(|n| n.parent).map(str::to_owned));
         // Since Fallout 4, every script derives from `ScriptObject`.
-        if current.is_none() && game.rank() >= 1 && !name.eq_ignore_ascii_case("ScriptObject") {
+        if current.is_none()
+            && library.game.rank() >= 1
+            && !name.eq_ignore_ascii_case("ScriptObject")
+        {
             current = Some("ScriptObject".to_owned());
         }
     }
     if let Some(native) = first_native {
-        family(game, native, &mut events);
+        family(library, native, &mut events);
         for (relay, source) in RELAYS {
-            if is_a(game, native, relay) {
-                family(game, source, &mut events);
+            if is_a(library, native, relay) {
+                family(library, source, &mut events);
             }
         }
     }
@@ -119,13 +122,13 @@ fn closest<'a>(name: &str, known: &'a [String]) -> Option<&'a str> {
 
 /// The native scripts that declare the event `name` without inheriting it,
 /// as an enumeration: "`Actor`, `ActiveMagicEffect` and `ReferenceAlias`".
-fn owners(game: GameId, name: &str) -> Option<String> {
-    let owners: Vec<String> = papyrus_stdlib::scripts(game)
+fn owners(library: Library, name: &str) -> Option<String> {
+    let owners: Vec<String> = papyrus_stdlib::scripts(library)
         .iter()
         .filter(|s| s.events.iter().any(|e| e.name.eq_ignore_ascii_case(name)))
         .filter(|s| {
             s.parent
-                .is_none_or(|p| papyrus_stdlib::find_event(game, p, name).is_none())
+                .is_none_or(|p| papyrus_stdlib::find_event(library, p, name).is_none())
         })
         .map(|s| format!("`{}`", s.name))
         .collect();
@@ -146,16 +149,17 @@ fn string_contents(root: &SyntaxNode) -> HashSet<String> {
 }
 
 pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
-    let Some(game) = context.game else {
+    let Some(library) = context.library() else {
         return;
     };
+    let game = library.game;
     let root = context.root;
     let Some(header) = child(root, SyntaxKind::SCRIPT_HEADER) else {
         return;
     };
     // An engine script declares its events; it does not receive them.
     let own_name = child(&header, SyntaxKind::NAME).map(|n| compact(&n));
-    if own_name.is_some_and(|n| papyrus_stdlib::script(game, &n).is_some()) {
+    if own_name.is_some_and(|n| papyrus_stdlib::script(library, &n).is_some()) {
         return;
     }
     let parent = child(&header, SyntaxKind::EXTENDS_CLAUSE)
@@ -181,7 +185,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
         let (target, known) = match child(&event, SyntaxKind::TYPE_REF) {
             Some(remote) => {
                 let target = compact(&remote);
-                let known = reachable(context, game, &target);
+                let known = reachable(context, library, &target);
                 (target, known)
             }
             None => {
@@ -189,7 +193,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                     continue;
                 };
                 let known = own
-                    .get_or_insert_with(|| reachable(context, game, parent))
+                    .get_or_insert_with(|| reachable(context, library, parent))
                     .clone();
                 (parent.clone(), known)
             }
@@ -226,7 +230,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                     }],
                 }],
             });
-        } else if let Some(owners) = owners(game, &name) {
+        } else if let Some(owners) = owners(library, &name) {
             findings.push(Finding {
                 lint: &EVENTS_UNKNOWN,
                 range,

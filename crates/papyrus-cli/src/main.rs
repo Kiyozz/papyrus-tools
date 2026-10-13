@@ -376,7 +376,7 @@ fn analyze(
 /// follow `extends` from one file to another, and the semantic model.
 fn index(settings: &Settings) -> Index {
     let mut workspace = Workspace::default();
-    let db = Database::default();
+    let mut db = Database::default();
     let mut files = HashMap::new();
     let (mut own, mut imports) = (Vec::new(), Vec::new());
     let dialect = settings.dialect();
@@ -402,6 +402,7 @@ fn index(settings: &Settings) -> Index {
         if imported { &mut imports } else { &mut own }.push(file);
     }
     let project = papyrus_hir::Project::new(&db, own, imports, settings.game);
+    project.set_skse(&mut db).to(settings.config.skse);
     Index {
         workspace,
         db,

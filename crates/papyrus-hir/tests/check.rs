@@ -2,6 +2,7 @@
 
 use papyrus_dialect::GameId;
 use papyrus_hir::{Database, Problem, Project, Semantics, SourceFile};
+use salsa::Setter;
 
 /// True for dead code, which the examples are full of: checked apart.
 fn dead_code(problem: Problem) -> bool {
@@ -378,6 +379,35 @@ EndEvent
     // Every import must be known for a bare call to be unknown.
     let source = "ScriptName A extends Quest\nimport Missing\nEvent OnInit()\n\tFoo()\nEndEvent\n";
     assert_eq!(found(GameId::Skyrim, source), []);
+}
+
+#[test]
+fn skse_functions_need_skse() {
+    let source = "ScriptName A extends Quest\nEvent OnInit()\n\tGame.GetPerkPoints()\n\tGame.GetPlayer().GetWornForm(4)\nEndEvent\n";
+    assert_eq!(
+        found(GameId::Skyrim, source),
+        [
+            (Problem::UnknownMember, "GetPerkPoints".to_owned()),
+            (Problem::UnknownMember, "GetWornForm".to_owned())
+        ]
+    );
+
+    // `skse = true`.
+    let mut db = Database::default();
+    let file = SourceFile::new(&db, "A.psc".into(), source.to_owned());
+    let project = Project::new(&db, vec![file], Vec::new(), Some(GameId::Skyrim));
+    project.set_skse(&mut db).to(true);
+    assert_eq!(Semantics::new(&db, project).check(file), []);
+
+    // SKSE's sources among the imports.
+    let files = [
+        ("A.psc", source),
+        (
+            "lib/SKSE.psc",
+            "ScriptName SKSE Hidden\nint Function GetVersion() global native\n",
+        ),
+    ];
+    assert_eq!(check_in(Some(GameId::Skyrim), &files), []);
 }
 
 #[test]

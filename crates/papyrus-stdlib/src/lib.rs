@@ -10,6 +10,9 @@
 //! — types without native functions, such as Skyrim's `Activator`, whose
 //! `.psc` is a single line. They are the ones declaring the engine's types
 //! and events.
+//!
+//! Skyrim's tables come twice: vanilla, and with the functions, events and
+//! scripts of its script extender, SKSE. A [`Library`] picks one.
 
 #![forbid(unsafe_code)]
 
@@ -71,6 +74,35 @@ pub struct Script {
     pub properties: &'static [Property],
 }
 
+/// A set of native scripts: a game's, with or without its script extender.
+///
+/// A [`GameId`] converts into its vanilla library.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Library {
+    /// The game.
+    pub game: GameId,
+    /// With SKSE's additions; only Skyrim has them.
+    pub skse: bool,
+}
+
+impl Library {
+    /// The vanilla library of `game`.
+    pub fn new(game: GameId) -> Library {
+        Library { game, skse: false }
+    }
+
+    /// The same library, with or without SKSE's additions.
+    pub fn with_skse(self, skse: bool) -> Library {
+        Library { skse, ..self }
+    }
+}
+
+impl From<GameId> for Library {
+    fn from(game: GameId) -> Library {
+        Library::new(game)
+    }
+}
+
 /// Compares two names the way Papyrus does: case-insensitively.
 fn cmp_name(a: &str, b: &str) -> Ordering {
     a.bytes()
@@ -85,9 +117,11 @@ fn find<'a, T>(items: &'a [T], name: &str, key: impl Fn(&T) -> &str) -> Option<&
         .map(|i| &items[i])
 }
 
-/// The native scripts of `game`, sorted by name.
-pub fn scripts(game: GameId) -> &'static [Script] {
-    match game {
+/// The native scripts of `library`, sorted by name.
+pub fn scripts(library: impl Into<Library>) -> &'static [Script] {
+    let library = library.into();
+    match library.game {
+        GameId::Skyrim if library.skse => generated::skyrim_skse::SCRIPTS,
         GameId::Skyrim => generated::skyrim::SCRIPTS,
         // Fallout 76 has neither a public Creation Kit nor sources: its base
         // scripts are Fallout 4's.
@@ -97,20 +131,21 @@ pub fn scripts(game: GameId) -> &'static [Script] {
 }
 
 /// The native script `name`, case-insensitively.
-pub fn script(game: GameId, name: &str) -> Option<&'static Script> {
-    find(scripts(game), name, |s| s.name)
+pub fn script(library: impl Into<Library>, name: &str) -> Option<&'static Script> {
+    find(scripts(library), name, |s| s.name)
 }
 
 /// `name` and its native ancestors, from closest to farthest.
-pub fn ancestors(game: GameId, name: &str) -> impl Iterator<Item = &'static Script> {
-    let mut next = script(game, name);
+pub fn ancestors(library: impl Into<Library>, name: &str) -> impl Iterator<Item = &'static Script> {
+    let library = library.into();
+    let mut next = script(library, name);
     // Guard against a cycle, which badly generated tables could create.
     let mut steps = 0;
     std::iter::from_fn(move || {
         let current = next?;
         steps += 1;
         next = if steps < 64 {
-            current.parent.and_then(|p| script(game, p))
+            current.parent.and_then(|p| script(library, p))
         } else {
             None
         };
@@ -120,33 +155,42 @@ pub fn ancestors(game: GameId, name: &str) -> impl Iterator<Item = &'static Scri
 
 /// The event `event` received by a script deriving from `name`, walking up
 /// the hierarchy.
-pub fn find_event(game: GameId, name: &str, event: &str) -> Option<&'static Function> {
-    ancestors(game, name).find_map(|s| find(s.events, event, |f| f.name))
+pub fn find_event(
+    library: impl Into<Library>,
+    name: &str,
+    event: &str,
+) -> Option<&'static Function> {
+    ancestors(library, name).find_map(|s| find(s.events, event, |f| f.name))
 }
 
 /// The function `function` inherited from `name`.
-pub fn find_function(game: GameId, name: &str, function: &str) -> Option<&'static Function> {
-    ancestors(game, name).find_map(|s| find(s.functions, function, |f| f.name))
+pub fn find_function(
+    library: impl Into<Library>,
+    name: &str,
+    function: &str,
+) -> Option<&'static Function> {
+    ancestors(library, name).find_map(|s| find(s.functions, function, |f| f.name))
 }
 
-/// The names a game knows, lowercased, for bulk lookups.
+/// The names a library knows, lowercased, for bulk lookups.
 #[derive(Debug, Default)]
 struct Names {
     functions: std::collections::HashSet<String>,
     events: std::collections::HashSet<String>,
 }
 
-fn names(game: GameId) -> &'static Names {
+fn names(library: Library) -> &'static Names {
     use std::sync::OnceLock;
-    static TABLES: [OnceLock<Names>; 3] = [OnceLock::new(), OnceLock::new(), OnceLock::new()];
-    let slot = match game {
+    static TABLES: [OnceLock<Names>; 4] = [const { OnceLock::new() }; 4];
+    let slot = match library.game {
+        GameId::Skyrim if library.skse => 3,
         GameId::Skyrim => 0,
         GameId::Fallout4 | GameId::Fallout76 => 1,
         GameId::Starfield => 2,
     };
     TABLES[slot].get_or_init(|| {
         let mut names = Names::default();
-        for script in scripts(game) {
+        for script in scripts(library) {
             names
                 .functions
                 .extend(script.functions.iter().map(|f| f.name.to_ascii_lowercase()));
@@ -158,12 +202,16 @@ fn names(game: GameId) -> &'static Names {
     })
 }
 
-/// True if a native script of `game` declares a function `name`.
-pub fn has_function(game: GameId, name: &str) -> bool {
-    names(game).functions.contains(&name.to_ascii_lowercase())
+/// True if a native script of `library` declares a function `name`.
+pub fn has_function(library: impl Into<Library>, name: &str) -> bool {
+    names(library.into())
+        .functions
+        .contains(&name.to_ascii_lowercase())
 }
 
-/// True if a native script of `game` declares an event `name`.
-pub fn has_event(game: GameId, name: &str) -> bool {
-    names(game).events.contains(&name.to_ascii_lowercase())
+/// True if a native script of `library` declares an event `name`.
+pub fn has_event(library: impl Into<Library>, name: &str) -> bool {
+    names(library.into())
+        .events
+        .contains(&name.to_ascii_lowercase())
 }

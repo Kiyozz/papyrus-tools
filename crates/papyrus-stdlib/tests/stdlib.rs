@@ -75,6 +75,22 @@ fn fallout76_reuses_fallout4() {
 }
 
 #[test]
+fn skse_comes_as_an_option() {
+    use papyrus_stdlib::{Library, has_event};
+    let skse = Library::new(GameId::Skyrim).with_skse(true);
+    assert!(find_function(GameId::Skyrim, "Actor", "GetWornForm").is_none());
+    assert!(find_function(skse, "Actor", "GetWornForm").is_some());
+    assert!(script(GameId::Skyrim, "StringUtil").is_none());
+    assert!(script(skse, "StringUtil").is_some());
+    assert!(!has_event(GameId::Skyrim, "OnKeyDown"));
+    assert!(has_event(skse, "OnKeyDown"));
+    // Vanilla stays whole, and the other games ignore the option.
+    assert!(find_function(skse, "Utility", "Wait").is_some());
+    let fallout4 = Library::new(GameId::Fallout4).with_skse(true);
+    assert_eq!(scripts(fallout4), scripts(GameId::Fallout4));
+}
+
+#[test]
 fn name_indexes_tell_the_games_apart() {
     use papyrus_stdlib::{has_event, has_function};
     // Skyrim updates through `OnUpdate`, Fallout 4 and Starfield through timers.

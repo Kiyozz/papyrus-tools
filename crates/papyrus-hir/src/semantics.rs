@@ -1,7 +1,7 @@
 //! Name resolution and the types of expressions, from declarations alone.
 
 use papyrus_dialect::GameId;
-use papyrus_stdlib::{Function, Property, Script};
+use papyrus_stdlib::{Function, Library, Property, Script};
 use papyrus_syntax::{SyntaxKind, SyntaxNode, SyntaxToken, TextRange, TextSize};
 
 use crate::builtins;
@@ -99,6 +99,8 @@ pub struct Semantics<'db> {
     game: Option<GameId>,
     /// The game whose syntax the files are read with: the project's.
     syntax: Option<GameId>,
+    /// SKSE's additions apply to Skyrim.
+    skse: bool,
 }
 
 impl std::fmt::Debug for Semantics<'_> {
@@ -143,6 +145,7 @@ impl<'db> Semantics<'db> {
             project,
             game: project.game(db),
             syntax: project.game(db),
+            skse: project.skse(db) || script_index(db, project).get("SKSE").is_some(),
         }
     }
 
@@ -175,6 +178,12 @@ impl<'db> Semantics<'db> {
         self.game
     }
 
+    /// The native scripts that apply: the target's, the widest game's
+    /// without one.
+    pub fn library(&self) -> Library {
+        Library::new(self.game.unwrap_or(GameId::Starfield)).with_skse(self.skse)
+    }
+
     /// The index of the project's scripts.
     pub fn index(&self) -> &'db ScriptIndex {
         script_index(self.db, self.project)
@@ -202,8 +211,7 @@ impl<'db> Semantics<'db> {
         if let Some(file) = self.index().get(name) {
             return Some(ScriptRef::Source(file));
         }
-        let game = self.game.unwrap_or(GameId::Starfield);
-        papyrus_stdlib::script(game, name).map(ScriptRef::Native)
+        papyrus_stdlib::script(self.library(), name).map(ScriptRef::Native)
     }
 
     /// The script `name` as written in `file`. A short name also resolves

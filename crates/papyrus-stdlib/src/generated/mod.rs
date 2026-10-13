@@ -2,4 +2,5 @@
 
 pub(crate) mod fallout4;
 pub(crate) mod skyrim;
+pub(crate) mod skyrim_skse;
 pub(crate) mod starfield;

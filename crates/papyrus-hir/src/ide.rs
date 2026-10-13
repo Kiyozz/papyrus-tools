@@ -567,8 +567,7 @@ impl Semantics<'_> {
                 items.parent.as_ref().map(|p| format!("extends {p}")),
             );
         }
-        let game = self.game().unwrap_or(GameId::Starfield);
-        for script in papyrus_stdlib::scripts(game) {
+        for script in papyrus_stdlib::scripts(self.library()) {
             proposals.push(
                 script.name,
                 CompletionKind::Script,

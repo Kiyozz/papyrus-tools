@@ -20,11 +20,17 @@
 use std::collections::HashSet;
 
 use papyrus_dialect::GameId;
-use papyrus_stdlib::{has_event, has_function, script};
+use papyrus_stdlib::{Library, has_event, has_function, script};
 use papyrus_syntax::{SyntaxKind, SyntaxNode};
 
 /// The games a clue can point to, in rank order.
 const GAMES: [GameId; 3] = [GameId::Skyrim, GameId::Fallout4, GameId::Starfield];
+
+/// Everything `game` may know: a script calling SKSE's functions targets
+/// Skyrim all the same.
+fn full(game: GameId) -> Library {
+    Library::new(game).with_skse(true)
+}
 
 /// What a script gives away about its game.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -199,7 +205,10 @@ pub fn explain(root: &SyntaxNode) -> Vec<Vote> {
                 let name = compact(&node);
                 let name = name.trim_end_matches("[]");
                 if !name.contains(':') {
-                    vote(name.to_owned(), GAMES.map(|g| script(g, name).is_some()));
+                    vote(
+                        name.to_owned(),
+                        GAMES.map(|g| script(full(g), name).is_some()),
+                    );
                 }
             }
             // An engine event: `OnUpdate`, `OnTimer`.
@@ -207,7 +216,7 @@ pub fn explain(root: &SyntaxNode) -> Vec<Vote> {
                 if let Some(name) = node.children().find(|c| c.kind() == SyntaxKind::NAME) {
                     let name = compact(&name);
                     if !is_universal(&name) {
-                        let known = GAMES.map(|g| has_event(g, &name));
+                        let known = GAMES.map(|g| has_event(full(g), &name));
                         vote(name, known);
                     }
                 }
@@ -227,7 +236,7 @@ pub fn explain(root: &SyntaxNode) -> Vec<Vote> {
                     _ => continue,
                 };
                 if !own.contains(&name.to_ascii_lowercase()) && !is_universal(&name) {
-                    let known = GAMES.map(|g| has_function(g, &name));
+                    let known = GAMES.map(|g| has_function(full(g), &name));
                     vote(name, known);
                 }
             }

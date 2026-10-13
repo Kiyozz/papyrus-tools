@@ -89,6 +89,8 @@ pub struct Config {
     pub game: Option<GameId>,
     /// Include the Creation Kit fragments.
     pub include_fragments: bool,
+    /// Skyrim's native scripts include SKSE's additions.
+    pub skse: bool,
     /// The formatter indentation.
     pub indent: Option<IndentSetting>,
     /// A `.flg` file replacing the game's vanilla flags.
@@ -146,6 +148,8 @@ struct Raw {
     game: Option<String>,
     #[serde(default)]
     include_fragments: bool,
+    #[serde(default)]
+    skse: bool,
     flags: Option<PathBuf>,
     #[serde(default)]
     imports: Vec<PathBuf>,
@@ -236,6 +240,7 @@ impl Config {
             path: Some(path.to_owned()),
             game,
             include_fragments: raw.include_fragments,
+            skse: raw.skse,
             indent,
             flags,
             imports,
@@ -288,6 +293,7 @@ mod tests {
         let config = parse(
             "game = \"sse\"\n\
              include-fragments = true\n\
+             skse = true\n\
              flags = \"TESV_Papyrus_Flags.flg\"\n\
              [fmt]\n\
              indent = \"tab\"\n\
@@ -298,6 +304,7 @@ mod tests {
         .unwrap();
         assert_eq!(config.game, Some(GameId::Skyrim));
         assert!(config.include_fragments);
+        assert!(config.skse);
         assert_eq!(config.indent, Some(IndentSetting::Tab));
         assert_eq!(
             config.flags.as_deref(),
