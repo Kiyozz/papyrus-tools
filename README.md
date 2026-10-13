@@ -190,6 +190,12 @@ npm run package:extension -- --target win32-x64 --binary target/release/papyrus.
 code --install-extension dist/papyrus-tools-win32-x64-<version>.vsix
 ```
 
+The client and its dependencies are bundled by esbuild into
+`editors/vscode/dist/extension.js`, the only script the `.vsix` ships:
+`node_modules` stays out. The bundle must be built before packaging —
+`vsce package` does it through `vscode:prepublish` — and before running the
+extension from source (F5): `npm run bundle --prefix editors/vscode`.
+
 The `papyrus.server.path` setting points to another binary; without an
 embedded binary, the extension looks for `papyrus` in the `PATH`.
 
