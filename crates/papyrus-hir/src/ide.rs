@@ -597,8 +597,6 @@ impl Semantics<'_> {
 
     /// Every use and declaration of `def`.
     pub fn references_of(&self, def: &Def) -> Vec<Reference> {
-        let target = self.canonical(def);
-        let name = self.def_name(def).to_owned();
         let files: Vec<SourceFile> = match def {
             Def::Local { file, .. } => vec![*file],
             _ => {
@@ -612,9 +610,16 @@ impl Semantics<'_> {
                     .collect()
             }
         };
+        self.references_in(def, &files)
+    }
+
+    /// The uses and declarations of `def` in `files`.
+    pub fn references_in(&self, def: &Def, files: &[SourceFile]) -> Vec<Reference> {
+        let target = self.canonical(def);
+        let name = self.def_name(def).to_owned();
         let lower = name.to_ascii_lowercase();
         let mut out = Vec::new();
-        for file in files {
+        for &file in files {
             if !file.text(self.db()).to_ascii_lowercase().contains(&lower) {
                 continue;
             }

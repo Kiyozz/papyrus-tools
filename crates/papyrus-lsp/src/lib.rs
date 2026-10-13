@@ -39,6 +39,7 @@ use papyrus_project::{ConfigLocator, decode};
 use papyrus_syntax::{TextRange, TextSize};
 use salsa::Setter;
 use tower_lsp_server::jsonrpc::{Error, Result};
+use tower_lsp_server::ls_types::request::{GotoImplementationParams, GotoImplementationResponse};
 use tower_lsp_server::ls_types::*;
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 
@@ -193,6 +194,19 @@ impl State {
         Some((file, model, document))
     }
 
+    /// The model's file of `uri`, open or not, and its project's model.
+    fn locate(&self, uri: &Uri) -> Option<(SourceFile, papyrus_hir::Project)> {
+        if let Some((file, model, _)) = self.model(uri) {
+            return Some((file, model));
+        }
+        let file = *self.sources.get(&uri.to_file_path()?.into_owned())?;
+        let model =
+            self.projects.values().filter_map(|p| p.model).find(|m| {
+                m.files(&self.db).contains(&file) || m.imports(&self.db).contains(&file)
+            })?;
+        Some((file, model))
+    }
+
     /// The URI of a file of the model.
     fn uri_of(&self, file: SourceFile) -> Option<Uri> {
         let path = file.path(&self.db);
@@ -211,8 +225,8 @@ impl State {
         position: Position,
         f: impl FnOnce(&Navigator<'_>, papyrus_hir::Project, SourceFile, TextSize) -> T,
     ) -> Option<T> {
-        let (file, model, document) = self.model(uri)?;
-        let offset = LineMap::new(&document.decoded.text, self.columns).offset(position)?;
+        let (file, model) = self.locate(uri)?;
+        let offset = LineMap::new(file.text(&self.db), self.columns).offset(position)?;
         let uri_of = |file| self.uri_of(file);
         let navigator = Navigator {
             db: &self.db,
@@ -610,6 +624,12 @@ impl LanguageServer for Backend {
                     ..CompletionOptions::default()
                 }),
                 references_provider: Some(OneOf::Left(true)),
+                document_highlight_provider: Some(OneOf::Left(true)),
+                implementation_provider: Some(ImplementationProviderCapability::Simple(true)),
+                call_hierarchy_provider: Some(CallHierarchyServerCapability::Simple(true)),
+                code_lens_provider: Some(CodeLensOptions {
+                    resolve_provider: Some(true),
+                }),
                 rename_provider: Some(OneOf::Right(RenameOptions {
                     prepare_provider: Some(true),
                     work_done_progress_options: WorkDoneProgressOptions::default(),
@@ -943,6 +963,111 @@ impl LanguageServer for Backend {
                 |nav, project, file, offset| nav.references(project, file, offset, include),
             )
             .flatten())
+    }
+
+    async fn document_highlight(
+        &self,
+        params: DocumentHighlightParams,
+    ) -> Result<Option<Vec<DocumentHighlight>>> {
+        let at = params.text_document_position_params;
+        Ok(self
+            .state()
+            .navigate(
+                &at.text_document.uri,
+                at.position,
+                |nav, project, file, offset| nav.highlights(project, file, offset),
+            )
+            .flatten())
+    }
+
+    async fn goto_implementation(
+        &self,
+        params: GotoImplementationParams,
+    ) -> Result<Option<GotoImplementationResponse>> {
+        let at = params.text_document_position_params;
+        Ok(self
+            .state()
+            .navigate(
+                &at.text_document.uri,
+                at.position,
+                |nav, project, file, offset| nav.implementations(project, file, offset),
+            )
+            .flatten()
+            .map(GotoImplementationResponse::Array))
+    }
+
+    async fn prepare_call_hierarchy(
+        &self,
+        params: CallHierarchyPrepareParams,
+    ) -> Result<Option<Vec<CallHierarchyItem>>> {
+        let at = params.text_document_position_params;
+        Ok(self
+            .state()
+            .navigate(
+                &at.text_document.uri,
+                at.position,
+                |nav, project, file, offset| nav.prepare_call_hierarchy(project, file, offset),
+            )
+            .flatten())
+    }
+
+    async fn incoming_calls(
+        &self,
+        params: CallHierarchyIncomingCallsParams,
+    ) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
+        let item = params.item;
+        Ok(self
+            .state()
+            .navigate(
+                &item.uri,
+                item.selection_range.start,
+                |nav, project, file, offset| nav.incoming_calls(project, file, offset),
+            )
+            .flatten())
+    }
+
+    async fn outgoing_calls(
+        &self,
+        params: CallHierarchyOutgoingCallsParams,
+    ) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
+        let item = params.item;
+        Ok(self
+            .state()
+            .navigate(
+                &item.uri,
+                item.selection_range.start,
+                |nav, project, file, offset| nav.outgoing_calls(project, file, offset),
+            )
+            .flatten())
+    }
+
+    async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
+        let uri = params.text_document.uri;
+        let state = self.state();
+        Ok(
+            state.navigate(&uri, Position::new(0, 0), |nav, project, file, _| {
+                nav.code_lenses(project, file, &uri)
+            }),
+        )
+    }
+
+    async fn code_lens_resolve(&self, lens: CodeLens) -> Result<CodeLens> {
+        let uri = lens
+            .data
+            .as_ref()
+            .and_then(|d| d.get("uri"))
+            .and_then(|u| u.as_str())
+            .and_then(|u| u.parse::<Uri>().ok());
+        let Some(uri) = uri else {
+            return Ok(lens);
+        };
+        let position = lens.range.start;
+        let command = self
+            .state()
+            .navigate(&uri, position, |nav, project, file, offset| {
+                nav.lens_command(project, file, offset, &uri, position)
+            });
+        Ok(CodeLens { command, ..lens })
     }
 
     async fn prepare_rename(

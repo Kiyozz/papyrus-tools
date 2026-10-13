@@ -467,6 +467,50 @@ async fn navigation_across_files() {
         .await;
     assert_eq!(references.as_array().unwrap().len(), 2, "{references}");
 
+    // `Count += 1` writes.
+    let highlights = client
+        .request("textDocument/documentHighlight", position("Count", 1))
+        .await;
+    assert_eq!(highlights.as_array().unwrap().len(), 1, "{highlights}");
+    assert_eq!(highlights[0]["kind"], 3);
+
+    // Into a file that is not open: who calls `Greet`, and what it calls.
+    let items = client
+        .request("textDocument/prepareCallHierarchy", position("Greet", 1))
+        .await;
+    assert_eq!(items[0]["name"], "Greet");
+    assert_eq!(decoded(&items[0]["uri"]), uri(&root.join("MyBase.psc")));
+    let incoming = client
+        .request("callHierarchy/incomingCalls", json!({ "item": items[0] }))
+        .await;
+    assert_eq!(incoming[0]["from"]["name"], "OnInit", "{incoming}");
+    let items = client
+        .request("textDocument/prepareCallHierarchy", position("OnInit", 1))
+        .await;
+    let outgoing = client
+        .request("callHierarchy/outgoingCalls", json!({ "item": items[0] }))
+        .await;
+    let names: Vec<&str> = outgoing
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["to"]["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["Greet", "Shared"]);
+
+    // A lens per member of `MyBase`, counted once resolved.
+    let base = uri(&root.join("MyBase.psc"));
+    let lenses = client
+        .request(
+            "textDocument/codeLens",
+            json!({ "textDocument": { "uri": base } }),
+        )
+        .await;
+    assert_eq!(lenses.as_array().unwrap().len(), 2, "{lenses}");
+    let resolved = client.request("codeLens/resolve", lenses[1].clone()).await;
+    assert_eq!(resolved["command"]["title"], "1 reference");
+    assert_eq!(resolved["command"]["command"], "papyrus.showReferences");
+
     let symbols = client
         .request("workspace/symbol", json!({ "query": "greet" }))
         .await;

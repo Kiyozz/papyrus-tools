@@ -631,3 +631,181 @@ fn parameter_hints_name_literals_by_default() {
     );
     assert_eq!(hints(ParameterHints::None), []);
 }
+
+// ── Hierarchy ─────────────────────────────────────────────────────────────
+
+const CHILD: &str = "ScriptName Child extends MyMod:Base
+Function Greet(string asWho = \"you\")
+\tparent.Greet(asWho)
+\tCount += 1
+EndFunction
+State Busy
+\tFunction Greet(string asWho = \"you\")
+\tEndFunction
+EndState
+";
+
+#[test]
+fn highlights_tell_writes_from_reads() {
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[(
+            "A.psc",
+            "ScriptName A extends Quest\nint count\nFunction Run()\n\tco$0unt = 1\n\tcount += count\n\tDebug.Trace(self.count)\nEndFunction\n",
+        )],
+    );
+    let (file, offset) = f.cursor();
+    let found: Vec<(u32, bool)> = f
+        .sema()
+        .highlights(file, offset)
+        .unwrap()
+        .into_iter()
+        .map(|h| {
+            assert_eq!(f.text(file, h.range), "count");
+            (u32::from(h.range.start()), h.write)
+        })
+        .collect();
+    let writes: Vec<bool> = found.iter().map(|(_, w)| *w).collect();
+    assert_eq!(writes, [true, true, true, false, false]);
+}
+
+#[test]
+fn implementations_are_the_overrides() {
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[
+            (
+                "Base.psc",
+                &BASE.replace("Function Greet", "Function Gr$0eet"),
+            ),
+            ("Child.psc", CHILD),
+            (
+                "Other.psc",
+                "ScriptName Other extends Quest\nFunction Greet()\nEndFunction\n",
+            ),
+        ],
+    );
+    let (file, offset) = f.cursor();
+    let found: Vec<(String, u32)> = f
+        .sema()
+        .implementations(file, offset)
+        .unwrap()
+        .into_iter()
+        .map(|t| {
+            assert_eq!(f.text(t.file, t.focus_range), "Greet");
+            (
+                f.name_of(t.file).to_owned(),
+                u32::from(t.focus_range.start()),
+            )
+        })
+        .collect();
+    let names: Vec<&str> = found.iter().map(|(n, _)| n.as_str()).collect();
+    assert_eq!(names, ["Child.psc", "Child.psc"]);
+}
+
+#[test]
+fn the_overrides_of_a_native_event() {
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[
+            (
+                "A.psc",
+                "ScriptName A extends ObjectReference\nEvent OnInit()\n\tOnAct$0ivate(None)\nEndEvent\n",
+            ),
+            (
+                "B.psc",
+                "ScriptName B extends ObjectReference\nEvent OnActivate(ObjectReference akActionRef)\nEndEvent\n",
+            ),
+            (
+                "C.psc",
+                "ScriptName C extends Actor\nEvent OnActivate(ObjectReference akActionRef)\nEndEvent\n",
+            ),
+        ],
+    );
+    let (file, offset) = f.cursor();
+    let mut names: Vec<String> = f
+        .sema()
+        .implementations(file, offset)
+        .unwrap()
+        .into_iter()
+        .map(|t| f.name_of(t.file).to_owned())
+        .collect();
+    names.sort();
+    assert_eq!(names, ["B.psc", "C.psc"]);
+}
+
+#[test]
+fn calls_come_in_and_go_out() {
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[
+            ("Base.psc", BASE),
+            ("Child.psc", CHILD),
+            (
+                "User.psc",
+                "ScriptName User extends Quest\nFunction Run(MyMod:Base akQuest)\n\takQuest.Gre$0et()\n\takQuest.Greet(\"me\")\n\tHelp()\nEndFunction\nFunction Help()\n\tDebug.Trace(\"x\")\nEndFunction\nint Property Value\n\tint Function Get()\n\t\tHelp()\n\t\tReturn 1\n\tEndFunction\nEndProperty\n",
+            ),
+        ],
+    );
+    let (file, offset) = f.cursor();
+    let sema = f.sema();
+    let greet = sema.prepare_call_hierarchy(file, offset).unwrap();
+    assert_eq!(
+        (greet.name.as_str(), greet.kind),
+        ("Greet", ItemKind::Function)
+    );
+
+    let mut incoming: Vec<(String, usize)> = sema
+        .incoming_calls(&greet.def)
+        .into_iter()
+        .map(|c| {
+            (
+                format!("{}:{}", f.name_of(c.item.target.file), c.item.name),
+                c.ranges.len(),
+            )
+        })
+        .collect();
+    incoming.sort();
+    assert_eq!(
+        incoming,
+        [
+            ("Child.psc:Greet".to_owned(), 1),
+            ("User.psc:Run".to_owned(), 2)
+        ]
+    );
+
+    let user = f.file("User.psc");
+    let run = sema
+        .incoming_calls(&greet.def)
+        .into_iter()
+        .find(|c| c.item.name == "Run")
+        .unwrap()
+        .item;
+    let outgoing: Vec<(String, usize)> = sema
+        .outgoing_calls(&run.def)
+        .into_iter()
+        .map(|c| (c.item.name, c.ranges.len()))
+        .collect();
+    // `Debug.Trace` is native: no source to go to.
+    assert_eq!(outgoing, [("Greet".to_owned(), 2), ("Help".to_owned(), 1)]);
+
+    let help = sema
+        .outgoing_calls(&run.def)
+        .into_iter()
+        .find(|c| c.item.name == "Help")
+        .unwrap()
+        .item;
+    let callers: Vec<(String, ItemKind)> = sema
+        .incoming_calls(&help.def)
+        .into_iter()
+        .map(|c| (c.item.name, c.item.kind))
+        .collect();
+    assert_eq!(
+        callers,
+        [
+            ("Run".to_owned(), ItemKind::Function),
+            ("Value".to_owned(), ItemKind::Property)
+        ]
+    );
+    assert_eq!(help.target.file, user);
+}

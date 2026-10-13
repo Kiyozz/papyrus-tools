@@ -1,22 +1,38 @@
 //! Cross-file features: definition, hover, completion, references, rename,
-//! workspace symbols, signature help, inlay hints. The model answers in files and byte ranges; this
-//! module turns them into LSP types.
+//! workspace symbols, signature help, inlay hints, highlights,
+//! implementations, call hierarchy, reference lenses. The model answers in
+//! files and byte ranges; this module turns them into LSP types.
 
 use std::collections::HashMap;
 
 use papyrus_hir::{
-    CompletionKind, Database, ItemKind, NavTarget, ParameterHints, Project, Reference, Semantics,
-    SourceFile,
+    CallItem, CompletionKind, Database, ItemKind, NavTarget, ParameterHints, Project, Reference,
+    Semantics, SourceFile,
 };
 use papyrus_syntax::{TextRange, TextSize};
 use tower_lsp_server::ls_types::{
-    CompletionItem, CompletionItemKind, Documentation, Hover, HoverContents, InlayHint,
-    InlayHintKind, InlayHintLabel, Location, MarkupContent, MarkupKind, ParameterInformation,
-    ParameterLabel, Range, SignatureHelp, SignatureInformation, SymbolInformation, SymbolKind,
-    TextEdit, Uri, WorkspaceEdit,
+    CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CodeLens, Command,
+    CompletionItem, CompletionItemKind, DocumentHighlight, DocumentHighlightKind, Documentation,
+    Hover, HoverContents, InlayHint, InlayHintKind, InlayHintLabel, Location, MarkupContent,
+    MarkupKind, ParameterInformation, ParameterLabel, Position, Range, SignatureHelp,
+    SignatureInformation, SymbolInformation, SymbolKind, TextEdit, Uri, WorkspaceEdit,
 };
 
 use crate::position::{Columns, LineMap};
+
+/// The LSP kind of an item.
+fn symbol_kind(kind: ItemKind) -> SymbolKind {
+    match kind {
+        ItemKind::Variable | ItemKind::Guard => SymbolKind::VARIABLE,
+        ItemKind::Property => SymbolKind::PROPERTY,
+        ItemKind::Function => SymbolKind::FUNCTION,
+        ItemKind::Event | ItemKind::CustomEvent => SymbolKind::EVENT,
+        ItemKind::State => SymbolKind::NAMESPACE,
+        ItemKind::Struct => SymbolKind::STRUCT,
+        ItemKind::Field => SymbolKind::FIELD,
+        ItemKind::Group => SymbolKind::PACKAGE,
+    }
+}
 
 /// What the features need: the model, and how to name its files.
 pub(crate) struct Navigator<'a> {
@@ -238,16 +254,7 @@ impl Navigator<'_> {
                 Some(SymbolInformation {
                     kind: match symbol.kind {
                         papyrus_hir::SymbolKind::Script => SymbolKind::CLASS,
-                        papyrus_hir::SymbolKind::Item(kind) => match kind {
-                            ItemKind::Variable | ItemKind::Guard => SymbolKind::VARIABLE,
-                            ItemKind::Property => SymbolKind::PROPERTY,
-                            ItemKind::Function => SymbolKind::FUNCTION,
-                            ItemKind::Event | ItemKind::CustomEvent => SymbolKind::EVENT,
-                            ItemKind::State => SymbolKind::NAMESPACE,
-                            ItemKind::Struct => SymbolKind::STRUCT,
-                            ItemKind::Field => SymbolKind::FIELD,
-                            ItemKind::Group => SymbolKind::PACKAGE,
-                        },
+                        papyrus_hir::SymbolKind::Item(kind) => symbol_kind(kind),
                     },
                     location: self.location(symbol.file, symbol.range)?,
                     name: symbol.name,
@@ -257,5 +264,176 @@ impl Navigator<'_> {
                 })
             })
             .collect()
+    }
+
+    pub(crate) fn highlights(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<Vec<DocumentHighlight>> {
+        let found = Semantics::new(self.db, project).highlights(file, offset)?;
+        let map = self.map(file);
+        Some(
+            found
+                .into_iter()
+                .map(|h| DocumentHighlight {
+                    range: map.range(h.range),
+                    kind: Some(if h.write {
+                        DocumentHighlightKind::WRITE
+                    } else {
+                        DocumentHighlightKind::READ
+                    }),
+                })
+                .collect(),
+        )
+    }
+
+    pub(crate) fn implementations(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<Vec<Location>> {
+        let found = Semantics::new(self.db, project).implementations(file, offset)?;
+        Some(
+            found
+                .into_iter()
+                .filter_map(|t| self.location(t.file, t.focus_range))
+                .collect(),
+        )
+    }
+
+    fn call_item(&self, item: CallItem) -> Option<CallHierarchyItem> {
+        let file = item.target.file;
+        Some(CallHierarchyItem {
+            name: item.name,
+            kind: symbol_kind(item.kind),
+            tags: None,
+            detail: Some(item.detail),
+            uri: (self.uri)(file)?,
+            range: self.range(file, item.target.full_range),
+            selection_range: self.range(file, item.target.focus_range),
+            data: None,
+        })
+    }
+
+    pub(crate) fn prepare_call_hierarchy(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<Vec<CallHierarchyItem>> {
+        let item = Semantics::new(self.db, project).prepare_call_hierarchy(file, offset)?;
+        Some(vec![self.call_item(item)?])
+    }
+
+    /// Who calls the item declared at `offset`.
+    pub(crate) fn incoming_calls(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<Vec<CallHierarchyIncomingCall>> {
+        let sema = Semantics::new(self.db, project);
+        let def = sema.def_at(file, offset)?;
+        Some(
+            sema.incoming_calls(&def)
+                .into_iter()
+                .filter_map(|call| {
+                    let map = self.map(call.item.target.file);
+                    Some(CallHierarchyIncomingCall {
+                        from_ranges: call.ranges.iter().map(|r| map.range(*r)).collect(),
+                        from: self.call_item(call.item)?,
+                    })
+                })
+                .collect(),
+        )
+    }
+
+    /// Whom the item declared at `offset` calls.
+    pub(crate) fn outgoing_calls(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<Vec<CallHierarchyOutgoingCall>> {
+        let sema = Semantics::new(self.db, project);
+        let def = sema.def_at(file, offset)?;
+        let map = self.map(file);
+        Some(
+            sema.outgoing_calls(&def)
+                .into_iter()
+                .filter_map(|call| {
+                    Some(CallHierarchyOutgoingCall {
+                        from_ranges: call.ranges.iter().map(|r| map.range(*r)).collect(),
+                        to: self.call_item(call.item)?,
+                    })
+                })
+                .collect(),
+        )
+    }
+
+    /// A lens above each function, property, script variable, struct and
+    /// custom event of `file`, resolved later: counting references reads
+    /// the whole project.
+    pub(crate) fn code_lenses(
+        &self,
+        project: Project,
+        file: SourceFile,
+        uri: &Uri,
+    ) -> Vec<CodeLens> {
+        let sema = Semantics::new(self.db, project);
+        let map = self.map(file);
+        sema.items(file)
+            .items
+            .iter()
+            .filter(|i| {
+                matches!(
+                    i.kind,
+                    ItemKind::Function
+                        | ItemKind::Property
+                        | ItemKind::Variable
+                        | ItemKind::Struct
+                        | ItemKind::CustomEvent
+                )
+            })
+            .map(|i| CodeLens {
+                range: map.range(i.name_range),
+                command: None,
+                data: Some(serde_json::json!({ "uri": uri.as_str() })),
+            })
+            .collect()
+    }
+
+    /// The references of the item named at `offset`, as a lens command.
+    pub(crate) fn lens_command(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+        uri: &Uri,
+        position: Position,
+    ) -> Command {
+        let found = Semantics::new(self.db, project)
+            .references(file, offset, false)
+            .unwrap_or_default();
+        let locations = self.locations(found);
+        let count = locations.len();
+        Command {
+            title: if count == 1 {
+                "1 reference".to_owned()
+            } else {
+                format!("{count} references")
+            },
+            // The client shows them; `editor.action.showReferences` wants
+            // its own types, which the extension converts to.
+            command: "papyrus.showReferences".to_owned(),
+            arguments: Some(vec![
+                serde_json::json!(uri.as_str()),
+                serde_json::json!(position),
+                serde_json::json!(locations),
+            ]),
+        }
     }
 }

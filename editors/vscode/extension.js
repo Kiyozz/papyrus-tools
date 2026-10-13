@@ -73,6 +73,20 @@ async function activate(context) {
       await client?.stop();
       await start(context);
     }),
+    // The reference lenses: the server sends LSP types, which
+    // `editor.action.showReferences` wants as VSCode's.
+    vscode.commands.registerCommand("papyrus.showReferences", (uri, position, locations) => {
+      if (!client) {
+        return;
+      }
+      const convert = client.protocol2CodeConverter;
+      return vscode.commands.executeCommand(
+        "editor.action.showReferences",
+        convert.asUri(uri),
+        convert.asPosition(position),
+        locations.map((/** @type {any} */ location) => convert.asLocation(location)),
+      );
+    }),
   );
   await start(context);
 }
