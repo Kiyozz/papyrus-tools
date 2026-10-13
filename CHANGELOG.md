@@ -1,5 +1,13 @@
 # papyrus-tools
 
+## 0.8.0
+
+### Minor Changes
+
+- b0af035: Skyrim's embedded native scripts are now vanilla only. SKSE's functions, events and scripts come with `skse = true` in `papyrus.toml`, or on their own when the project or its `imports` hold SKSE's sources (`SKSE.psc`). Without them, calling an SKSE function such as `Game.GetPerkPoints()`, or naming one of its scripts such as `StringUtil`, is the new `members/skse` (PAP017), a warning inviting to install SKSE and enable it.
+- e1bf870: The language server keeps up with projects importing a whole game. Each file remembers which names it mentions, so references, reference lenses, rename and the call hierarchy only read the files that may use a name: two to three times faster on Skyrim's 14,000 vanilla scripts, within 80 ms for the most used names. These requests and completion now run on a copy of the model, off the server's lock: an edit cancels them, and the editor asks again (`ContentModified`). Indexing the workspace reports its progress to editors that show it.
+- 13c451e: New lint `scripts/unknown` (PAP018): a script, as a type or as the receiver of a call, that neither the project nor its `imports` declare, with the closest name as a quick fix. It only speaks once the game's sources are in the project or its `imports`, since the embedded tables only know the native scripts.
+
 ## 0.7.0
 
 ### Minor Changes
