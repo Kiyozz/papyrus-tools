@@ -400,6 +400,22 @@ fn skse_functions_need_skse() {
         (Problem::UnknownMember, "GetWornFrom".to_owned())
     );
 
+    // SKSE's own scripts, as a type and as a receiver.
+    let scripts = "ScriptName A extends Quest\nColorForm Property Tint Auto\nEvent OnInit()\n\tStringUtil.GetLength(\"a\")\nEndEvent\n";
+    assert_eq!(
+        found(GameId::Skyrim, scripts),
+        [
+            (Problem::SkseMember, "ColorForm".to_owned()),
+            (Problem::SkseMember, "StringUtil".to_owned())
+        ]
+    );
+    let message = &check(GameId::Skyrim, scripts)[1].2;
+    assert!(
+        message.starts_with("`StringUtil` is a script of SKSE"),
+        "{message}"
+    );
+    assert_eq!(found(GameId::Fallout4, scripts), []);
+
     // `skse = true`.
     let mut db = Database::default();
     let file = SourceFile::new(&db, "A.psc".into(), source.to_owned());

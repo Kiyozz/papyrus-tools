@@ -177,7 +177,7 @@ pub static MEMBERS_SKSE: Lint = Lint {
     code: "PAP017",
     name: "members/skse",
     default: Level::Warn,
-    description: "member only SKSE declares, in a Skyrim project that does not use SKSE",
+    description: "member or script only SKSE declares, in a Skyrim project that does not use SKSE",
 };
 
 /// `PAP101`: locals and parameters in lowerCamelCase.

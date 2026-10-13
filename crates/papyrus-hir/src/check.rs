@@ -329,32 +329,78 @@ impl Semantics<'_> {
             .collect()
     }
 
-    /// [`Semantics::check_vanilla`], and the unknown members SKSE declares
-    /// told apart.
+    /// [`Semantics::check_vanilla`], and what SKSE declares told apart: its
+    /// members and its scripts, in a Skyrim project without SKSE.
     fn check_for_target(&self, file: SourceFile) -> Vec<Diagnostic> {
         let mut found = self.check_vanilla(file);
-        let unknown = |d: &Diagnostic| d.problem == Problem::UnknownMember;
-        if !self.skyrim() || self.library().skse || !found.iter().any(unknown) {
+        if !self.skyrim() || self.library().skse {
             return found;
         }
-        // Known with SKSE: the member is SKSE's.
-        let extended = self.with_skse().check_vanilla(file);
         let text = file.text(self.db());
-        for diagnostic in found.iter_mut().filter(|d| unknown(d)) {
-            if !extended
-                .iter()
-                .any(|e| unknown(e) && e.range == diagnostic.range)
-            {
-                let name = &text[diagnostic.range];
-                diagnostic.problem = Problem::SkseMember;
-                diagnostic.message = format!(
-                    "`{name}` comes from SKSE, which this project does not use: install SKSE, \
-                     then set `skse = true` in papyrus.toml or add its sources to `imports`"
-                );
-                diagnostic.fixes.clear();
+        let invite = |range: TextRange, what: &str| Diagnostic {
+            problem: Problem::SkseMember,
+            range,
+            message: format!(
+                "`{}` {what} SKSE, which this project does not use: install SKSE, then set \
+                 `skse = true` in papyrus.toml or add its sources to `imports`",
+                &text[range]
+            ),
+            fixes: Vec::new(),
+        };
+        let unknown = |d: &Diagnostic| d.problem == Problem::UnknownMember;
+        if found.iter().any(unknown) {
+            // Known with SKSE: the member is SKSE's.
+            let extended = self.with_skse().check_vanilla(file);
+            for diagnostic in found.iter_mut().filter(|d| unknown(d)) {
+                if !extended
+                    .iter()
+                    .any(|e| unknown(e) && e.range == diagnostic.range)
+                {
+                    *diagnostic = invite(diagnostic.range, "comes from");
+                }
             }
         }
+        found.extend(
+            self.skse_scripts(file)
+                .into_iter()
+                .map(|range| invite(range, "is a script of")),
+        );
         found
+    }
+
+    /// Where `file` names a script of SKSE's own, `StringUtil` or `UI`: as a
+    /// type, or as the receiver of a call.
+    fn skse_scripts(&self, file: SourceFile) -> Vec<TextRange> {
+        let skse = self.with_skse();
+        // Under an unknown ancestor, a receiver may be an inherited property.
+        let complete = self.chain_complete(ScriptRef::Source(file));
+        let mut out = Vec::new();
+        for node in self.root(file).descendants() {
+            let name = match node.kind() {
+                SyntaxKind::TYPE_REF => compact(&node).trim_end_matches("[]").to_owned(),
+                SyntaxKind::NAME_REF
+                    if complete
+                        && node.prev_sibling().is_none()
+                        && node
+                            .parent()
+                            .is_some_and(|p| p.kind() == SyntaxKind::FIELD_EXPR)
+                        && self.resolve_name_ref(file, &node).is_none() =>
+                {
+                    compact(&node)
+                }
+                _ => continue,
+            };
+            if !name.contains(':')
+                && self.script_in(file, &name).is_none()
+                && skse.script_in(file, &name).is_some()
+            {
+                out.push(match node.kind() {
+                    SyntaxKind::TYPE_REF => crate::semantics::type_name_range(&node),
+                    _ => trimmed(&node),
+                });
+            }
+        }
+        out
     }
 
     /// The problems of `file` against the native scripts in effect.
