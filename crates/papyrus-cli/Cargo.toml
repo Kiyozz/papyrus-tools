@@ -19,6 +19,7 @@ papyrus-fmt.workspace = true
 papyrus-lint.workspace = true
 papyrus-hir.workspace = true
 papyrus-lsp.workspace = true
+papyrus-build.workspace = true
 clap.workspace = true
 ariadne.workspace = true
 salsa.workspace = true

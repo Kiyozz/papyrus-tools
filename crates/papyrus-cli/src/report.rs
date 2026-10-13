@@ -44,6 +44,11 @@ impl Reporter {
         self.errors == 0 && self.warnings == 0
     }
 
+    /// The errors reported so far.
+    pub(crate) fn errors(&self) -> usize {
+        self.errors
+    }
+
     pub(crate) fn emit(&mut self, path: &Path, source: &str, diagnostics: &[Diagnostic]) {
         let name = path.display().to_string();
         for diagnostic in diagnostics {
@@ -81,6 +86,12 @@ impl Reporter {
     pub(crate) fn skip(&mut self, path: &Path, reason: &str) {
         self.errors += 1;
         eprintln!("skipped: {} — {reason}", path.display());
+    }
+
+    /// An error that names no file.
+    pub(crate) fn general(&mut self, message: &str) {
+        self.errors += 1;
+        eprintln!("error: {message}");
     }
 
     pub(crate) fn io_error(&mut self, path: &Path, error: &std::io::Error) {

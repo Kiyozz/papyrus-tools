@@ -14,6 +14,11 @@
 //! [lints]
 //! "naming/locals" = "error"
 //! PAP001 = "allow"
+//!
+//! [build]
+//! compiler = "C:/Steam/steamapps/common/Skyrim Special Edition/Papyrus Compiler/PapyrusCompiler.exe"
+//! output = "Scripts"
+//! optimize = true
 //! ```
 
 use std::collections::BTreeMap;
@@ -60,6 +65,21 @@ pub enum IndentSetting {
     Tab,
 }
 
+/// How `papyrus build` compiles.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct BuildConfig {
+    /// `PapyrusCompiler.exe`, or Caprica.
+    pub compiler: Option<PathBuf>,
+    /// Where the `.pex` files go.
+    pub output: Option<PathBuf>,
+    /// Optimize the bytecode.
+    pub optimize: bool,
+    /// Strip `DebugOnly` code (Fallout 4 onwards).
+    pub release: bool,
+    /// Strip `BetaOnly` code (Fallout 4 onwards).
+    pub final_: bool,
+}
+
 /// The validated configuration.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Config {
@@ -79,6 +99,8 @@ pub struct Config {
     /// The level of each lint, by code (`PAP001`) or by name
     /// (`encoding/lossy`). Validating the keys is the registry's job.
     pub lints: BTreeMap<String, Level>,
+    /// The `[build]` section.
+    pub build: BuildConfig,
 }
 
 /// An unreadable configuration.
@@ -131,6 +153,21 @@ struct Raw {
     fmt: RawFmt,
     #[serde(default)]
     lints: BTreeMap<String, String>,
+    #[serde(default)]
+    build: RawBuild,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawBuild {
+    compiler: Option<PathBuf>,
+    output: Option<PathBuf>,
+    #[serde(default)]
+    optimize: bool,
+    #[serde(default)]
+    release: bool,
+    #[serde(default, rename = "final")]
+    final_: bool,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -187,6 +224,13 @@ impl Config {
         };
         let flags = raw.flags.map(relative);
         let imports = raw.imports.into_iter().map(relative).collect();
+        let build = BuildConfig {
+            compiler: raw.build.compiler.map(relative),
+            output: raw.build.output.map(relative),
+            optimize: raw.build.optimize,
+            release: raw.build.release,
+            final_: raw.build.final_,
+        };
 
         Ok(Config {
             path: Some(path.to_owned()),
@@ -196,6 +240,7 @@ impl Config {
             flags,
             imports,
             lints,
+            build,
         })
     }
 
@@ -273,5 +318,20 @@ mod tests {
         assert!(parse("game = \"morrowind\"").is_err());
         assert!(parse("[fmt]\nindent = 0").is_err());
         assert!(parse("[lints]\nPAP001 = \"loud\"").is_err());
+        assert!(parse("[build]\ncompile = \"x\"").is_err());
+    }
+
+    #[test]
+    fn the_build_section_reads() {
+        let config = parse(
+            "[build]\ncompiler = \"tools/Caprica.exe\"\noutput = \"../Scripts\"\nfinal = true\n",
+        )
+        .unwrap();
+        assert_eq!(
+            config.build.compiler.as_deref(),
+            Some(Path::new("/project").join("tools/Caprica.exe").as_path())
+        );
+        assert_eq!(config.build.output.as_deref(), Some(Path::new("/Scripts")));
+        assert!(config.build.final_ && !config.build.optimize);
     }
 }

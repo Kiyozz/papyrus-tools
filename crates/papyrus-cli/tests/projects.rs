@@ -182,3 +182,30 @@ fn calls_are_checked_across_files_and_imports() {
     );
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn build_says_which_compiler_is_missing() {
+    let root = tree(
+        "build",
+        &[
+            (
+                "mod/papyrus.toml",
+                "game = \"skyrim\"\n[build]\ncompiler = \"tools/PapyrusCompiler.exe\"\n",
+            ),
+            ("mod/Quest1.psc", "ScriptName Quest1 extends Quest\n"),
+        ],
+    );
+    let output = Command::new(env!("CARGO_BIN_EXE_papyrus"))
+        .arg("build")
+        .arg(root.join("mod"))
+        .env("NO_COLOR", "1")
+        .output()
+        .expect("papyrus runs");
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert_eq!(output.status.code(), Some(2), "{stderr}");
+    assert!(
+        stderr.contains("PapyrusCompiler.exe: no such compiler"),
+        "{stderr}"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}

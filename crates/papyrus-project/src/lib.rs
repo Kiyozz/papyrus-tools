@@ -12,7 +12,7 @@ pub mod encoding;
 pub mod flags;
 pub mod project;
 
-pub use config::{Config, ConfigError, IndentSetting, Level};
+pub use config::{BuildConfig, Config, ConfigError, IndentSetting, Level};
 pub use discover::{DiscoverOptions, discover};
 pub use encoding::{Decoded, SourceEncoding, decode, encode};
 pub use project::{ConfigLocator, Project, ProjectError, projects};

@@ -4,11 +4,13 @@
 //! papyrus check --game skyrim Source/Scripts
 //! papyrus check --fix .
 //! papyrus fmt --check .
+//! papyrus build
 //! papyrus lsp
 //! ```
 
 #![forbid(unsafe_code)]
 
+mod build;
 mod report;
 
 use std::collections::HashMap;
@@ -25,14 +27,18 @@ use papyrus_lint::{
     LINTS, Levels, Model, ScriptSummary, Workspace, apply_fixes_with, vanilla_flags,
 };
 use papyrus_project::flags::{FlagDef, parse_flags};
-use papyrus_project::{Decoded, IndentSetting, Level, Project, decode, encode};
+use papyrus_project::{Config, Decoded, IndentSetting, Level, Project, decode, encode};
 use papyrus_syntax::Parse;
 use salsa::Setter;
 
 use report::{Diagnostic, Reporter, Severity};
 
 #[derive(Debug, Parser)]
-#[command(name = "papyrus", version, about = "Check and format Papyrus scripts")]
+#[command(
+    name = "papyrus",
+    version,
+    about = "Check, format and build Papyrus scripts"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -44,6 +50,9 @@ enum Command {
     Check(CheckArgs),
     /// Format scripts in place.
     Fmt(FmtArgs),
+    /// Compile scripts with the Creation Kit's compiler or Caprica, and
+    /// report their errors.
+    Build(BuildArgs),
     /// List the lints, their code and default level.
     Lints,
     /// Run the language server on standard input and output, for an
@@ -99,6 +108,35 @@ struct FmtArgs {
     indent: Option<IndentArg>,
 }
 
+#[derive(Debug, Args)]
+struct BuildArgs {
+    #[command(flatten)]
+    common: Common,
+
+    /// The compiler: `PapyrusCompiler.exe`, or Caprica. Overrides
+    /// `build.compiler` in papyrus.toml; without either, the Creation Kit's
+    /// of a default Steam installation.
+    #[arg(long)]
+    compiler: Option<PathBuf>,
+
+    /// Where the `.pex` files go. Overrides `build.output`; `Scripts` next
+    /// to papyrus.toml by default.
+    #[arg(long, short)]
+    output: Option<PathBuf>,
+
+    /// Optimize the bytecode.
+    #[arg(long)]
+    optimize: bool,
+
+    /// Strip `DebugOnly` code (Fallout 4 onwards).
+    #[arg(long)]
+    release: bool,
+
+    /// Strip `BetaOnly` code (Fallout 4 onwards).
+    #[arg(long = "final")]
+    final_: bool,
+}
+
 #[derive(Debug, Clone, Copy)]
 struct IndentArg(Indent);
 
@@ -122,6 +160,10 @@ impl FromStr for IndentArg {
 /// the defaults.
 #[derive(Debug)]
 struct Settings {
+    /// The folder of its papyrus.toml, or the root it was found under.
+    root: PathBuf,
+    /// Its papyrus.toml.
+    config: Config,
     scripts: Vec<PathBuf>,
     /// The scripts of the `imports` folders: read, never checked.
     imported: Vec<PathBuf>,
@@ -187,6 +229,8 @@ impl Settings {
             (None, None) => Indent::default(),
         };
         Ok(Settings {
+            root: project.root,
+            config: project.config,
             scripts: project.scripts,
             imported: project.imported,
             game,
@@ -237,6 +281,12 @@ fn main() -> ExitCode {
             .map(|projects| check(&projects, args.fix, args.unsafe_fixes, &mut reporter)),
         Command::Fmt(args) => Settings::resolve(&args.common, args.indent)
             .map(|projects| fmt(&projects, args.check, &mut reporter)),
+        // The fragments are compiled too: the game needs them.
+        Command::Build(mut args) => {
+            args.common.include_fragments = true;
+            Settings::resolve(&args.common, None)
+                .and_then(|projects| build::build(&projects, &args, &mut reporter))
+        }
         Command::Lints => {
             lints();
             Ok(true)
