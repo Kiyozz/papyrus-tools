@@ -62,8 +62,5 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
   binary embedded, settings, `papyrus build` as a run configuration. Starts
   with a discovery of the best way to match the VSCode extension — Kotlin,
   Gradle, the IntelliJ Platform's LSP API or LSP4IJ.
-
-## Later
-
-- **Publication**: the extension on the Marketplace and Open VSX (tokens),
-  CI on the release PR.
+- **v0.14 — Publication** (may move): the extension on the Marketplace and
+  Open VSX (tokens), CI on the release PR.
