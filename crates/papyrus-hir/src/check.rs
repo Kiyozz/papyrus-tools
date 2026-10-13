@@ -50,6 +50,9 @@ pub enum Problem {
     UnusedParam,
     /// A member only SKSE declares, in a Skyrim project without SKSE.
     SkseMember,
+    /// A script neither the project nor its imports declare, once they
+    /// hold the game's sources.
+    UnknownScript,
 }
 
 /// A text replacement.
@@ -329,11 +332,14 @@ impl Semantics<'_> {
             .collect()
     }
 
-    /// [`Semantics::check_vanilla`], and what SKSE declares told apart: its
-    /// members and its scripts, in a Skyrim project without SKSE.
+    /// [`Semantics::check_vanilla`], and the scripts `file` names: unknown
+    /// ones once the game's sources are known, SKSE's in a Skyrim project
+    /// without SKSE.
     fn check_for_target(&self, file: SourceFile) -> Vec<Diagnostic> {
         let mut found = self.check_vanilla(file);
-        if !self.skyrim() || self.library().skse {
+        let without_skse = self.skyrim() && !self.library().skse;
+        let sources = self.has_game_sources();
+        if !without_skse && !sources {
             return found;
         }
         let text = file.text(self.db());
@@ -348,7 +354,7 @@ impl Semantics<'_> {
             fixes: Vec::new(),
         };
         let unknown = |d: &Diagnostic| d.problem == Problem::UnknownMember;
-        if found.iter().any(unknown) {
+        if without_skse && found.iter().any(unknown) {
             // Known with SKSE: the member is SKSE's.
             let extended = self.with_skse().check_vanilla(file);
             for diagnostic in found.iter_mut().filter(|d| unknown(d)) {
@@ -360,24 +366,85 @@ impl Semantics<'_> {
                 }
             }
         }
-        found.extend(
-            self.skse_scripts(file)
-                .into_iter()
-                .map(|range| invite(range, "is a script of")),
-        );
+        let skse = self.with_skse();
+        for (name, range, receiver) in self.unknown_scripts(file) {
+            if without_skse && skse.resolve_type(file, &name).is_some() {
+                found.push(invite(range, "is a script of"));
+            } else if sources && receiver {
+                found.push(Diagnostic {
+                    problem: Problem::UnknownScript,
+                    range,
+                    message: format!("`{name}` is neither a variable nor a script"),
+                    fixes: Vec::new(),
+                });
+            } else if sources {
+                let suggestion = closest(&name, self.script_names());
+                let mut message = format!(
+                    "unknown script `{name}`: neither the project nor its imports declare it"
+                );
+                if let Some(s) = suggestion {
+                    message.push_str(&format!(" — did you mean `{s}`?"));
+                }
+                found.push(Diagnostic {
+                    problem: Problem::UnknownScript,
+                    range,
+                    message,
+                    fixes: suggestion
+                        .map(|s| Fix::replace(range, s))
+                        .into_iter()
+                        .collect(),
+                });
+            }
+        }
         found
     }
 
-    /// Where `file` names a script of SKSE's own, `StringUtil` or `UI`: as a
-    /// type, or as the receiver of a call.
-    fn skse_scripts(&self, file: SourceFile) -> Vec<TextRange> {
-        let skse = self.with_skse();
+    /// True once the project or its imports hold the game's sources: then a
+    /// script they do not declare does not exist.
+    fn has_game_sources(&self) -> bool {
+        ["ObjectReference", "Actor", "Form"]
+            .iter()
+            .all(|name| matches!(self.script(name), Some(ScriptRef::Source(_))))
+    }
+
+    /// Every script the project knows: its own, imported, native.
+    fn script_names(&self) -> Vec<&str> {
+        let mut names: Vec<&str> = self
+            .index()
+            .files()
+            .map(|f| self.items(f).name.as_str())
+            .collect();
+        names.extend(
+            papyrus_stdlib::scripts(self.library())
+                .iter()
+                .map(|s| s.name),
+        );
+        names
+    }
+
+    /// The scripts `file` names that resolve to nothing: `(name, range,
+    /// receiver)`. Types — `extends`, `import`, declarations, casts — and the
+    /// receivers of calls, which may also be misspelled variables.
+    fn unknown_scripts(&self, file: SourceFile) -> Vec<(String, TextRange, bool)> {
         // Under an unknown ancestor, a receiver may be an inherited property.
         let complete = self.chain_complete(ScriptRef::Source(file));
         let mut out = Vec::new();
         for node in self.root(file).descendants() {
-            let name = match node.kind() {
-                SyntaxKind::TYPE_REF => compact(&node).trim_end_matches("[]").to_owned(),
+            match node.kind() {
+                SyntaxKind::TYPE_REF => {
+                    let name = compact(&node).trim_end_matches("[]").to_owned();
+                    // `CustomEventName`, `ScriptEventName`: the compiler's
+                    // own types, keywords like `int`.
+                    let keyword = node
+                        .descendants_with_tokens()
+                        .any(|t| t.kind().is_keyword());
+                    if !keyword
+                        && matches!(Ty::parse(&name), Ty::Object(_))
+                        && self.resolve_type(file, &name).is_none()
+                    {
+                        out.push((name, crate::semantics::type_name_range(&node), false));
+                    }
+                }
                 SyntaxKind::NAME_REF
                     if complete
                         && node.prev_sibling().is_none()
@@ -386,18 +453,12 @@ impl Semantics<'_> {
                             .is_some_and(|p| p.kind() == SyntaxKind::FIELD_EXPR)
                         && self.resolve_name_ref(file, &node).is_none() =>
                 {
-                    compact(&node)
+                    let name = compact(&node);
+                    if !name.contains(':') {
+                        out.push((name, trimmed(&node), true));
+                    }
                 }
-                _ => continue,
-            };
-            if !name.contains(':')
-                && self.script_in(file, &name).is_none()
-                && skse.script_in(file, &name).is_some()
-            {
-                out.push(match node.kind() {
-                    SyntaxKind::TYPE_REF => crate::semantics::type_name_range(&node),
-                    _ => trimmed(&node),
-                });
+                _ => {}
             }
         }
         out

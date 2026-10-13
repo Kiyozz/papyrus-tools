@@ -201,6 +201,13 @@ fn check_project(db: &Database, files: &[SourceFile], game: GameId, target: Opti
     ] {
         found.remove(allowed);
     }
+    // Fallout 4 ships fragments of a game jam quest, without its script.
+    if let Some(list) = found.get_mut("UnknownScript") {
+        list.retain(|l| !l.contains("`gamejam:GJDialogueScript`"));
+        if list.is_empty() {
+            found.remove("UnknownScript");
+        }
+    }
     assert!(
         found.is_empty(),
         "false positives on {game}, target {target:?}: {found:#?}"

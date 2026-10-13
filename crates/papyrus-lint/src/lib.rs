@@ -180,6 +180,14 @@ pub static MEMBERS_SKSE: Lint = Lint {
     description: "member or script only SKSE declares, in a Skyrim project that does not use SKSE",
 };
 
+/// `PAP018`: script that does not exist.
+pub static SCRIPTS_UNKNOWN: Lint = Lint {
+    code: "PAP018",
+    name: "scripts/unknown",
+    default: Level::Error,
+    description: "script that does not exist, once the game's sources are in the project or its imports",
+};
+
 /// `PAP101`: locals and parameters in lowerCamelCase.
 pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
@@ -223,6 +231,7 @@ pub static LINTS: &[&Lint] = &[
     &LOCALS_UNUSED,
     &PARAMS_UNUSED,
     &MEMBERS_SKSE,
+    &SCRIPTS_UNKNOWN,
     &NAMING_LOCALS,
     &NAMING_VARIABLES,
     &NAMING_FUNCTIONS,

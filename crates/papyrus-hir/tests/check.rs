@@ -435,6 +435,46 @@ fn skse_functions_need_skse() {
 }
 
 #[test]
+fn unknown_scripts_need_the_games_sources() {
+    let source = "ScriptName A extends Quest\nActr Property Who Auto\nEvent OnInit()\n\tMissing.Run()\n\tWho.Kill()\nEndEvent\n";
+    // Without the game's sources, a script may simply not be imported.
+    let alone: Vec<Problem> = check(GameId::Skyrim, source)
+        .into_iter()
+        .map(|(p, ..)| p)
+        .collect();
+    assert_eq!(alone, []);
+
+    let files = [
+        ("A.psc", source),
+        ("lib/Form.psc", "ScriptName Form Hidden\n"),
+        (
+            "lib/ObjectReference.psc",
+            "ScriptName ObjectReference extends Form Hidden\n",
+        ),
+        (
+            "lib/Actor.psc",
+            "ScriptName Actor extends ObjectReference Hidden\n",
+        ),
+        ("lib/Quest.psc", "ScriptName Quest extends Form Hidden\n"),
+    ];
+    let found = check_in(Some(GameId::Skyrim), &files);
+    let short: Vec<(Problem, &str)> = found.iter().map(|(p, t, _)| (*p, t.as_str())).collect();
+    assert_eq!(
+        short,
+        [
+            (Problem::UnknownScript, "Actr"),
+            (Problem::UnknownScript, "Missing")
+        ]
+    );
+    assert!(
+        found[0].2.ends_with("did you mean `Actor`?"),
+        "{}",
+        found[0].2
+    );
+    assert_eq!(found[1].2, "`Missing` is neither a variable nor a script");
+}
+
+#[test]
 fn imported_globals_are_callable() {
     let files = [
         (
