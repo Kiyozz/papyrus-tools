@@ -28,19 +28,18 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-Candidates for v0.7, not decided yet:
-
-- **Release 0.6.0**: Marketplace and Open VSX tokens, CI on the release PR.
-- **Lints**, certain only: `GotoState` to an undeclared state, an event
-  whose parameters differ from the native one, assignment to an
-  `AutoReadOnly` or `Const` property, a non-`Global` function called on its
-  script or `self` in a `Global` one, code after `Return`, unused locals and
-  parameters.
-- **Quick fixes** for the semantic lints: add `as int`, add the missing
-  argument, create the unknown function, replace with the closest name.
-- **Navigation**: highlight the symbol under the cursor, go to overrides,
-  call hierarchy, references CodeLens.
-- **`papyrus build`**: drive `PapyrusCompiler.exe` or Caprica with the
-  imports of `papyrus.toml`, its errors reported like the lints'.
-- **Upkeep**: Skyrim tables without SKSE, or SKSE as an option; an IntelliJ
-  integration beyond LSP4IJ; large projects in the language server.
+- **v0.7 — Planned, not started.**
+  - **Release 0.6.0**: Marketplace and Open VSX tokens, CI on the release PR.
+  - **Lints**, certain only: `GotoState` to an undeclared state, an event
+    whose parameters differ from the native one, assignment to an
+    `AutoReadOnly` or `Const` property, a non-`Global` function called on its
+    script or `self` in a `Global` one, code after `Return`, unused locals and
+    parameters.
+  - **Quick fixes** for the semantic lints: add `as int`, add the missing
+    argument, create the unknown function, replace with the closest name.
+  - **Navigation**: highlight the symbol under the cursor, go to overrides,
+    call hierarchy, references CodeLens.
+  - **`papyrus build`**: drive `PapyrusCompiler.exe` or Caprica with the
+    imports of `papyrus.toml`, its errors reported like the lints'.
+  - **Upkeep**: Skyrim tables without SKSE, or SKSE as an option; an IntelliJ
+    integration beyond LSP4IJ; large projects in the language server.
