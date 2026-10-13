@@ -38,10 +38,12 @@ use papyrus_lint::{Model, ScriptSummary, Workspace};
 use papyrus_project::{ConfigLocator, decode};
 use papyrus_syntax::{TextRange, TextSize};
 use salsa::Setter;
-use tower_lsp_server::jsonrpc::{Error, Result};
+use tower_lsp_server::jsonrpc::{Error, ErrorCode, Result};
 use tower_lsp_server::ls_types::request::{GotoImplementationParams, GotoImplementationResponse};
 use tower_lsp_server::ls_types::*;
-use tower_lsp_server::{Client, LanguageServer, LspService, Server};
+use tower_lsp_server::{
+    Bounded, Client, LanguageServer, LspService, NotCancellable, OngoingProgress, Server,
+};
 
 use analysis::{Analysis, Document, Settings, analyze};
 use navigation::Navigator;
@@ -78,6 +80,8 @@ struct State {
     locator: ConfigLocator,
     /// The client can watch files at the server's request.
     can_watch: bool,
+    /// The client shows the progress of the server's work.
+    can_progress: bool,
     /// The semantic model.
     db: Database,
     /// The model's file of each script read, by path; a document without a
@@ -236,6 +240,19 @@ impl State {
         Some(f(&navigator, model, file, offset))
     }
 
+    /// What a request needs to run off the lock.
+    fn snapshot(&self) -> Snapshot {
+        Snapshot {
+            db: self.db.clone(),
+            columns: self.columns,
+            uris: self
+                .documents
+                .iter()
+                .map(|(uri, document)| (key(uri, document), uri.clone()))
+                .collect(),
+        }
+    }
+
     /// Analyzes `document` within its project, for its tree.
     fn analyze(&self, document: &Document) -> Analysis {
         let empty = Project::default();
@@ -339,65 +356,80 @@ struct Scanned {
     imported: Vec<(PathBuf, String)>,
 }
 
+/// How many scripts between two reports of the indexing progress.
+const PROGRESS_STEP: usize = 200;
+
 /// The text of a script on disk.
 fn read(path: &Path) -> Option<String> {
     std::fs::read(path).ok().map(|bytes| decode(&bytes).text)
 }
 
 /// Indexes the projects under `folders`, as `papyrus check` would; a folder
-/// that cannot be read is reported and skipped.
-fn scan(folders: &[PathBuf]) -> (Vec<Scanned>, Vec<String>) {
+/// that cannot be read is reported and skipped. `progress` hears how many
+/// scripts are read, out of how many.
+fn scan(folders: &[PathBuf], progress: &dyn Fn(usize, usize)) -> (Vec<Scanned>, Vec<String>) {
     let widest = Dialect::new(GameId::Starfield);
-    let mut scanned = Vec::new();
+    let mut found = Vec::new();
     let mut errors = Vec::new();
     for folder in folders {
-        let projects = match papyrus_project::projects(std::slice::from_ref(folder), false) {
-            Ok(projects) => projects,
-            Err(error) => {
-                errors.push(error.to_string());
-                continue;
-            }
-        };
-        for project in projects {
-            let mut summaries = Vec::new();
-            let mut verdicts = Vec::new();
-            let mut scripts = Vec::new();
-            for path in project.scripts {
-                let Some(text) = read(&path) else {
-                    continue;
-                };
-                let root = papyrus_syntax::parse(&text, widest).syntax();
-                verdicts.push(papyrus_project::detect::evidence(&root).verdict());
-                summaries.extend(ScriptSummary::of(&root));
-                scripts.push((path, text));
-            }
-            // Imported scripts relay `extends`, but do not vote on the game.
-            let mut imported = Vec::new();
-            for path in project.imported {
-                let Some(text) = read(&path) else {
-                    continue;
-                };
-                let root = papyrus_syntax::parse(&text, widest).syntax();
-                let summary = ScriptSummary::of(&root);
-                if summary.as_ref().is_some_and(|s| {
-                    !summaries
-                        .iter()
-                        .any(|o| o.name.eq_ignore_ascii_case(&s.name))
-                }) {
-                    summaries.extend(summary);
-                }
-                imported.push((path, text));
-            }
-            scanned.push(Scanned {
-                root: project.root,
-                summaries,
-                detected: papyrus_project::detect::majority(verdicts).map(|(game, _, _)| game),
-                configured: project.config.game,
-                skse: project.config.skse,
-                scripts,
-                imported,
-            });
+        match papyrus_project::projects(std::slice::from_ref(folder), false) {
+            Ok(projects) => found.extend(projects),
+            Err(error) => errors.push(error.to_string()),
         }
+    }
+    let total = found
+        .iter()
+        .map(|p| p.scripts.len() + p.imported.len())
+        .sum();
+    let mut done = 0;
+    let mut step = || {
+        done += 1;
+        if done % PROGRESS_STEP == 0 {
+            progress(done, total);
+        }
+    };
+    let mut scanned = Vec::new();
+    for project in found {
+        let mut summaries = Vec::new();
+        let mut verdicts = Vec::new();
+        let mut scripts = Vec::new();
+        for path in project.scripts {
+            step();
+            let Some(text) = read(&path) else {
+                continue;
+            };
+            let root = papyrus_syntax::parse(&text, widest).syntax();
+            verdicts.push(papyrus_project::detect::evidence(&root).verdict());
+            summaries.extend(ScriptSummary::of(&root));
+            scripts.push((path, text));
+        }
+        // Imported scripts relay `extends`, but do not vote on the game.
+        let mut imported = Vec::new();
+        for path in project.imported {
+            step();
+            let Some(text) = read(&path) else {
+                continue;
+            };
+            let root = papyrus_syntax::parse(&text, widest).syntax();
+            let summary = ScriptSummary::of(&root);
+            if summary.as_ref().is_some_and(|s| {
+                !summaries
+                    .iter()
+                    .any(|o| o.name.eq_ignore_ascii_case(&s.name))
+            }) {
+                summaries.extend(summary);
+            }
+            imported.push((path, text));
+        }
+        scanned.push(Scanned {
+            root: project.root,
+            summaries,
+            detected: papyrus_project::detect::majority(verdicts).map(|(game, _, _)| game),
+            configured: project.config.game,
+            skse: project.config.skse,
+            scripts,
+            imported,
+        });
     }
     (scanned, errors)
 }
@@ -406,6 +438,50 @@ fn scan(folders: &[PathBuf]) -> (Vec<Scanned>, Vec<String>) {
 fn summary_of(text: &str) -> Option<ScriptSummary> {
     let root = papyrus_syntax::parse(text, Dialect::new(GameId::Starfield)).syntax();
     ScriptSummary::of(&root)
+}
+
+/// A copy of the model for a request, and the URIs of the open documents.
+///
+/// Editing a document while a request runs on it cancels the request: salsa
+/// stops it at its next query, before the edit lands.
+struct Snapshot {
+    db: Database,
+    columns: Columns,
+    uris: HashMap<PathBuf, Uri>,
+}
+
+impl Snapshot {
+    fn uri_of(&self, file: SourceFile) -> Option<Uri> {
+        let path = file.path(&self.db);
+        self.uris
+            .get(path)
+            .cloned()
+            .or_else(|| Uri::from_file_path(path))
+    }
+
+    /// Runs `f` on a blocking thread. A request an edit cancelled fails
+    /// with `ContentModified`, for the editor to ask again.
+    async fn run<T: Send + 'static>(
+        self,
+        f: impl FnOnce(&Navigator<'_>) -> T + Send + 'static,
+    ) -> Result<T> {
+        let work = move || {
+            salsa::Cancelled::catch(std::panic::AssertUnwindSafe(|| {
+                let uri_of = |file| self.uri_of(file);
+                let navigator = Navigator {
+                    db: &self.db,
+                    columns: self.columns,
+                    uri: &uri_of,
+                };
+                f(&navigator)
+            }))
+        };
+        match tokio::task::spawn_blocking(work).await {
+            Ok(Ok(value)) => Ok(value),
+            Ok(Err(_)) => Err(Error::new(ErrorCode::ContentModified)),
+            Err(_) => Err(Error::internal_error()),
+        }
+    }
 }
 
 /// The server.
@@ -447,8 +523,26 @@ impl Backend {
         }
         let backend = self.clone();
         tokio::spawn(async move {
-            let Ok((scanned, errors)) = tokio::task::spawn_blocking(move || scan(&folders)).await
-            else {
+            let progress = backend.begin_progress().await;
+            let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
+            let scanning = tokio::task::spawn_blocking(move || {
+                scan(&folders, &|done, total| {
+                    let _ = sender.send((done, total));
+                })
+            });
+            if let Some(progress) = &progress {
+                // Ends with the scan, which holds the sender.
+                while let Some((done, total)) = receiver.recv().await {
+                    let percentage = (done * 100 / total.max(1)) as u32;
+                    progress
+                        .report_with_message(format!("{done}/{total} scripts"), percentage)
+                        .await;
+                }
+            }
+            let Ok((scanned, errors)) = scanning.await else {
+                if let Some(progress) = progress {
+                    progress.finish().await;
+                }
                 return;
             };
             let mut log: Vec<String> = errors
@@ -527,11 +621,34 @@ impl Backend {
                 }
                 state.all()
             };
+            if let Some(progress) = progress {
+                progress.finish().await;
+            }
             for line in log {
                 backend.client.log_message(MessageType::INFO, line).await;
             }
             backend.publish(batch).await;
         });
+    }
+
+    /// Shows the indexing in the editor, if it can.
+    async fn begin_progress(&self) -> Option<OngoingProgress<Bounded, NotCancellable>> {
+        if !self.state().can_progress {
+            return None;
+        }
+        let token = ProgressToken::String("papyrus/index".to_owned());
+        self.client
+            .create_work_done_progress(token.clone())
+            .await
+            .ok()?;
+        Some(
+            self.client
+                .progress(token, "Papyrus")
+                .with_message("indexing scripts")
+                .with_percentage(0)
+                .begin()
+                .await,
+        )
     }
 
     /// Runs `f` on document `uri` and the view of its lines.
@@ -544,6 +661,31 @@ impl Backend {
         let document = state.documents.get(uri)?;
         let map = LineMap::new(&document.decoded.text, state.columns);
         Some(f(&state, document, &map))
+    }
+
+    /// [`State::navigate`] on a [`Snapshot`], for the requests that read the
+    /// whole project.
+    async fn navigate_off<T: Send + 'static>(
+        &self,
+        uri: &Uri,
+        position: Position,
+        f: impl FnOnce(&Navigator<'_>, papyrus_hir::Project, SourceFile, TextSize) -> T + Send + 'static,
+    ) -> Result<Option<T>> {
+        let (snapshot, model, file, offset) = {
+            let state = self.state();
+            let Some((file, model)) = state.locate(uri) else {
+                return Ok(None);
+            };
+            let Some(offset) = LineMap::new(file.text(&state.db), state.columns).offset(position)
+            else {
+                return Ok(None);
+            };
+            (state.snapshot(), model, file, offset)
+        };
+        snapshot
+            .run(move |nav| f(nav, model, file, offset))
+            .await
+            .map(Some)
     }
 }
 
@@ -583,6 +725,12 @@ impl LanguageServer for Backend {
             .and_then(|w| w.did_change_watched_files.as_ref())
             .and_then(|w| w.dynamic_registration)
             .unwrap_or(false);
+        let can_progress = params
+            .capabilities
+            .window
+            .as_ref()
+            .and_then(|w| w.work_done_progress)
+            .unwrap_or(false);
         {
             let mut state = self.state();
             if let Some(hints) = params
@@ -595,6 +743,7 @@ impl LanguageServer for Backend {
             state.columns = if utf8 { Columns::Utf8 } else { Columns::Utf16 };
             state.folders = folders;
             state.can_watch = can_watch;
+            state.can_progress = can_progress;
         }
 
         Ok(InitializeResult {
@@ -946,26 +1095,26 @@ impl LanguageServer for Backend {
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let at = params.text_document_position;
-        let state = self.state();
-        Ok(state
-            .navigate(
+        Ok(self
+            .navigate_off(
                 &at.text_document.uri,
                 at.position,
                 |nav, project, file, offset| nav.completion(project, file, offset),
             )
+            .await?
             .map(CompletionResponse::Array))
     }
 
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
         let at = params.text_document_position;
         let include = params.context.include_declaration;
-        let state = self.state();
-        Ok(state
-            .navigate(
+        Ok(self
+            .navigate_off(
                 &at.text_document.uri,
                 at.position,
-                |nav, project, file, offset| nav.references(project, file, offset, include),
+                move |nav, project, file, offset| nav.references(project, file, offset, include),
             )
+            .await?
             .flatten())
     }
 
@@ -990,12 +1139,12 @@ impl LanguageServer for Backend {
     ) -> Result<Option<GotoImplementationResponse>> {
         let at = params.text_document_position_params;
         Ok(self
-            .state()
-            .navigate(
+            .navigate_off(
                 &at.text_document.uri,
                 at.position,
                 |nav, project, file, offset| nav.implementations(project, file, offset),
             )
+            .await?
             .flatten()
             .map(GotoImplementationResponse::Array))
     }
@@ -1021,12 +1170,12 @@ impl LanguageServer for Backend {
     ) -> Result<Option<Vec<CallHierarchyIncomingCall>>> {
         let item = params.item;
         Ok(self
-            .state()
-            .navigate(
+            .navigate_off(
                 &item.uri,
                 item.selection_range.start,
                 |nav, project, file, offset| nav.incoming_calls(project, file, offset),
             )
+            .await?
             .flatten())
     }
 
@@ -1036,12 +1185,12 @@ impl LanguageServer for Backend {
     ) -> Result<Option<Vec<CallHierarchyOutgoingCall>>> {
         let item = params.item;
         Ok(self
-            .state()
-            .navigate(
+            .navigate_off(
                 &item.uri,
                 item.selection_range.start,
                 |nav, project, file, offset| nav.outgoing_calls(project, file, offset),
             )
+            .await?
             .flatten())
     }
 
@@ -1066,11 +1215,12 @@ impl LanguageServer for Backend {
             return Ok(lens);
         };
         let position = lens.range.start;
+        let target = uri.clone();
         let command = self
-            .state()
-            .navigate(&uri, position, |nav, project, file, offset| {
-                nav.lens_command(project, file, offset, &uri, position)
-            });
+            .navigate_off(&uri, position, move |nav, project, file, offset| {
+                nav.lens_command(project, file, offset, &target, position)
+            })
+            .await?;
         Ok(CodeLens { command, ..lens })
     }
 
@@ -1097,11 +1247,14 @@ impl LanguageServer for Backend {
 
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
         let at = params.text_document_position;
-        let result = self.state().navigate(
-            &at.text_document.uri,
-            at.position,
-            |nav, project, file, offset| nav.rename(project, file, offset, &params.new_name),
-        );
+        let new_name = params.new_name;
+        let result = self
+            .navigate_off(
+                &at.text_document.uri,
+                at.position,
+                move |nav, project, file, offset| nav.rename(project, file, offset, &new_name),
+            )
+            .await?;
         match result {
             None => Ok(None),
             Some(Ok((edit, warning))) => {
@@ -1120,18 +1273,17 @@ impl LanguageServer for Backend {
         &self,
         params: WorkspaceSymbolParams,
     ) -> Result<Option<WorkspaceSymbolResponse>> {
-        let state = self.state();
-        let projects: Vec<papyrus_hir::Project> =
-            state.projects.values().filter_map(|p| p.model).collect();
-        let uri_of = |file| state.uri_of(file);
-        let navigator = Navigator {
-            db: &state.db,
-            columns: state.columns,
-            uri: &uri_of,
+        let (snapshot, projects) = {
+            let state = self.state();
+            let projects: Vec<papyrus_hir::Project> =
+                state.projects.values().filter_map(|p| p.model).collect();
+            (state.snapshot(), projects)
         };
-        Ok(Some(WorkspaceSymbolResponse::Flat(
-            navigator.symbols(&projects, &params.query),
-        )))
+        let query = params.query;
+        let symbols = snapshot
+            .run(move |nav| nav.symbols(&projects, &query))
+            .await?;
+        Ok(Some(WorkspaceSymbolResponse::Flat(symbols)))
     }
 
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {

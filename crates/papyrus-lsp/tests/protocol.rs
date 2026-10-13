@@ -278,6 +278,46 @@ async fn a_full_session() {
 }
 
 #[tokio::test]
+async fn indexing_shows_its_progress() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-progress-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("A.psc"), "ScriptName A extends Quest\n").unwrap();
+    let mut client = connect();
+    client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": { "window": { "workDoneProgress": true } },
+                "workspaceFolders": [{ "uri": uri(&dir), "name": "project" }],
+            }),
+        )
+        .await;
+    client.notify("initialized", json!({})).await;
+    let create = client
+        .wait(|m| m["method"] == "window/workDoneProgress/create")
+        .await;
+    let token = create["params"]["token"].clone();
+    client
+        .send(json!({ "jsonrpc": "2.0", "id": create["id"], "result": null }))
+        .await;
+    let begin = client.wait(|m| m["method"] == "$/progress").await;
+    assert_eq!(begin["params"]["token"], token);
+    assert_eq!(begin["params"]["value"]["kind"], "begin");
+    let end = client
+        .wait(|m| m["method"] == "$/progress" && m["params"]["value"]["kind"] != "report")
+        .await;
+    assert_eq!(end["params"]["value"]["kind"], "end");
+    let log = client.wait(|m| m["method"] == "window/logMessage").await;
+    assert!(
+        log["params"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("1 scripts indexed")
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
 async fn each_project_of_a_window_stays_apart() {
     // One window, two projects declaring a `MyBase` script with different
     // events: each child is checked against its own.

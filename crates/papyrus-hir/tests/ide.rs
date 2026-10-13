@@ -372,6 +372,39 @@ fn references_join_overrides_and_calls() {
 }
 
 #[test]
+fn an_edit_cancels_a_search_on_a_copy() {
+    let mut fixture = Fixture::new(
+        GameId::Skyrim,
+        &[
+            (
+                "A.psc",
+                "ScriptName A extends Quest\nFunction $0Greet()\nEndFunction\n",
+            ),
+            (
+                "B.psc",
+                "ScriptName B extends A\nEvent OnInit()\n\tGreet()\nEndEvent\n",
+            ),
+        ],
+    );
+    let (file, offset) = fixture.cursor();
+    let def = fixture.sema().def_at(file, offset).unwrap();
+    let copy = fixture.db.clone();
+    let project = fixture.project;
+    // Searches until cancelled: the edit below must stop it to land.
+    let search = std::thread::spawn(move || {
+        salsa::Cancelled::catch(|| {
+            loop {
+                Semantics::new(&copy, project).references_of(&def);
+            }
+        })
+    });
+    let b = fixture.file("B.psc");
+    b.set_text(&mut fixture.db)
+        .to("ScriptName B extends A\n".to_owned());
+    assert!(search.join().unwrap().is_err());
+}
+
+#[test]
 fn references_of_a_script_include_types() {
     let f = Fixture::new(
         GameId::Skyrim,
