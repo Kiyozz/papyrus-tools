@@ -221,7 +221,7 @@ mod tests {
         for pair in KEYWORDS.windows(2) {
             let (a, _, _) = pair[0];
             let (b, _, _) = pair[1];
-            assert!(a < b, "table non triée : `{a}` précède `{b}`");
+            assert!(a < b, "unsorted table: `{a}` comes before `{b}`");
         }
     }
 
@@ -230,7 +230,7 @@ mod tests {
         for (name, _, _) in KEYWORDS {
             assert!(
                 name.is_ascii() && *name == name.to_ascii_lowercase(),
-                "`{name}` doit être en minuscules ASCII"
+                "`{name}` must be ASCII lowercase"
             );
         }
     }
@@ -241,11 +241,7 @@ mod tests {
         let total = kinds.len();
         kinds.sort();
         kinds.dedup();
-        assert_eq!(
-            kinds.len(),
-            total,
-            "un SyntaxKind est associé à deux mots-clés"
-        );
+        assert_eq!(kinds.len(), total, "a SyntaxKind is bound to two keywords");
     }
 
     #[test]
@@ -262,7 +258,7 @@ mod tests {
     #[test]
     fn tous_les_mots_de_la_table_se_retrouvent() {
         for (name, kind, since) in KEYWORDS {
-            assert_eq!(lookup(name), Some((*kind, *since)), "`{name}` introuvable");
+            assert_eq!(lookup(name), Some((*kind, *since)), "`{name}` not found");
             assert_eq!(lookup(&name.to_ascii_uppercase()), Some((*kind, *since)));
         }
     }
@@ -278,7 +274,7 @@ mod tests {
             "internal",
             "foreach",
         ] {
-            assert_eq!(lookup(word), None, "`{word}` ne devrait pas être réservé");
+            assert_eq!(lookup(word), None, "`{word}` should not be reserved");
         }
     }
 

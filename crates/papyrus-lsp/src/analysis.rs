@@ -52,14 +52,14 @@ impl Settings {
     fn try_load(path: &Path) -> Result<Settings, String> {
         let config = Config::discover(path).map_err(|e| e.to_string())?;
         let in_config = |message: String| match &config.path {
-            Some(path) => format!("{} : {message}", path.display()),
+            Some(path) => format!("{}: {message}", path.display()),
             None => message,
         };
         let flags = match &config.flags {
             Some(path) => {
                 let text = std::fs::read_to_string(path)
-                    .map_err(|e| format!("{} : {e}", path.display()))?;
-                Some(parse_flags(&text).map_err(|e| format!("{} : {e}", path.display()))?)
+                    .map_err(|e| format!("{}: {e}", path.display()))?;
+                Some(parse_flags(&text).map_err(|e| format!("{}: {e}", path.display()))?)
             }
             None => None,
         };
@@ -202,7 +202,7 @@ pub(crate) fn diagnostics(
             severity: Some(DiagnosticSeverity::ERROR),
             code: Some(NumberOrString::String("config".to_owned())),
             source: Some(SOURCE.to_owned()),
-            message: format!("{error} — réglages par défaut appliqués"),
+            message: format!("{error} — default settings applied"),
             ..Diagnostic::default()
         });
     }
@@ -268,8 +268,8 @@ pub(crate) fn code_actions(
         };
         if let Some(fix) = &lint.fix {
             let title = match fix.first() {
-                Some(first) => format!("Renommer en `{}`", first.text),
-                None => "Corriger".to_owned(),
+                Some(first) => format!("Rename to `{}`", first.text),
+                None => "Fix".to_owned(),
             };
             quickfix(title, text_edits(fix, map), true);
         }
@@ -283,7 +283,7 @@ pub(crate) fn code_actions(
         let (start, indent) = indentation(text, map, lint.range.start());
         let at = map.position(start);
         quickfix(
-            format!("Autoriser `{}` sur cette ligne", lint.lint.name),
+            format!("Allow `{}` on this line", lint.lint.name),
             vec![TextEdit::new(
                 Range::new(at, at),
                 format!("{indent}; papyrus: allow({})\n", lint.lint.name),
@@ -298,7 +298,7 @@ pub(crate) fn code_actions(
     if fixable && analysis.parse.ok() && !document.decoded.lossy {
         if let Some(fixed) = apply_fixes(text, &analysis.lints) {
             actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: "Appliquer tous les correctifs sûrs de papyrus".to_owned(),
+                title: "Apply all safe papyrus fixes".to_owned(),
                 kind: Some(CodeActionKind::SOURCE_FIX_ALL),
                 edit: Some(edit(uri, vec![whole(text, map, fixed)])),
                 ..CodeAction::default()
@@ -330,8 +330,6 @@ pub(crate) fn format(
         Ok(formatted) => Ok(Some(vec![whole(text, map, formatted)])),
         // Syntax errors are already displayed: nothing to add.
         Err(FormatError::Syntax(_)) => Ok(None),
-        Err(error @ FormatError::Unsafe { .. }) => {
-            Err(format!("{error} — merci de signaler ce bug"))
-        }
+        Err(error @ FormatError::Unsafe { .. }) => Err(format!("{error} — please report this bug")),
     }
 }

@@ -448,7 +448,7 @@ mod tests {
     #[test]
     fn from_raw_est_l_inverse_du_discriminant() {
         for (index, kind) in SyntaxKind::ALL.iter().enumerate() {
-            assert_eq!(u16::from(*kind) as usize, index, "{kind:?} mal placé");
+            assert_eq!(u16::from(*kind) as usize, index, "{kind:?} misplaced");
             assert_eq!(SyntaxKind::from_raw(index as u16), Some(*kind));
         }
         assert_eq!(SyntaxKind::from_raw(SyntaxKind::ALL.len() as u16), None);
@@ -465,8 +465,8 @@ mod tests {
 
         for kind in SyntaxKind::ALL {
             if kind.is_node() {
-                assert!(!kind.is_trivia(), "{kind:?} est un nœud et de la trivia");
-                assert!(!kind.is_keyword(), "{kind:?} est un nœud et un mot-clé");
+                assert!(!kind.is_trivia(), "{kind:?} is both a node and trivia");
+                assert!(!kind.is_keyword(), "{kind:?} is both a node and a keyword");
             }
         }
     }

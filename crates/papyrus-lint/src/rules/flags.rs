@@ -38,39 +38,36 @@ pub fn vanilla_flags(game: Option<GameId>) -> Vec<FlagDef> {
         Some(GameId::Skyrim) => SKYRIM,
         _ => FALLOUT4,
     };
-    parse_flags(text).expect("table embarquée valide")
+    parse_flags(text).expect("valid embedded table")
 }
 
 /// The objects a flag list applies to, and how to name them.
 fn targets(list: &SyntaxNode) -> Option<(&'static [FlagTarget], &'static str)> {
     let owner = list.parent()?;
     Some(match owner.kind() {
-        SyntaxKind::SCRIPT_HEADER => (&[FlagTarget::Script], "un script"),
+        SyntaxKind::SCRIPT_HEADER => (&[FlagTarget::Script], "a script"),
         SyntaxKind::PROPERTY_DECL => {
             let auto = list
                 .descendants_with_tokens()
                 .any(|e| matches!(e.kind(), SyntaxKind::AUTO_KW | SyntaxKind::AUTOREADONLY_KW));
             if auto {
-                (
-                    &[FlagTarget::Property, FlagTarget::Variable],
-                    "une property",
-                )
+                (&[FlagTarget::Property, FlagTarget::Variable], "a property")
             } else {
-                (&[FlagTarget::Property], "une property")
+                (&[FlagTarget::Property], "a property")
             }
         }
         SyntaxKind::VARIABLE_DECL => {
             if owner.parent()?.kind() == SyntaxKind::STMT_LIST {
-                (&[], "une variable locale")
+                (&[], "a local variable")
             } else {
-                (&[FlagTarget::Variable], "une variable")
+                (&[FlagTarget::Variable], "a variable")
             }
         }
-        SyntaxKind::STRUCT_FIELD => (&[FlagTarget::StructVar], "un champ de structure"),
+        SyntaxKind::STRUCT_FIELD => (&[FlagTarget::StructVar], "a struct field"),
         SyntaxKind::FUNCTION_DECL | SyntaxKind::EVENT_DECL => {
-            (&[FlagTarget::Function], "une fonction")
+            (&[FlagTarget::Function], "a function")
         }
-        SyntaxKind::GROUP_DECL => (&[FlagTarget::Group], "un groupe"),
+        SyntaxKind::GROUP_DECL => (&[FlagTarget::Group], "a group"),
         _ => return None,
     })
 }
@@ -103,7 +100,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             lint: &FLAGS_PLACEMENT,
             range: token.text_range(),
             message: format!(
-                "`{}` n'est pas permis sur {what} — permis sur : {}",
+                "`{}` is not allowed on {what} — allowed on: {}",
                 token.text(),
                 permitted.join(", ")
             ),

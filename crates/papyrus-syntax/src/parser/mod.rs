@@ -163,7 +163,7 @@ impl<'t> Parser<'t> {
     /// The `n`-th upcoming significant token, `EOF` past the end.
     pub(crate) fn nth(&self, n: usize) -> SyntaxKind {
         let fuel = self.fuel.get();
-        assert!(fuel != 0, "parser bloqué à l'index {}", self.pos);
+        assert!(fuel != 0, "parser stuck at index {}", self.pos);
         self.fuel.set(fuel - 1);
 
         self.kinds
@@ -200,7 +200,7 @@ impl<'t> Parser<'t> {
     pub(crate) fn bump(&mut self, kind: SyntaxKind) {
         assert!(
             self.eat(kind),
-            "attendu {kind:?}, trouvé {:?}",
+            "expected {kind:?}, found {:?}",
             self.current()
         );
     }
@@ -218,7 +218,7 @@ impl<'t> Parser<'t> {
         if self.eat(kind) {
             return true;
         }
-        self.error(format!("{what} attendu"));
+        self.error(format!("expected {what}"));
         false
     }
 
@@ -238,7 +238,7 @@ impl<'t> Parser<'t> {
             let text = &self.source[range];
             if let Some((_, since)) = reserved_later(text, self.dialect) {
                 message = format!(
-                    "{message} — `{text}` n'est un mot-clé qu'à partir de {}",
+                    "{message} — `{text}` is only a keyword since {}",
                     since.display_name()
                 );
             }
@@ -275,7 +275,7 @@ impl<'t> Parser<'t> {
 
 /// An open node, waiting for its kind.
 #[derive(Debug)]
-#[must_use = "un marqueur doit être complété ou abandonné"]
+#[must_use = "a marker must be completed or abandoned"]
 pub(crate) struct Marker {
     pos: u32,
 }
@@ -285,7 +285,7 @@ impl Marker {
     pub(crate) fn complete(self, p: &mut Parser, kind: SyntaxKind) -> CompletedMarker {
         match &mut p.events[self.pos as usize] {
             Event::Start { kind: slot, .. } => *slot = kind,
-            _ => unreachable!("un marqueur pointe toujours sur un Start"),
+            _ => unreachable!("a marker always points to a Start"),
         }
         p.events.push(Event::Finish);
         CompletedMarker { pos: self.pos }
@@ -316,7 +316,7 @@ impl CompletedMarker {
             Event::Start { forward_parent, .. } => {
                 *forward_parent = Some(parent.pos - self.pos);
             }
-            _ => unreachable!("un marqueur pointe toujours sur un Start"),
+            _ => unreachable!("a marker always points to a Start"),
         }
         parent
     }

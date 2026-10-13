@@ -22,7 +22,7 @@ fn corpus(game: GameId) -> Option<PathBuf> {
 
 fn run(game: GameId) {
     let Some(root) = corpus(game) else {
-        eprintln!("· {} ignoré", game.display_name());
+        eprintln!("· {} skipped", game.display_name());
         return;
     };
     let scripts = discover(&[root], DiscoverOptions::default()).expect("parcours");
@@ -63,7 +63,7 @@ fn run(game: GameId) {
     let total = right + undecided + wrong.len();
     let project = majority(verdicts.iter().copied()).map(|(g, _, _)| g);
     println!(
-        "· {:<12} {total:>6} scripts  {right:>6} justes  {undecided:>6} indécis  {:>4} faux  → projet : {project:?}",
+        "· {:<12} {total:>6} scripts  {right:>6} right  {undecided:>6} undecided  {:>4} wrong  → project: {project:?}",
         game.display_name(),
         wrong.len()
     );
@@ -73,11 +73,11 @@ fn run(game: GameId) {
     assert_eq!(
         project.map(|g| g == GameId::Skyrim),
         Some(skyrim),
-        "majorité"
+        "majority"
     );
     assert!(
         wrong.is_empty(),
-        "{} verdicts franchissent la frontière avec Skyrim",
+        "{} verdicts cross the Skyrim border",
         wrong.len()
     );
 }

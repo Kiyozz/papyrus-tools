@@ -95,7 +95,7 @@ impl fmt::Display for UnknownGame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "cible inconnue `{}` (attendu : skyrim, fallout4, fallout76, starfield)",
+            "unknown target `{}` (expected: skyrim, fallout4, fallout76, starfield)",
             self.0
         )
     }
@@ -175,16 +175,16 @@ impl Feature {
     /// Short description, for diagnostic messages.
     pub const fn describe(self) -> &'static str {
         match self {
-            Feature::Namespace => "la syntaxe de namespace",
-            Feature::Struct => "les structures",
-            Feature::Group => "les groupes de propriétés",
-            Feature::IsOperator => "l'opérateur `Is`",
-            Feature::NewStruct => "l'instanciation de structure",
-            Feature::NestedProperty => "les propriétés imbriquées",
-            Feature::ConstLocal => "les variables locales `Const`",
-            Feature::Guard => "les verrous (`Guard`)",
-            Feature::AccessModifier => "les modificateurs d'accès",
-            Feature::RemoteEvent => "les événements distants (`Event Type.OnX`)",
+            Feature::Namespace => "namespace syntax",
+            Feature::Struct => "structs",
+            Feature::Group => "property groups",
+            Feature::IsOperator => "the `Is` operator",
+            Feature::NewStruct => "struct instantiation",
+            Feature::NestedProperty => "nested properties",
+            Feature::ConstLocal => "`Const` local variables",
+            Feature::Guard => "guards (`Guard`)",
+            Feature::AccessModifier => "access modifiers",
+            Feature::RemoteEvent => "remote events (`Event Type.OnX`)",
         }
     }
 }

@@ -42,7 +42,7 @@ fn render(parse: &Parse, source: &str) -> String {
         let end = usize::from(error.range().end());
         writeln!(
             out,
-            "erreur {start}..{end} {:?} : {}",
+            "error {start}..{end} {:?}: {}",
             &source[start..end],
             error.message()
         )
@@ -205,7 +205,7 @@ EndFunction
     assert!(
         skyrim.errors()[0]
             .message()
-            .contains("`is` n'est un mot-clé qu'à partir de Fallout 4"),
+            .contains("`is` is only a keyword since Fallout 4"),
         "{}",
         skyrim.errors()[0]
     );
@@ -220,7 +220,7 @@ EndEvent
 ";
     let skyrim = parse(source, Dialect::new(GameId::Skyrim));
     assert_eq!(skyrim.errors().len(), 1, "{:?}", skyrim.errors());
-    assert!(skyrim.errors()[0].message().contains("événements distants"));
+    assert!(skyrim.errors()[0].message().contains("remote events"));
     assert_eq!(skyrim.syntax().to_string(), source);
 
     assert!(parse(source, Dialect::new(GameId::Fallout4)).ok());
@@ -315,11 +315,7 @@ fn chaque_prefixe_du_script_se_reconstruit() {
     for (end, _) in COMPLET.char_indices() {
         let prefix = &COMPLET[..end];
         let parse = parse(prefix, Dialect::new(GameId::Fallout4));
-        assert_eq!(
-            parse.syntax().to_string(),
-            prefix,
-            "préfixe de {end} octets"
-        );
+        assert_eq!(parse.syntax().to_string(), prefix, "{end}-byte prefix");
     }
 }
 
@@ -335,7 +331,7 @@ fn chaque_ligne_retiree_garde_l_arbre_complet() {
             .map(|(_, l)| *l)
             .collect();
         let parse = parse(&source, Dialect::new(GameId::Fallout4));
-        assert_eq!(parse.syntax().to_string(), source, "ligne {skip} retirée");
+        assert_eq!(parse.syntax().to_string(), source, "line {skip} removed");
     }
 }
 

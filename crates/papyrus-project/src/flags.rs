@@ -95,7 +95,7 @@ fn strip_comments(text: &str) -> String {
             rest = after.find("*/").map_or("", |i| &after[i + 2..]);
             out.push(' ');
         } else {
-            let ch = rest.chars().next().expect("non vide");
+            let ch = rest.chars().next().expect("not empty");
             out.push(ch);
             rest = &rest[ch.len_utf8()..];
         }
@@ -120,21 +120,19 @@ pub fn parse_flags(text: &str) -> Result<Vec<FlagDef>, FlagsError> {
 
     while let Some(word) = words.next() {
         if !word.eq_ignore_ascii_case("flag") {
-            return Err(FlagsError(format!("`Flag` attendu, trouvé `{word}`")));
+            return Err(FlagsError(format!("expected `Flag`, found `{word}`")));
         }
         let name = words
             .next()
-            .ok_or_else(|| FlagsError("nom de flag attendu".into()))?
+            .ok_or_else(|| FlagsError("expected a flag name".into()))?
             .to_owned();
         let second = words
             .next()
-            .ok_or_else(|| FlagsError(format!("index attendu après `{name}`")))?;
+            .ok_or_else(|| FlagsError(format!("expected an index after `{name}`")))?;
 
         let targets = if let Ok(index) = second.parse::<u8>() {
             if index > 31 {
-                return Err(FlagsError(format!(
-                    "`{name}` : index {index} hors de 0..=31"
-                )));
+                return Err(FlagsError(format!("`{name}`: index {index} out of 0..=31")));
             }
             if words.peek() == Some(&"{") {
                 words.next();
@@ -143,9 +141,9 @@ pub fn parse_flags(text: &str) -> Result<Vec<FlagDef>, FlagsError> {
                     match words.next() {
                         Some("}") => break,
                         Some(t) => targets.push(FlagTarget::parse(t).ok_or_else(|| {
-                            FlagsError(format!("`{name}` : cible `{t}` inconnue"))
+                            FlagsError(format!("`{name}`: unknown target `{t}`"))
                         })?),
-                        None => return Err(FlagsError(format!("`{name}` : `}}` manquant"))),
+                        None => return Err(FlagsError(format!("`{name}`: missing `}}`"))),
                     }
                 }
                 targets
@@ -160,7 +158,7 @@ pub fn parse_flags(text: &str) -> Result<Vec<FlagDef>, FlagsError> {
                 children.push(
                     words
                         .next()
-                        .ok_or_else(|| FlagsError(format!("`{name}` : enfant attendu")))?,
+                        .ok_or_else(|| FlagsError(format!("`{name}`: expected a child")))?,
                 );
             }
             let mut targets = FlagTarget::ALL.to_vec();
@@ -168,7 +166,7 @@ pub fn parse_flags(text: &str) -> Result<Vec<FlagDef>, FlagsError> {
                 let def = defs
                     .iter()
                     .find(|d| d.name.eq_ignore_ascii_case(child))
-                    .ok_or_else(|| FlagsError(format!("`{name}` : flag `{child}` inconnu")))?;
+                    .ok_or_else(|| FlagsError(format!("`{name}`: unknown flag `{child}`")))?;
                 targets.retain(|t| def.targets.contains(t));
             }
             targets

@@ -69,7 +69,7 @@ pub fn discover(roots: &[PathBuf], options: DiscoverOptions) -> io::Result<Vec<P
         } else {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
-                format!("{} : introuvable", root.display()),
+                format!("{}: not found", root.display()),
             ));
         }
     }

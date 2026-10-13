@@ -16,7 +16,7 @@ fn fmt(source: &str) -> String {
                 .iter()
                 .map(|e| format!("{} sur {:?}", e.message(), &source[e.range()]))
                 .collect();
-            panic!("erreurs de syntaxe : {shown:#?}")
+            panic!("syntax errors: {shown:#?}")
         }
         Err(e) => panic!("{e}"),
     };
@@ -25,7 +25,7 @@ fn fmt(source: &str) -> String {
         Dialect::new(GameId::Fallout4),
         &FormatOptions::default(),
     )
-    .expect("le résultat doit se reformater");
+    .expect("the result must format again");
     assert_eq!(again, out, "le formatage n'est pas idempotent");
     out
 }

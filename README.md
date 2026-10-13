@@ -1,115 +1,120 @@
 # papyrus-tools
 
-Parser, formateur et linter pour **Papyrus**, le langage de script du Creation
-Kit de Bethesda — Skyrim, Fallout 4, Starfield.
+Parser, formatter and linter for **Papyrus**, the scripting language of
+Bethesda's Creation Kit — Skyrim, Fallout 4, Starfield.
 
-Un binaire natif sans runtime, qui sert une CLI et un serveur LSP pour VSCode
-et IntelliJ.
+A native binary with no runtime, serving a CLI and a language server for VSCode
+and IntelliJ.
 
-## État
+## Status
 
-**v0.4** — `papyrus check`, `papyrus fmt`, lints configurables, serveur LSP.
+**v0.4** — `papyrus check`, `papyrus fmt`, configurable lints, language server.
 
 ```sh
-papyrus check --game skyrim Data/Source/Scripts   # syntaxe + lints
-papyrus check --fix .                             # applique les correctifs sûrs
-papyrus fmt .                                     # formate sur place
-papyrus fmt --check --indent tab .                # CI : échoue si à reformater
-papyrus lints                                     # liste les lints
-papyrus lsp                                       # serveur LSP, pour un éditeur
+papyrus check --game skyrim Data/Source/Scripts   # syntax + lints
+papyrus check --fix .                             # apply safe fixes
+papyrus fmt .                                     # format in place
+papyrus fmt --check --indent tab .                # CI: fail if a file needs formatting
+papyrus lints                                     # list the lints
+papyrus lsp                                       # language server, for an editor
 ```
 
-| Crate | Rôle |
+| Crate | Role |
 |---|---|
-| `papyrus-dialect` | Cibles (`GameId`), fonctionnalités et leur jeu d'apparition |
-| `papyrus-syntax` | Lexer, parser event-based, arbre syntaxique concret (`rowan`) |
-| `papyrus-project` | `papyrus.toml`, décodage des `.psc`, `.flg`, découverte des fichiers |
-| `papyrus-lint` | Registre de lints, suppression dans le code, correctifs |
-| `papyrus-stdlib` | Signatures des scripts natifs de chaque jeu, embarquées |
-| `papyrus-fmt` | Formateur canonique |
-| `papyrus-lsp` | Serveur LSP |
-| `papyrus-cli` | Le binaire `papyrus` |
+| `papyrus-dialect` | Targets (`GameId`), language features and the game that introduced them |
+| `papyrus-syntax` | Lexer, event-based parser, concrete syntax tree (`rowan`) |
+| `papyrus-project` | `papyrus.toml`, `.psc` decoding, `.flg`, file discovery |
+| `papyrus-lint` | Lint registry, in-code suppression, fixes |
+| `papyrus-stdlib` | Embedded signatures of each game's native scripts |
+| `papyrus-fmt` | Canonical formatter |
+| `papyrus-lsp` | Language server |
+| `papyrus-cli` | The `papyrus` binary |
 
-Sur les 29 641 scripts vanilla des trois jeux : arbre identique à la source
-octet pour octet, aucune erreur de parsing, formatage idempotent, aucun faux
-positif de `flags/placement` ni de `events/unknown`, `--fix` sûr et complet.
+On the 29,641 vanilla scripts of the three games: tree identical to the source
+byte for byte, no parse error, idempotent formatting, no false positive from
+`flags/placement` or `events/unknown`, safe and complete `--fix`.
 
 ### Configuration
 
-`papyrus.toml`, cherché en remontant depuis le chemin traité. Tout y est
-facultatif ; la ligne de commande l'emporte.
+`papyrus.toml`, looked up from the processed path upwards. Everything in it is
+optional; the command line wins.
 
-Sans `game` ni `--game`, la cible est **déduite des scripts**. La syntaxe fixe
-un jeu minimal (`LockGuard` → Starfield, `Struct` ou `Is` → Fallout 4), et les
-types, fonctions natives et événements qu'un seul moteur connaît votent
-(`OnUpdate` → Skyrim, `StartTimer` → Fallout 4 et après). Le projet prend la
-majorité de ses fichiers décisifs. Sans aucun indice, la syntaxe de Starfield
-s'applique et les vérifications propres au jeu sont sautées. Mesuré sur 7 797
-scripts vanilla non natifs : aucun verdict ne franchit la frontière entre
-Skyrim et les autres jeux.
+A project is the folder of a `papyrus.toml`, or the root a script was found
+under. Each script follows the `papyrus.toml` that covers it: one command line
+or one editor window can span several projects, each with its own settings,
+game and script index. A script only sees its own project's scripts.
+
+Without `game` or `--game`, the target is **inferred from the scripts**. Syntax
+sets a minimum game (`LockGuard` → Starfield, `Struct` or `Is` → Fallout 4), and
+types, native functions and events that only one engine knows vote
+(`OnUpdate` → Skyrim, `StartTimer` → Fallout 4 and later). The project takes the
+majority of its decisive files. With no clue at all, Starfield syntax applies
+and game-specific checks are skipped. Measured on 7,797 non-native vanilla
+scripts: no verdict crosses the border between Skyrim and the other games.
 
 ```toml
 game = "skyrim"
 include-fragments = false
-# flags = "MesFlags.flg"     # remplace les flags vanilla du jeu
+# flags = "MyFlags.flg"      # replaces the game's vanilla flags
 
 [fmt]
-indent = 2                   # ou "tab"
+indent = 2                   # or "tab"
 
 [lints]
-"naming/variables" = "allow" # allow, warn ou error ; par nom ou par code
+"naming/variables" = "allow" # allow, warn or error; by name or by code
 PAP001 = "error"
 ```
 
 ### Lints
 
-| Code | Nom | Défaut | Ce qu'il signale |
+| Code | Name | Default | What it reports |
 |---|---|---|---|
-| `PAP001` | `encoding/lossy` | warn | Texte que le compilateur de la cible corrompra (avec `game`) |
-| `PAP002` | `flags/placement` | error | Flag que le `.flg` du jeu n'autorise pas sur cet objet |
-| `PAP003` | `allow/unknown` | warn | Nom inconnu dans `; papyrus: allow(...)`, qui ne supprime donc rien |
-| `PAP004` | `events/unknown` | warn | Événement que le moteur n'appellera jamais : `OnActivatee`, ou `OnCombatStateChanged` sur une quête |
-| `PAP101` | `naming/locals` | warn | Locales et paramètres hors lowerCamelCase — corrigeable |
-| `PAP102` | `naming/variables` | warn | Variables de script, properties, champs hors lowerCamelCase |
-| `PAP103` | `naming/functions` | warn | Fonctions, événements, states, structures hors PascalCase |
+| `PAP001` | `encoding/lossy` | warn | Text the target's compiler will corrupt (with `game`) |
+| `PAP002` | `flags/placement` | error | Flag the game's `.flg` does not allow on this object |
+| `PAP003` | `allow/unknown` | warn | Unknown name in `; papyrus: allow(...)`, which therefore suppresses nothing |
+| `PAP004` | `events/unknown` | warn | Event the engine will never call: `OnActivatee`, or `OnCombatStateChanged` on a quest |
+| `PAP101` | `naming/locals` | warn | Locals and parameters not in lowerCamelCase — fixable |
+| `PAP102` | `naming/variables` | warn | Script variables, properties, fields not in lowerCamelCase |
+| `PAP103` | `naming/functions` | warn | Functions, events, states, structs not in PascalCase |
 
-Pour autoriser un cas : `; papyrus: allow(naming/locals)` en fin de ligne, ou
-seul sur la ligne qui précède. `all` couvre tous les lints.
+To allow a case: `; papyrus: allow(naming/locals)` at the end of the line, or
+alone on the line before. `all` covers every lint.
 
-`--fix` ne corrige que la casse. Papyrus y étant insensible, le renommage ne
-change rien pour le compilateur et ne peut entrer en collision avec rien. Les
-properties ne sont jamais renommées : les `.esp` les lient par leur nom.
+`--fix` only fixes case. Papyrus being case-insensitive, the rename changes
+nothing for the compiler and cannot collide with anything. Properties are never
+renamed: `.esp` files bind them by name.
 
-### Les événements morts
+### Dead events
 
-`Event OnActivatee()` compile sans un mot et ne se déclenche jamais.
-`PAP004` suit la chaîne `extends` jusqu'aux scripts natifs du jeu, à travers
-les scripts du projet, et signale un nom proche d'un événement reçu — avec la
-correction — ou un événement du moteur qu'aucun objet portant le script ne
-recevra. Le moteur envoie un événement à tous les scripts de l'objet : un
-script `extends ObjectReference` posé sur un acteur reçoit `OnDeath`, un
-`ReferenceAlias` les événements de sa référence, un `ActiveMagicEffect` ceux
-de son acteur. Sans certitude, le lint se tait : parent inconnu, nom écrit
-dans une chaîne (callback de `RegisterForModEvent`), nom sans rapport avec un
-événement connu.
+`Event OnActivatee()` compiles without a word and never fires. `PAP004`
+follows the `extends` chain down to the game's native scripts, through the
+project's own scripts, and reports a name close to an event the script
+receives — with the correction — or an engine event no object carrying the
+script will receive. The engine sends an event to every script of the object:
+an `extends ObjectReference` script attached to an actor receives `OnDeath`, a
+`ReferenceAlias` the events of its reference, an `ActiveMagicEffect` those of
+its actor. Without certainty, the lint stays quiet: unknown parent, name
+written in a string (`RegisterForModEvent` callback), name unrelated to any
+known event.
 
-Le vanilla de Skyrim en contient sept, tous réels : `OnCellDetatch`,
+Skyrim's vanilla scripts hold seven, all real: `OnCellDetatch`,
 `OnCombatStateChange`, `OnContainerChanges`, `onDead`, `onLoad3d`, `Unload`,
-et une quête qui attend `OnCombatStateChanged`.
+and a quest waiting for `OnCombatStateChanged`.
 
-Les fragments générés par le Creation Kit (`TIF__…`, `QF_…`, dossiers
-`Fragments`) sont ignorés par défaut ; `--include-fragments` les inclut.
+Fragments generated by the Creation Kit (`TIF__…`, `QF_…`, `Fragments`
+folders) are skipped by default; `--include-fragments` includes them.
 
-### Éditeurs
+### Editors
 
-`papyrus lsp` parle LSP sur l'entrée et la sortie standard : diagnostics à la
-frappe, correctifs et « Autoriser sur cette ligne », formatage, plan du
-fichier, repli, coloration sémantique. À l'ouverture, il indexe les scripts
-du projet pour suivre `extends` d'un fichier à l'autre et déduire le jeu.
+`papyrus lsp` speaks LSP over standard input and output: diagnostics as you
+type, fixes and "Allow on this line", formatting, document outline, folding,
+semantic highlighting. On startup, it indexes each project's scripts to follow
+`extends` from one file to another and infer the game, and rescans when a
+`papyrus.toml` appears or changes.
 
-**VSCode** — l'extension, dans `editors/vscode`, est publiée une fois par
-plateforme (Windows x64 et arm64, macOS arm64, Linux x64 et arm64), avec le
-binaire `papyrus` embarqué. Pour la construire localement :
+**VSCode** — the extension, in `editors/vscode`, is published once per platform
+(Windows x64 and arm64, macOS arm64, Linux x64 and arm64), with the `papyrus`
+binary embedded. To build it locally:
 
 ```sh
 npm ci && npm ci --prefix editors/vscode
@@ -118,50 +123,50 @@ npm run package:extension -- --target win32-x64 --binary target/release/papyrus.
 code --install-extension dist/papyrus-tools-win32-x64-0.4.0.vsix
 ```
 
-Le réglage `papyrus.server.path` désigne un autre binaire ; sans binaire
-embarqué, l'extension cherche `papyrus` dans le `PATH`.
+The `papyrus.server.path` setting points to another binary; without an
+embedded binary, the extension looks for `papyrus` in the `PATH`.
 
-**IntelliJ** — avec le plugin [LSP4IJ](https://github.com/redhat-developer/lsp4ij) :
-*Settings › Languages & Frameworks › Language Servers › +*, commande
-`papyrus lsp`, et dans *Mappings › File name patterns* : `*.psc`, langage
-`papyrus`. Pour la coloration avant que le serveur réponde, ajouter
-`editors/vscode` dans *Settings › Editor › TextMate Bundles*.
+**IntelliJ** — with the [LSP4IJ](https://github.com/redhat-developer/lsp4ij) plugin:
+*Settings › Languages & Frameworks › Language Servers › +*, command
+`papyrus lsp`, and in *Mappings › File name patterns*: `*.psc`, language
+`papyrus`. For highlighting before the server answers, add `editors/vscode` in
+*Settings › Editor › TextMate Bundles*.
 
-### Le formateur
+### The formatter
 
-Mots-clés en minuscules, indentation de deux espaces (réglable), au plus une
-ligne vide, fins de ligne LF. Il ne touche jamais aux identifiants, aux chaînes
-ni aux commentaires, ne change pas l'encodage, et refuse un fichier qui ne se
-parse pas. Avant d'écrire, il vérifie que les tokens n'ont pas changé.
+Lowercase keywords, two-space indent (configurable), at most one blank line, LF
+line endings. It never touches identifiers, strings or comments, does not
+change the encoding, and refuses a file that does not parse. Before writing, it
+checks that the tokens have not changed.
 
-## Principes
+## Principles
 
-**Installation-agnostique.** Le binaire ne cherche jamais un jeu installé : ni
-registre, ni chemins Steam devinés, ni compilateur officiel au runtime. Il ne lit
-que ce que le projet déclare.
+**Installation-agnostic.** The binary never looks for an installed game: no
+registry, no guessed Steam paths, no official compiler at runtime. It only
+reads what the project declares.
 
-**Jamais d'erreur causée par une absence d'information.** Un type non résolu est
-inconnu, pas invalide. Le mode dégradé est le mode par défaut.
+**Never an error caused by missing information.** An unresolved type is
+unknown, not invalid. Degraded mode is the default mode.
 
-**Une grammaire, trois moteurs.** Le lexer reconnaît le sur-ensemble de tous les
-jeux et produit `IDENT` pour tout identifiant ; la cible ne décide qu'ensuite
-quels mots sont réservés. Sans quoi les milliers de scripts Skyrim qui déclarent
-une variable `Var` ou `Guard` produiraient des erreurs de syntaxe.
+**One grammar, three engines.** The lexer recognizes the superset of all games
+and produces `IDENT` for every identifier; only then does the target decide
+which words are reserved. Otherwise the thousands of Skyrim scripts declaring a
+`Var` or `Guard` variable would produce syntax errors.
 
-**L'arbre ne perd rien.** `parse(src).syntax().to_string() == src`, octet
-pour octet, y compris sur une entrée invalide : le parser rend toujours un
-arbre complet, et range ce qu'il ne comprend pas dans des nœuds d'erreur. Le
-formateur et le LSP en dépendent.
+**The tree loses nothing.** `parse(src).syntax().to_string() == src`, byte for
+byte, even on invalid input: the parser always returns a complete tree, and
+puts what it does not understand in error nodes. The formatter and the
+language server depend on it.
 
-## Développement
+## Development
 
 ```sh
 cargo test
 ```
 
-Les tests sur les sources vanilla sont optionnels et lisent leurs chemins dans
-l'environnement — aucun chemin machine n'entre dans le dépôt, et aucune
-installation n'est requise pour construire le projet.
+Tests on the vanilla sources are optional and read their paths from the
+environment — no machine path enters the repository, and no installation is
+required to build the project.
 
 ```sh
 PAPYRUS_CORPUS_SKYRIM=".../Skyrim Special Edition/Data/Source/Scripts" \
@@ -172,51 +177,49 @@ PAPYRUS_CORPUS_STARFIELD=".../Starfield/Data/Scripts/Source" \
     -- --nocapture
 ```
 
-Les tables de `papyrus-stdlib` se régénèrent depuis les sources d'un jeu
-installé. Elles ne contiennent que des signatures, jamais de corps ni de
-docstrings.
+The `papyrus-stdlib` tables are regenerated from an installed game's sources.
+They only hold signatures, never bodies or docstrings.
 
 ```sh
 cargo xtask stdlib --game skyrim --from ".../Data/Source/Scripts"
 ```
 
-Attention aux dispositions, qui n'ont aucune logique commune : Skyrim SE range
-ses sources dans `Data/Source/Scripts`, Fallout 4 et Starfield dans
-`Data/Scripts/Source`, avec des sous-dossiers.
+Mind the layouts, which share no logic: Skyrim SE keeps its sources in
+`Data/Source/Scripts`, Fallout 4 and Starfield in `Data/Scripts/Source`, with
+subfolders.
 
 ### Versions
 
-Une seule version couvre la CLI, le serveur LSP et l'extension. Chaque
-changement visible ajoute un changeset (`npx changeset`, ou un fichier dans
-`.changeset/`). Sur `main`, le workflow *Release* ouvre une PR
-« chore: release » qui monte la version, écrit `CHANGELOG.md` et la recopie
-dans `Cargo.toml` et l'extension. Une fois mergée, la version est taguée, puis
-binaires et extensions sont construits pour chaque plateforme et attachés à la
-release GitHub — et publiés sur le Visual Studio Marketplace et Open VSX si les
-secrets `VSCE_PAT` et `OVSX_PAT` existent.
+One version covers the CLI, the language server and the extension. Every
+visible change adds a changeset (`npx changeset`, or a file in `.changeset/`).
+On `main`, the *Release* workflow opens a "chore: release" PR that bumps the
+version, writes `CHANGELOG.md` and copies it into `Cargo.toml` and the
+extension. Once merged, the version is tagged, then binaries and extensions are
+built for each platform and attached to the GitHub release — and published on
+the Visual Studio Marketplace and Open VSX if the `VSCE_PAT` and `OVSX_PAT`
+secrets exist.
 
-## Encodage des `.psc`
+## `.psc` encoding
 
-Mesuré sur les trois compilateurs officiels : **aucun encodage sans BOM ne
-fonctionne partout.** Skyrim lit en Windows-1252 et ne reconnaît l'UTF-8 que par
-le BOM ; Fallout 4 et Starfield lisent en UTF-8 strict et remplacent tout octet
-1252 par U+FFFD. Dans les deux cas la corruption est silencieuse — le
-compilateur affiche « Compilation succeeded ».
+Measured on the three official compilers: **no encoding without a BOM works
+everywhere.** Skyrim reads Windows-1252 and only recognizes UTF-8 by its BOM;
+Fallout 4 and Starfield read strict UTF-8 and replace every 1252 byte with
+U+FFFD. In both cases the corruption is silent — the compiler prints
+"Compilation succeeded".
 
-UTF-8 **avec BOM** est le seul cas qui passe sur les trois. LF est accepté
-partout.
+UTF-8 **with BOM** is the only case that works on all three. LF is accepted
+everywhere.
 
-`papyrus check --game …` le signale (`PAP001`), dans les chaînes et les
-docstrings seulement — un commentaire n'atteint jamais le `.pex`. Sans
-`--game`, la vérification est sautée : le remède dépend du jeu. Sur le corpus
-vanilla, un seul cas : `DLC2PillarShoutTriggerScript.psc`, dont une docstring
-contient un tiret cadratin en UTF-8 sans BOM, que le Creation Kit affiche
-« â€“ ».
+`papyrus check --game …` reports it (`PAP001`), in strings and docstrings only
+— a comment never reaches the `.pex`. Without `--game`, the check is skipped:
+the remedy depends on the game. On the vanilla corpus, a single case:
+`DLC2PillarShoutTriggerScript.psc`, whose docstring holds an em dash in UTF-8
+without BOM, which the Creation Kit shows as "â€“".
 
-## Licence
+## License
 
 [Apache-2.0](LICENSE).
 
-Les grammaires ANTLR de [`fireundubh/OpenPapyrus`](https://github.com/fireundubh/OpenPapyrus)
-(MIT) ont servi de spécification de référence. Aucun code n'est dérivé de
-Champollion, sous LGPLv3.
+The ANTLR grammars of [`fireundubh/OpenPapyrus`](https://github.com/fireundubh/OpenPapyrus)
+(MIT) served as reference specification. No code is derived from Champollion,
+under LGPLv3.

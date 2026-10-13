@@ -43,7 +43,7 @@ fn main() -> ExitCode {
         Task::Stdlib { game, from } => match stdlib(game, &from) {
             Ok(()) => ExitCode::SUCCESS,
             Err(error) => {
-                eprintln!("erreur : {error}");
+                eprintln!("error: {error}");
                 ExitCode::FAILURE
             }
         },
@@ -251,10 +251,10 @@ fn stdlib(game: GameId, from: &Path) -> Result<(), String> {
 
     let mut scripts = Vec::new();
     for path in &files {
-        let bytes = std::fs::read(path).map_err(|e| format!("{} : {e}", path.display()))?;
+        let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
         let parse = papyrus_syntax::parse(&decode(&bytes).text, dialect);
         if !parse.ok() {
-            return Err(format!("{} ne se parse pas", path.display()));
+            return Err(format!("{} does not parse", path.display()));
         }
         scripts.extend(script(&parse.syntax()));
     }
@@ -270,12 +270,12 @@ fn stdlib(game: GameId, from: &Path) -> Result<(), String> {
         .join("../crates/papyrus-stdlib/src/generated")
         .join(format!("{module}.rs"));
     let code = generate(game, &scripts, files.len());
-    std::fs::write(&target, &code).map_err(|e| format!("{} : {e}", target.display()))?;
+    std::fs::write(&target, &code).map_err(|e| format!("{}: {e}", target.display()))?;
 
     let functions: usize = scripts.iter().map(|s| s.functions.len()).sum();
     let events: usize = scripts.iter().map(|s| s.events.len()).sum();
     eprintln!(
-        "{} : {} scripts natifs, {functions} fonctions, {events} événements, {} Ko → {}",
+        "{}: {} native scripts, {functions} functions, {events} events, {} KiB → {}",
         game.display_name(),
         scripts.len(),
         code.len() / 1024,

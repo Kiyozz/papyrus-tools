@@ -27,4 +27,4 @@ SOURCE_FILE
       FLAG
         AUTO_KW "Auto"
     ⏎
-erreur 28..31 "int" : `EndProperty` attendu
+error 28..31 "int": expected `EndProperty`

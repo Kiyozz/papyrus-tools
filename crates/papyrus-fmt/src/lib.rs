@@ -78,16 +78,12 @@ impl fmt::Display for FormatError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             FormatError::Syntax(errors) => {
-                write!(
-                    f,
-                    "{} erreur(s) de syntaxe, fichier non formaté",
-                    errors.len()
-                )
+                write!(f, "{} syntax error(s), file not formatted", errors.len())
             }
             FormatError::Unsafe { detail } => {
                 write!(
                     f,
-                    "formatage refusé, le résultat altérerait le code : {detail}"
+                    "formatting refused, the result would alter the code: {detail}"
                 )
             }
         }
@@ -123,7 +119,7 @@ pub fn format(
             .unwrap_or(before.len().min(after.len()));
         return Err(FormatError::Unsafe {
             detail: format!(
-                "token {at} : {:?} devient {:?}",
+                "token {at}: {:?} becomes {:?}",
                 before.get(at),
                 after.get(at)
             ),

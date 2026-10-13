@@ -264,7 +264,7 @@ pub fn majority(
         let slot = GAMES
             .iter()
             .position(|g| g.rank() == game.rank())
-            .expect("jeu connu");
+            .expect("known game");
         counts[slot] += 1;
     }
     let decided: usize = counts.iter().sum();

@@ -10,7 +10,7 @@ const WORDS: usize = 4;
 
 const _: () = assert!(
     SyntaxKind::ALL.len() <= WORDS * 64,
-    "trop de SyntaxKind pour le bitset : augmenter WORDS"
+    "too many SyntaxKind for the bitset: increase WORDS"
 );
 
 /// A set of [`SyntaxKind`], buildable in `const`.
@@ -55,7 +55,7 @@ mod tests {
         // silently corrupt another word.
         for kind in SyntaxKind::ALL {
             let set = TokenSet::new(&[*kind]);
-            assert!(set.contains(*kind), "{kind:?} non représentable");
+            assert!(set.contains(*kind), "{kind:?} not representable");
         }
     }
 }

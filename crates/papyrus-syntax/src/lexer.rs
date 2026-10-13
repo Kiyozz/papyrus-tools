@@ -45,7 +45,7 @@ impl Token {
 /// If `text` exceeds 4 GiB — the limit of `TextSize`. No Papyrus script
 /// comes close.
 pub fn lex(text: &str) -> Vec<Token> {
-    assert!(text.len() <= u32::MAX as usize, "source de plus de 4 Gio");
+    assert!(text.len() <= u32::MAX as usize, "source larger than 4 GiB");
 
     let mut tokens: Vec<Token> = Vec::new();
     let mut lexer = Raw::lexer(text);

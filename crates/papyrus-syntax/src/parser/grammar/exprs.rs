@@ -121,7 +121,7 @@ fn member(p: &mut Parser) {
         p.bump_any();
         m.complete(p, NAME_REF);
     } else {
-        p.error("nom de membre attendu");
+        p.error("expected a member name");
     }
 }
 
@@ -164,7 +164,7 @@ fn atom(p: &mut Parser) -> Option<CompletedMarker> {
             m.complete(p, NEW_EXPR)
         }
         _ => {
-            p.error("expression attendue");
+            p.error("expected an expression");
             return None;
         }
     };

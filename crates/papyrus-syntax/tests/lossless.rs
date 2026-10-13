@@ -29,7 +29,7 @@ fn assert_lossless(source: &str) {
     );
 
     let rebuilt: String = tokens.iter().map(|t| t.text(source)).collect();
-    assert_eq!(rebuilt, source, "reconstruction différente de la source");
+    assert_eq!(rebuilt, source, "rebuilt text differs from the source");
 }
 
 fn kinds(source: &str) -> Vec<SyntaxKind> {
@@ -221,6 +221,6 @@ fn le_dialecte_ne_change_jamais_le_decoupage() {
             .into_iter()
             .map(|t| t.range)
             .collect();
-        assert_eq!(ranges, reference, "découpage différent pour {game}");
+        assert_eq!(ranges, reference, "different split for {game}");
     }
 }

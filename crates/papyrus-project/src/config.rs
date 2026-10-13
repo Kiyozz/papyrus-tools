@@ -46,7 +46,7 @@ impl FromStr for Level {
             "allow" | "off" => Ok(Level::Allow),
             "warn" | "warning" => Ok(Level::Warn),
             "error" | "deny" => Ok(Level::Error),
-            _ => Err(format!("niveau `{s}` inconnu : allow, warn ou error")),
+            _ => Err(format!("unknown level `{s}`: allow, warn or error")),
         }
     }
 }
@@ -89,7 +89,7 @@ pub struct ConfigError {
 
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} : {}", self.path.display(), self.message)
+        write!(f, "{}: {}", self.path.display(), self.message)
     }
 }
 
@@ -141,7 +141,7 @@ impl Config {
             Some(RawIndent::Named(s)) if s.eq_ignore_ascii_case("tab") => Some(IndentSetting::Tab),
             Some(other) => {
                 return Err(error(format!(
-                    "fmt.indent : attendu 1 à 8 espaces ou \"tab\", trouvé {other:?}"
+                    "fmt.indent: expected 1 to 8 spaces or \"tab\", found {other:?}"
                 )));
             }
         };
@@ -151,7 +151,7 @@ impl Config {
             .map(|(key, level)| {
                 let level = level
                     .parse::<Level>()
-                    .map_err(|e| error(format!("lints.\"{key}\" : {e}")))?;
+                    .map_err(|e| error(format!("lints.\"{key}\": {e}")))?;
                 Ok((key, level))
             })
             .collect::<Result<_, ConfigError>>()?;

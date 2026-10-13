@@ -132,14 +132,14 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
         assert_eq!(
             rebuilt,
             source,
-            "reconstruction différente pour {}",
+            "rebuilt text differs for {}",
             path.display()
         );
 
         for token in tokens.iter().filter(|t| t.kind == SyntaxKind::ERROR) {
             if stats.lex_errors.len() < 20 {
                 stats.lex_errors.push(format!(
-                    "{}: {:?} à {:?}",
+                    "{}: {:?} at {:?}",
                     path.display(),
                     token.text(&source),
                     token.range
@@ -165,7 +165,7 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
             .count();
         assert!(
             silent == 0 || !parse.errors().is_empty(),
-            "{} : {silent} ERROR_TREE sans erreur signalée",
+            "{}: {silent} ERROR_TREE without a reported error",
             path.display()
         );
         for error in parse.errors() {
@@ -191,7 +191,7 @@ fn lex_corpus(game: GameId) -> Option<Stats> {
 fn report(game: GameId) {
     let Some(stats) = lex_corpus(game) else {
         eprintln!(
-            "· {} ignoré ({} non défini)",
+            "· {} skipped ({} not set)",
             game.display_name(),
             corpus_var(game)
         );
@@ -199,7 +199,7 @@ fn report(game: GameId) {
     };
 
     println!(
-        "· {:<12} {:>6} fichiers  {:>9} tokens  {:>9} octets",
+        "· {:<12} {:>6} files  {:>9} tokens  {:>9} bytes",
         game.display_name(),
         stats.files,
         stats.tokens,
@@ -215,7 +215,7 @@ fn report(game: GameId) {
     );
     assert!(
         stats.parse_errors.is_empty(),
-        "{} erreurs de parsing sur le corpus {} :\n{}",
+        "{} parse errors on the {} corpus:\n{}",
         stats.parse_error_count,
         game.display_name(),
         stats.parse_errors.join("\n")

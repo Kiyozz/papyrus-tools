@@ -45,5 +45,5 @@ SOURCE_FILE
         ⏎
     ENDFUNCTION_KW "EndFunction"
     ⏎
-erreur 32..33 "2" : fin de ligne attendue
-erreur 40..41 ")" : expression attendue
+error 32..33 "2": expected end of line
+error 40..41 ")": expected an expression

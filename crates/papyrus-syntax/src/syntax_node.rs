@@ -17,7 +17,7 @@ impl rowan::Language for Papyrus {
     type Kind = SyntaxKind;
 
     fn kind_from_raw(raw: rowan::SyntaxKind) -> SyntaxKind {
-        SyntaxKind::from_raw(raw.0).expect("kind hors de l'énumération")
+        SyntaxKind::from_raw(raw.0).expect("kind outside the enumeration")
     }
 
     fn kind_to_raw(kind: SyntaxKind) -> rowan::SyntaxKind {

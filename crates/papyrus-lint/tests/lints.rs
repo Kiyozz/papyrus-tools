@@ -37,7 +37,7 @@ fn diagnostics_in(
 }
 
 fn fixed(source: &str) -> String {
-    apply_fixes(source, &diagnostics(source, None)).expect("correctif sûr")
+    apply_fixes(source, &diagnostics(source, None)).expect("safe fix")
 }
 
 // ── Naming ────────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ fn un_renommage_au_dela_de_la_casse_n_a_pas_de_correctif() {
     );
     assert_eq!(d.len(), 1);
     assert!(d[0].fix.is_none());
-    assert!(d[0].message.contains("à la main"));
+    assert!(d[0].message.contains("by hand"));
 }
 
 // ── Suppression and levels ────────────────────────────────────────────────
@@ -292,7 +292,7 @@ fn un_nom_inconnu_dans_allow_est_signale_avec_une_suggestion() {
 fn la_configuration_suggere_aussi() {
     let config = [("PAP10".to_owned(), Level::Allow)].into_iter().collect();
     let error = Levels::from_config(&config).unwrap_err();
-    assert!(error.contains("vouliez-vous dire"), "{error}");
+    assert!(error.contains("did you mean"), "{error}");
 }
 
 // ── Events ────────────────────────────────────────────────────────────────
@@ -379,7 +379,7 @@ fn la_chaine_extends_traverse_les_scripts_du_projet() {
     let base = "ScriptName MyBase extends ObjectReference\nEvent OnRitualDone()\nEndEvent\n";
     let parse = papyrus_syntax::parse(base, Dialect::new(GameId::Skyrim));
     let mut workspace = Workspace::default();
-    workspace.insert(ScriptSummary::of(&parse.syntax()).expect("en-tête"));
+    workspace.insert(ScriptSummary::of(&parse.syntax()).expect("header"));
 
     let source = "ScriptName T extends MyBase\nEvent OnRitualDome()\nEndEvent\nEvent OnActivatee()\nEndEvent\nEvent OnRitualDone()\nEndEvent\n";
     assert_eq!(

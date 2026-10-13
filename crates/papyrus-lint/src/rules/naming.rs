@@ -67,18 +67,18 @@ impl Role {
 
     fn describe(self) -> &'static str {
         match self {
-            Role::Local => "une locale",
-            Role::Param => "un paramètre",
-            Role::ScriptVariable => "une variable de script",
-            Role::Property => "une property",
-            Role::Field => "un champ de structure",
-            Role::Guard => "un verrou",
-            Role::Function => "une fonction",
-            Role::Event => "un événement",
-            Role::State => "un state",
-            Role::Struct => "une structure",
-            Role::Group => "un groupe",
-            Role::CustomEvent => "un événement personnalisé",
+            Role::Local => "a local",
+            Role::Param => "a parameter",
+            Role::ScriptVariable => "a script variable",
+            Role::Property => "a property",
+            Role::Field => "a struct field",
+            Role::Guard => "a guard",
+            Role::Function => "a function",
+            Role::Event => "an event",
+            Role::State => "a state",
+            Role::Struct => "a struct",
+            Role::Group => "a group",
+            Role::CustomEvent => "a custom event",
         }
     }
 
@@ -128,17 +128,15 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             _ => None,
         };
         let note = match role {
-            Role::Property => {
-                " Pas de correctif automatique : les .esp lient les properties par leur nom."
-            }
-            _ if !case_only => " Le nom change au-delà de la casse : à renommer à la main.",
+            Role::Property => " No automatic fix: .esp files bind properties by name.",
+            _ if !case_only => " The name changes beyond case: rename it by hand.",
             _ => "",
         };
         findings.push(Finding {
             lint: role.lint(),
             range: token.text_range(),
             message: format!(
-                "`{text}` : {} s'écrit en {style}, `{suggestion}`.{note}",
+                "`{text}`: {} is written in {style}, `{suggestion}`.{note}",
                 role.describe()
             ),
             fix,

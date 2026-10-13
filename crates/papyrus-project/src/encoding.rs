@@ -44,8 +44,8 @@ impl SourceEncoding {
     pub const fn display_name(self) -> &'static str {
         match self {
             SourceEncoding::Ascii => "ASCII",
-            SourceEncoding::Utf8 => "UTF-8 sans BOM",
-            SourceEncoding::Utf8Bom => "UTF-8 avec BOM",
+            SourceEncoding::Utf8 => "UTF-8 without BOM",
+            SourceEncoding::Utf8Bom => "UTF-8 with BOM",
             SourceEncoding::Windows1252 => "Windows-1252",
         }
     }
@@ -68,7 +68,7 @@ pub struct Decoded {
 pub fn decode(bytes: &[u8]) -> Decoded {
     if bytes.is_ascii() {
         return Decoded {
-            text: String::from_utf8(bytes.to_vec()).expect("l'ASCII est de l'UTF-8"),
+            text: String::from_utf8(bytes.to_vec()).expect("ASCII is UTF-8"),
             encoding: SourceEncoding::Ascii,
             lossy: false,
         };
@@ -154,16 +154,16 @@ pub fn check(decoded: &Decoded, game: GameId) -> Option<EncodingIssue> {
         .text(text)
         .char_indices()
         .find(|(_, c)| !c.is_ascii())
-        .expect("le token contient un caractère non ASCII");
+        .expect("the token holds a non-ASCII character");
     let range = TextRange::at(
         first.range.start() + TextSize::from(offset as u32),
         TextSize::of(ch),
     );
 
     let count = if affected == 1 {
-        "1 chaîne ou docstring touchée".to_owned()
+        "1 string or docstring affected".to_owned()
     } else {
-        format!("{affected} chaînes ou docstrings touchées")
+        format!("{affected} strings or docstrings affected")
     };
     let message = match decoded.encoding {
         SourceEncoding::Utf8 => {
@@ -171,15 +171,14 @@ pub fn check(decoded: &Decoded, game: GameId) -> Option<EncodingIssue> {
             let (seen, _) =
                 WINDOWS_1252.decode_without_bom_handling(ch.encode_utf8(&mut buf).as_bytes());
             format!(
-                "UTF-8 sans BOM : le compilateur de Skyrim lit ce fichier en Windows-1252 \
-                 et écrira « {seen} » au lieu de « {ch} », sans le signaler ({count}). \
-                 Ajouter un BOM UTF-8, ou enregistrer en Windows-1252."
+                "UTF-8 without BOM: the Skyrim compiler reads this file as Windows-1252 \
+                 and will silently write `{seen}` instead of `{ch}` ({count}). \
+                 Add a UTF-8 BOM, or save as Windows-1252."
             )
         }
         _ => format!(
-            "Windows-1252 : le compilateur de {} lit l'UTF-8 strict et remplacera « {ch} » \
-             par « \u{FFFD} », sans le signaler et sans retour possible ({count}). \
-             Enregistrer en UTF-8.",
+            "Windows-1252: the {} compiler reads strict UTF-8 and will silently, \
+             irreversibly replace `{ch}` with `\u{FFFD}` ({count}). Save as UTF-8.",
             game.display_name()
         ),
     };
@@ -255,7 +254,7 @@ mod tests {
         let decoded = decode("s = \"café\"".as_bytes());
         let issue = check(&decoded, GameId::Skyrim).expect("Skyrim corrompt");
         assert!(
-            issue.message.contains("« Ã© » au lieu de « é »"),
+            issue.message.contains("`Ã©` instead of `é`"),
             "{}",
             issue.message
         );

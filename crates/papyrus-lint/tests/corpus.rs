@@ -51,7 +51,7 @@ fn dead_events(game: GameId) -> Vec<String> {
 
 fn run_game(game: GameId) {
     let Some(root) = corpus(game) else {
-        eprintln!("· {} ignoré", game.display_name());
+        eprintln!("· {} skipped", game.display_name());
         return;
     };
 
@@ -110,11 +110,11 @@ fn run_game(game: GameId) {
 
         if diagnostics.iter().any(|d| d.fix.is_some()) {
             let fixed = apply_fixes(&decoded.text, &diagnostics)
-                .unwrap_or_else(|| panic!("correctif refusé sur {}", path.display()));
+                .unwrap_or_else(|| panic!("fix refused on {}", path.display()));
             let reparse = papyrus_syntax::parse(&fixed, dialect);
             assert!(
                 reparse.ok(),
-                "{} : le correctif casse la syntaxe",
+                "{}: the fix breaks the syntax",
                 path.display()
             );
 
@@ -133,7 +133,7 @@ fn run_game(game: GameId) {
             );
             assert!(
                 again.iter().all(|d| d.fix.is_none()),
-                "{} : correctif incomplet",
+                "{}: incomplete fix",
                 path.display()
             );
             fixed_files += 1;
@@ -141,7 +141,7 @@ fn run_game(game: GameId) {
     }
 
     println!(
-        "· {:<12} {:>6} fichiers  {:>6} corrigeables  {counts:?}",
+        "· {:<12} {:>6} files  {:>6} fixable  {counts:?}",
         game.display_name(),
         scripts.len(),
         fixed_files

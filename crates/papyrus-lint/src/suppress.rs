@@ -137,7 +137,7 @@ mod tests {
     use crate::{ENCODING_LOSSY, NAMING_LOCALS};
 
     fn offset_of(source: &str, needle: &str) -> TextSize {
-        TextSize::from(source.find(needle).expect("présent") as u32)
+        TextSize::from(source.find(needle).expect("present") as u32)
     }
 
     #[test]

@@ -118,7 +118,7 @@ fn eol(p: &mut Parser) {
     if p.eat(NEWLINE) || p.at(EOF) {
         return;
     }
-    p.error("fin de ligne attendue");
+    p.error("expected end of line");
     skip_line(p);
     p.eat(NEWLINE);
 }
@@ -163,14 +163,14 @@ fn name(p: &mut Parser) {
         p.bump_any();
         m.complete(p, NAME);
     } else {
-        p.error("nom attendu");
+        p.error("expected a name");
     }
 }
 
 /// A script name, possibly qualified: `DLC01:MyScript`.
 fn script_name(p: &mut Parser) {
     if !p.at(IDENT) {
-        p.error("nom de script attendu");
+        p.error("expected a script name");
         return;
     }
     let m = p.start();
@@ -194,7 +194,7 @@ fn namespace_tail(p: &mut Parser) {
 /// The message for a construct the target does not know.
 fn incompatible(p: &Parser, feature: Feature) -> String {
     format!(
-        "{} : non disponible pour {} (à partir de {})",
+        "{}: not available in {} (since {})",
         feature.describe(),
         p.dialect().game.display_name(),
         feature.since().display_name()
@@ -233,7 +233,7 @@ fn type_base(p: &mut Parser) {
             namespace_tail(p);
         }
     } else {
-        p.error("type attendu");
+        p.error("expected a type");
     }
 }
 

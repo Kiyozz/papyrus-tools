@@ -118,7 +118,7 @@ fn closest<'a>(name: &str, known: &'a [String]) -> Option<&'a str> {
 }
 
 /// The native scripts that declare the event `name` without inheriting it,
-/// as an enumeration: « `Actor`, `ActiveMagicEffect` et `ReferenceAlias` ».
+/// as an enumeration: "`Actor`, `ActiveMagicEffect` and `ReferenceAlias`".
 fn owners(game: GameId, name: &str) -> Option<String> {
     let owners: Vec<String> = papyrus_stdlib::scripts(game)
         .iter()
@@ -132,7 +132,7 @@ fn owners(game: GameId, name: &str) -> Option<String> {
     match owners.as_slice() {
         [] => None,
         [one] => Some(one.clone()),
-        [init @ .., last] => Some(format!("{} et {last}", init.join(", "))),
+        [init @ .., last] => Some(format!("{} and {last}", init.join(", "))),
     }
 }
 
@@ -213,12 +213,12 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                 lint: &EVENTS_UNKNOWN,
                 range,
                 message: format!(
-                    "`{target}` ne reçoit aucun événement `{name}` : le moteur ne l'appellera \
-                     jamais — vouliez-vous dire `{best}` ?"
+                    "`{target}` receives no `{name}` event: the engine will never call it \
+                     — did you mean `{best}`?"
                 ),
                 fix: None,
                 suggestion: Some(Suggestion {
-                    title: format!("Renommer en `{best}`"),
+                    title: format!("Rename to `{best}`"),
                     edits: vec![Edit {
                         range,
                         text: best.to_owned(),
@@ -230,8 +230,8 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                 lint: &EVENTS_UNKNOWN,
                 range,
                 message: format!(
-                    "`{target}` ne reçoit pas `{name}`, qui n'est envoyé qu'à {owners} : le \
-                     moteur ne l'appellera jamais sur ce script"
+                    "`{target}` does not receive `{name}`, which is only sent to {owners}: \
+                     the engine will never call it on this script"
                 ),
                 fix: None,
                 suggestion: None,

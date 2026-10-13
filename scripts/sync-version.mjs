@@ -14,7 +14,7 @@ const writeJson = (path, value) => write(path, `${JSON.stringify(value, null, 2)
 
 const { version } = readJson("package.json");
 if (!/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(version)) {
-  throw new Error(`version invalide dans package.json : ${version}`);
+  throw new Error(`invalid version in package.json: ${version}`);
 }
 
 // Cargo.toml: the workspace version, and the one crates require of each other.
@@ -35,4 +35,4 @@ writeJson("editors/vscode/package-lock.json", lock);
 // Cargo.lock follows the crate versions.
 execFileSync("cargo", ["update", "--workspace", "--quiet"], { cwd: root, stdio: "inherit" });
 
-console.log(`version ${version} : Cargo.toml, Cargo.lock et l'extension à jour`);
+console.log(`version ${version}: Cargo.toml, Cargo.lock and the extension updated`);

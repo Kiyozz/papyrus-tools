@@ -47,4 +47,4 @@ SOURCE_FILE
     STMT_LIST
     ENDFUNCTION_KW "EndFunction"
     ⏎
-erreur 38..49 "EndFunction" : `EndIf` attendu
+error 38..49 "EndFunction": expected `EndIf`

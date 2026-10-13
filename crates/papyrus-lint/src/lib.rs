@@ -49,7 +49,7 @@ pub static ENCODING_LOSSY: Lint = Lint {
     code: "PAP001",
     name: "encoding/lossy",
     default: Level::Warn,
-    description: "chaîne ou docstring que le compilateur de la cible corrompra sans le dire",
+    description: "string or docstring the target's compiler will silently corrupt",
 };
 
 /// `PAP002`: flag set on an object the `.flg` does not allow.
@@ -57,7 +57,7 @@ pub static FLAGS_PLACEMENT: Lint = Lint {
     code: "PAP002",
     name: "flags/placement",
     default: Level::Error,
-    description: "flag que le fichier .flg du jeu n'autorise pas sur cet objet",
+    description: "flag the game's .flg file does not allow on this object",
 };
 
 /// `PAP003`: unknown name in `; papyrus: allow(...)`.
@@ -65,7 +65,7 @@ pub static ALLOW_UNKNOWN: Lint = Lint {
     code: "PAP003",
     name: "allow/unknown",
     default: Level::Warn,
-    description: "nom de lint inconnu dans `; papyrus: allow(...)`, qui ne supprime donc rien",
+    description: "unknown lint name in `; papyrus: allow(...)`, which therefore suppresses nothing",
 };
 
 /// `PAP004`: event the engine will never call.
@@ -73,7 +73,7 @@ pub static EVENTS_UNKNOWN: Lint = Lint {
     code: "PAP004",
     name: "events/unknown",
     default: Level::Warn,
-    description: "événement que le script ne reçoit pas, faute de frappe le plus souvent",
+    description: "event the script never receives, most often a typo",
 };
 
 /// `PAP101`: locals and parameters in lowerCamelCase.
@@ -81,7 +81,7 @@ pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
     name: "naming/locals",
     default: Level::Warn,
-    description: "locales et paramètres en lowerCamelCase",
+    description: "locals and parameters in lowerCamelCase",
 };
 
 /// `PAP102`: script variables, properties and fields in lowerCamelCase.
@@ -89,7 +89,7 @@ pub static NAMING_VARIABLES: Lint = Lint {
     code: "PAP102",
     name: "naming/variables",
     default: Level::Warn,
-    description: "variables de script, properties et champs de structure en lowerCamelCase",
+    description: "script variables, properties and struct fields in lowerCamelCase",
 };
 
 /// `PAP103`: functions, events and types in PascalCase.
@@ -97,7 +97,7 @@ pub static NAMING_FUNCTIONS: Lint = Lint {
     code: "PAP103",
     name: "naming/functions",
     default: Level::Warn,
-    description: "fonctions, événements, states, structures et groupes en PascalCase",
+    description: "functions, events, states, structs and groups in PascalCase",
 };
 
 /// All lints, in code order.
@@ -147,11 +147,11 @@ pub fn closest(key: &str) -> Option<&'static str> {
         .map(|(_, candidate)| candidate)
 }
 
-/// « lint `x` inconnu », with a suggestion when possible.
+/// "unknown lint `x`", with a suggestion when possible.
 fn unknown_message(key: &str) -> String {
     match closest(key) {
-        Some(name) => format!("lint `{key}` inconnu — vouliez-vous dire `{name}` ?"),
-        None => format!("lint `{key}` inconnu ; `papyrus lints` donne la liste"),
+        Some(name) => format!("unknown lint `{key}` — did you mean `{name}`?"),
+        None => format!("unknown lint `{key}`; `papyrus lints` lists them"),
     }
 }
 
@@ -254,10 +254,7 @@ pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
         findings.push(Finding {
             lint: &ALLOW_UNKNOWN,
             range: *range,
-            message: format!(
-                "{} ; cette suppression est sans effet",
-                unknown_message(key)
-            ),
+            message: format!("{}; this suppression has no effect", unknown_message(key)),
             fix: None,
             suggestion: None,
         });

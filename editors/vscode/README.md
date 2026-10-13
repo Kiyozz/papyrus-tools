@@ -1,26 +1,26 @@
 # Papyrus
 
-Diagnostics, formatage et lints pour **Papyrus**, le langage de script du
-Creation Kit — Skyrim, Fallout 4, Starfield.
+Diagnostics, formatting and lints for **Papyrus**, the scripting language of
+the Creation Kit — Skyrim, Fallout 4, Starfield.
 
-- erreurs de syntaxe à la frappe, selon le jeu visé ;
-- lints : événement mal orthographié que le moteur n'appellera jamais
-  (`OnActivatee`), flags mal placés, texte que le compilateur corrompra,
-  conventions de nommage ;
-- correctifs en un clic, et « Autoriser » pour faire taire un lint sur une
-  ligne ;
-- formatage du document ;
-- plan du fichier, repli des blocs, coloration sémantique.
+- syntax errors as you type, for the targeted game;
+- lints: misspelled events the engine will never call (`OnActivatee`),
+  misplaced flags, text the compiler will corrupt, naming conventions;
+- one-click fixes, and "Allow" to silence a lint on one line;
+- document formatting;
+- document outline, block folding, semantic highlighting.
 
 ## Installation
 
-L'extension lance `papyrus lsp`. Le binaire `papyrus` doit être dans le
-`PATH`, ou désigné par le réglage `papyrus.server.path`.
+The extension ships with the `papyrus` binary for its platform and runs
+`papyrus lsp`. The `papyrus.server.path` setting points to another binary;
+without an embedded one, the extension looks for `papyrus` in the `PATH`.
 
 ## Configuration
 
-Un `papyrus.toml` à la racine du projet fixe le jeu, l'indentation et le
-niveau de chaque lint. Sans lui, le jeu est déduit des scripts.
+A `papyrus.toml` at the project root sets the game, the indent and the level of
+each lint. Without it, the game is inferred from the scripts. A window with
+several projects gives each one its own `papyrus.toml`.
 
 ```toml
 game = "skyrim"

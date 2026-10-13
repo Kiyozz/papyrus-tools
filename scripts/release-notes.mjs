@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 
 const version = process.argv[2];
 if (!version) {
-  console.error("usage : release-notes.mjs <version>");
+  console.error("usage: release-notes.mjs <version>");
   process.exit(2);
 }
 
@@ -14,7 +14,7 @@ const changelog = readFileSync(new URL("../CHANGELOG.md", import.meta.url), "utf
 const lines = changelog.split(/\r?\n/);
 const start = lines.findIndex((line) => line.trim() === `## ${version}`);
 if (start === -1) {
-  console.error(`CHANGELOG.md n'a pas de section ${version}`);
+  console.error(`CHANGELOG.md has no ${version} section`);
   process.exit(1);
 }
 const end = lines.findIndex((line, i) => i > start && line.startsWith("## "));

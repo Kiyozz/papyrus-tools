@@ -25,7 +25,7 @@ const { values } = parseArgs({
 });
 const { target, binary, out } = values;
 if (!TARGETS.includes(target ?? "") || !binary) {
-  console.error(`usage : --target <${TARGETS.join("|")}> --binary <chemin> [--out dist]`);
+  console.error(`usage: --target <${TARGETS.join("|")}> --binary <path> [--out dist]`);
   process.exit(2);
 }
 
@@ -74,4 +74,4 @@ if (windows) {
   execFileSync("tar", ["-czf", `${archive}.tar.gz`, archive], { cwd: dist, stdio: "inherit" });
 }
 rmSync(staging, { recursive: true, force: true });
-console.log(`${target} ${version} : extension et archive dans ${out}/`);
+console.log(`${target} ${version}: extension and archive in ${out}/`);

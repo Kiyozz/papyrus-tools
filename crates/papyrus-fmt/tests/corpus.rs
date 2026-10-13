@@ -25,7 +25,7 @@ fn corpus_var(game: GameId) -> &'static str {
 
 fn run(game: GameId) {
     let Some(root) = std::env::var_os(corpus_var(game)) else {
-        eprintln!("· {} ignoré", game.display_name());
+        eprintln!("· {} skipped", game.display_name());
         return;
     };
     // Fragments included: they are valid scripts too.
@@ -50,7 +50,7 @@ fn run(game: GameId) {
                 continue;
             }
         };
-        let twice = format(&once, dialect, &options).expect("le résultat se reformate");
+        let twice = format(&once, dialect, &options).expect("the result formats again");
         if twice != once {
             failures.push(format!("{} : non idempotent", path.display()));
         }
@@ -58,14 +58,14 @@ fn run(game: GameId) {
     }
 
     println!(
-        "· {:<12} {:>6} fichiers  {:>6} reformatés",
+        "· {:<12} {:>6} files  {:>6} reformatted",
         game.display_name(),
         scripts.len(),
         changed
     );
     assert!(
         failures.is_empty(),
-        "{} échecs :\n{}",
+        "{} failures:\n{}",
         failures.len(),
         failures
             .iter()

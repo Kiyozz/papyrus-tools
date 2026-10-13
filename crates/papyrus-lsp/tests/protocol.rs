@@ -50,7 +50,7 @@ impl Client {
         };
         tokio::time::timeout(Duration::from_secs(20), search)
             .await
-            .expect("réponse attendue")
+            .expect("expected a response")
     }
 
     async fn notify(&mut self, method: &str, params: Value) {
@@ -181,9 +181,9 @@ async fn une_session_complete() {
         .iter()
         .map(|a| a["title"].as_str().unwrap())
         .collect();
-    assert!(titles.contains(&"Renommer en `OnRitualDone`"), "{titles:?}");
+    assert!(titles.contains(&"Rename to `OnRitualDone`"), "{titles:?}");
     assert!(
-        titles.contains(&"Autoriser `events/unknown` sur cette ligne"),
+        titles.contains(&"Allow `events/unknown` on this line"),
         "{titles:?}"
     );
 

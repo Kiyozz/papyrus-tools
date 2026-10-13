@@ -28,7 +28,7 @@ pub(crate) fn source_file(p: &mut Parser) {
 /// `ScriptName Foo extends Bar Hidden Conditional`
 fn script_header(p: &mut Parser) {
     if !p.at(SCRIPTNAME_KW) {
-        p.error("un script commence par `ScriptName`");
+        p.error("a script starts with `ScriptName`");
         return;
     }
     let m = p.start();
@@ -58,7 +58,7 @@ fn item(p: &mut Parser) {
         CUSTOMEVENT_KW => custom_event(p),
         GUARD_KW => guard(p),
         _ if type_len(p, 0).is_some() => typed_item(p),
-        _ => error_line(p, "déclaration attendue"),
+        _ => error_line(p, "expected a declaration"),
     }
 }
 
@@ -76,7 +76,7 @@ fn typed_item(p: &mut Parser) {
         FUNCTION_KW => function_rest(p, m),
         IDENT => variable_rest(p, m),
         _ => {
-            p.error("`Property`, `Function` ou un nom de variable attendu");
+            p.error("expected `Property`, `Function` or a variable name");
             super::skip_line(p);
             p.eat(NEWLINE);
             m.complete(p, ERROR_TREE);
@@ -162,7 +162,7 @@ fn event(p: &mut Parser) {
 /// `(int aiCount = 3, Actor akRef)`
 fn param_list(p: &mut Parser) {
     if !p.at(L_PAREN) {
-        p.error("`(` attendu");
+        p.error("expected `(`");
         return;
     }
     let m = p.start();
@@ -172,7 +172,7 @@ fn param_list(p: &mut Parser) {
             param(p);
         } else {
             let e = p.start();
-            p.error("paramètre attendu");
+            p.error("expected a parameter");
             p.bump_any();
             e.complete(p, ERROR_TREE);
         }
@@ -223,7 +223,7 @@ fn property_rest(p: &mut Parser, m: Marker) {
                 // forgotten, no need to swallow the rest of the file.
                 break;
             } else {
-                error_line(p, "`Function` ou `EndProperty` attendu");
+                error_line(p, "expected `Function` or `EndProperty`");
             }
         }
         block_end(p, ENDPROPERTY_KW, "`EndProperty`");
@@ -252,7 +252,7 @@ fn state(p: &mut Parser) {
         } else if p.at_ts(STMT_RECOVERY) || type_len(p, 0).is_some() || p.at(AUTO_KW) {
             break;
         } else {
-            error_line(p, "`Function`, `Event` ou `EndState` attendu");
+            error_line(p, "expected `Function`, `Event` or `EndState`");
         }
     }
     block_end(p, ENDSTATE_KW, "`EndState`");
@@ -285,7 +285,7 @@ fn struct_decl(p: &mut Parser) {
         } else if p.at_ts(STMT_RECOVERY) || type_len(p, 0).is_some() {
             break;
         } else {
-            error_line(p, "champ ou `EndStruct` attendu");
+            error_line(p, "expected a field or `EndStruct`");
         }
     }
     block_end(p, ENDSTRUCT_KW, "`EndStruct`");
@@ -313,7 +313,7 @@ fn group(p: &mut Parser) {
         } else if p.at_ts(STMT_RECOVERY) || type_len(p, 0).is_some() {
             break;
         } else {
-            error_line(p, "property ou `EndGroup` attendu");
+            error_line(p, "expected a property or `EndGroup`");
         }
     }
     block_end(p, ENDGROUP_KW, "`EndGroup`");

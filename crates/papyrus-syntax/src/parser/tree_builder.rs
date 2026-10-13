@@ -51,7 +51,7 @@ pub(super) fn build(source: &str, tokens: &[Token], mut events: Vec<Event>) -> G
                             parents.push(kind);
                             forward_parent
                         }
-                        _ => unreachable!("forward_parent pointe toujours sur un Start"),
+                        _ => unreachable!("forward_parent always points to a Start"),
                     };
                 }
                 for kind in parents.drain(..).rev() {
@@ -91,7 +91,7 @@ impl TreeBuilder<'_> {
     fn token(&mut self, kind: SyntaxKind) {
         self.eat_trivia();
         let token = self.tokens[self.pos];
-        debug_assert_eq!(token.kind, kind, "événement et token divergent");
+        debug_assert_eq!(token.kind, kind, "event and token diverge");
         self.emit(token);
     }
 
@@ -104,7 +104,7 @@ impl TreeBuilder<'_> {
             while let Some(&token) = self.tokens.get(self.pos) {
                 debug_assert!(
                     token.kind.is_trivia(),
-                    "{:?} laissé hors de l'arbre par le parser",
+                    "{:?} left out of the tree by the parser",
                     token.kind
                 );
                 self.emit(token);
