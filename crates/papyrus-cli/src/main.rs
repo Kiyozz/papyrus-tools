@@ -31,7 +31,7 @@ use papyrus_project::{Config, Decoded, IndentSetting, Level, Project, decode, en
 use papyrus_syntax::Parse;
 use salsa::Setter;
 
-use report::{Diagnostic, Reporter, Severity};
+use report::{Diagnostic, MessageFormat, Reporter, Severity};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -91,6 +91,10 @@ struct CheckArgs {
     /// plugins (.esp, .esm) bind by name.
     #[arg(long = "unsafe", requires = "fix")]
     unsafe_fixes: bool,
+
+    /// How problems are printed.
+    #[arg(long, value_enum, default_value_t)]
+    message_format: MessageFormat,
 }
 
 #[derive(Debug, Args)]
@@ -135,6 +139,10 @@ struct BuildArgs {
     /// Strip `BetaOnly` code (Fallout 4 onwards).
     #[arg(long = "final")]
     final_: bool,
+
+    /// How problems are printed.
+    #[arg(long, value_enum, default_value_t)]
+    message_format: MessageFormat,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -277,13 +285,17 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     let mut reporter = Reporter::new(std::io::stderr().is_terminal());
     let result = match cli.command {
-        Command::Check(args) => Settings::resolve(&args.common, None)
-            .map(|projects| check(&projects, args.fix, args.unsafe_fixes, &mut reporter)),
+        Command::Check(args) => {
+            reporter.format = args.message_format;
+            Settings::resolve(&args.common, None)
+                .map(|projects| check(&projects, args.fix, args.unsafe_fixes, &mut reporter))
+        }
         Command::Fmt(args) => Settings::resolve(&args.common, args.indent)
             .map(|projects| fmt(&projects, args.check, &mut reporter)),
         // The fragments are compiled too: the game needs them.
         Command::Build(mut args) => {
             args.common.include_fragments = true;
+            reporter.format = args.message_format;
             Settings::resolve(&args.common, None)
                 .and_then(|projects| build::build(&projects, &args, &mut reporter))
         }
