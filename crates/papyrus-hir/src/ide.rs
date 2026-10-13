@@ -616,10 +616,9 @@ impl Semantics<'_> {
     pub fn references_in(&self, def: &Def, files: &[SourceFile]) -> Vec<Reference> {
         let target = self.canonical(def);
         let name = self.def_name(def).to_owned();
-        let lower = name.to_ascii_lowercase();
         let mut out = Vec::new();
         for &file in files {
-            if !file.text(self.db()).to_ascii_lowercase().contains(&lower) {
+            if !crate::mentions::mentions(self.db(), file, self.syntax()).may_mention(&name) {
                 continue;
             }
             for node in self.root(file).descendants() {

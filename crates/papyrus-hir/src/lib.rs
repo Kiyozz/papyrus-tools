@@ -41,6 +41,7 @@ mod hierarchy;
 mod hints;
 mod ide;
 mod items;
+mod mentions;
 mod semantics;
 mod ty;
 mod types;
