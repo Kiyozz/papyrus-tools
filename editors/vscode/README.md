@@ -15,6 +15,8 @@ the Creation Kit — Skyrim, Fallout 4, Starfield.
   unknown function created —, and "Allow" to silence a lint on one line;
 - go to definition, hover, completion, references and rename across the
   project's scripts, down to the game's native ones;
+- the uses of the symbol under the cursor, the overrides of a function or an
+  event, the call hierarchy, and reference counts above declarations;
 - signature help while typing a call, and the names of the parameters before
   its arguments;
 - document formatting;

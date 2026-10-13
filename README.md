@@ -184,8 +184,11 @@ name, a cast, the missing arguments, the unknown function created —,
 formatting, document outline, folding,
 semantic highlighting, and across files: go to definition, hover with the
 signature and docstring, completion, references, rename, workspace symbols,
-signature help with the current parameter, and the names of the parameters
-before the arguments of a call.
+signature help with the current parameter, the names of the parameters
+before the arguments of a call, the uses of the symbol under the cursor,
+the overrides of a function or an event (go to implementation), the call
+hierarchy, and the count of references above each function, property,
+variable and struct.
 On startup, it indexes each project's scripts and those of its `imports`
 folders, infers the game, and rescans when a `papyrus.toml` appears or
 changes.
