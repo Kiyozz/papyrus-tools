@@ -475,6 +475,26 @@
           ],
           "type": "string"
         },
+        "PAP020": {
+          "description": "name written with another case than its declaration, which the compiler ignores (PAP020, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
         "PAP101": {
           "description": "locals and parameters in lowerCamelCase (PAP101, warn by default)",
           "enum": [
@@ -777,6 +797,26 @@
         },
         "members/unknown": {
           "description": "function, variable, property or field that does not exist, most often a typo (PAP008, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "names/case": {
+          "description": "name written with another case than its declaration, which the compiler ignores (PAP020, warn by default)",
           "enum": [
             "allow",
             "warn",

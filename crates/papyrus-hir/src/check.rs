@@ -16,6 +16,7 @@ use crate::semantics::{Def, ScriptRef, Semantics, is_callee, locals_in_scope};
 use crate::ty::Ty;
 use crate::types::Object;
 
+mod case;
 mod misuse;
 mod usage;
 
@@ -56,6 +57,8 @@ pub enum Problem {
     /// A local declared twice in a block, named like a parameter or a
     /// variable of the script, or hiding one of an enclosing block.
     DuplicateLocal,
+    /// A name written with another case than its declaration.
+    NameCase,
 }
 
 /// A text replacement.
@@ -523,6 +526,7 @@ impl Semantics<'_> {
                             }
                             SyntaxKind::NAME_REF => {
                                 self.check_value(file, &node, &inner, &mut out);
+                                self.check_case(file, &inner, &mut out);
                             }
                             _ => {}
                         }
@@ -536,6 +540,9 @@ impl Semantics<'_> {
                         && !broken(&node) =>
                 {
                     self.check_init(file, &node, &mut out);
+                }
+                SyntaxKind::TYPE_REF if !broken(&node) => {
+                    self.check_type_case(file, &node, &mut out);
                 }
                 _ => {}
             }

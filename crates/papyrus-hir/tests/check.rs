@@ -984,6 +984,43 @@ EndFunction
     assert!(fixed[0].1.contains("\n\tTEST = 33\n"), "{}", fixed[0].1);
 }
 
+#[test]
+fn names_follow_the_case_of_their_declaration() {
+    let source = "ScriptName A extends Quest
+Struct Point
+\tint x
+EndStruct
+event OnInit()
+\tInitialize()
+endevent
+function initialize()
+\tdebug.trace(\"x\")
+\tint count = 1
+\tDebug.Trace(COUNT)
+\tobjectReference ref = None
+\tpoint[] points
+\tTake(akWho = None)
+endfunction
+Function Take(Actor AKWHO)
+EndFunction
+";
+    let found = check_all_in(Some(GameId::Fallout4), &[("A.psc", source)]);
+    assert_eq!(
+        only(found, &[Problem::NameCase]),
+        [
+            (Problem::NameCase, "Initialize".to_owned()),
+            (Problem::NameCase, "debug".to_owned()),
+            (Problem::NameCase, "trace".to_owned()),
+            (Problem::NameCase, "COUNT".to_owned()),
+            (Problem::NameCase, "objectReference".to_owned()),
+            (Problem::NameCase, "point".to_owned()),
+        ]
+    );
+    let fixed = fixes(GameId::Fallout4, source, Problem::NameCase);
+    assert_eq!(fixed[0].0, "Write `initialize`");
+    assert!(fixed[0].1.contains("\n\tinitialize()\n"), "{}", fixed[0].1);
+}
+
 // ── Fixes ─────────────────────────────────────────────────────────────────
 
 /// `(title, fixed text)` of each fix of the diagnostics of `problem`.

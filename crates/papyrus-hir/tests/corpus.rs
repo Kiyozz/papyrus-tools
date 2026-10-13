@@ -192,7 +192,9 @@ fn check_project(db: &Database, files: &[SourceFile], game: GameId, target: Opti
             println!("    {line}");
         }
     }
+    // Style: the vanilla scripts mix cases freely.
     for allowed in [
+        "NameCase",
         "MissingReturn",
         "UnknownState",
         "Unreachable",
