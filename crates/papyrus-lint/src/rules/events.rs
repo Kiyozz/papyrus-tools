@@ -218,13 +218,13 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                 ),
                 fix: None,
                 unsafe_fix: None,
-                suggestion: Some(Suggestion {
+                suggestions: vec![Suggestion {
                     title: format!("Rename to `{best}`"),
                     edits: vec![Edit {
                         range,
                         text: best.to_owned(),
                     }],
-                }),
+                }],
             });
         } else if let Some(owners) = owners(game, &name) {
             findings.push(Finding {
@@ -236,7 +236,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
                 ),
                 fix: None,
                 unsafe_fix: None,
-                suggestion: None,
+                suggestions: Vec::new(),
             });
         }
     }

@@ -325,8 +325,8 @@ pub struct Diagnostic {
     /// A fix that compiles but may break what lies outside the scripts:
     /// applied only when asked explicitly, `papyrus check --fix --unsafe`.
     pub unsafe_fix: Option<Vec<Edit>>,
-    /// A fix to suggest, when it is not.
-    pub suggestion: Option<Suggestion>,
+    /// Fixes to suggest, when none is safe.
+    pub suggestions: Vec<Suggestion>,
 }
 
 /// What the lints need.
@@ -364,7 +364,7 @@ pub(crate) struct Finding {
     pub(crate) message: String,
     pub(crate) fix: Option<Vec<Edit>>,
     pub(crate) unsafe_fix: Option<Vec<Edit>>,
-    pub(crate) suggestion: Option<Suggestion>,
+    pub(crate) suggestions: Vec<Suggestion>,
 }
 
 /// Runs the active lints and drops what the code explicitly allowed.
@@ -381,7 +381,7 @@ pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
             message: format!("{}; this suppression has no effect", unknown_message(key)),
             fix: None,
             unsafe_fix: None,
-            suggestion: None,
+            suggestions: Vec::new(),
         });
     }
     let mut diagnostics: Vec<Diagnostic> = findings
@@ -398,7 +398,7 @@ pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
                 message: f.message,
                 fix: f.fix,
                 unsafe_fix: f.unsafe_fix,
-                suggestion: f.suggestion,
+                suggestions: f.suggestions,
             })
         })
         .collect();

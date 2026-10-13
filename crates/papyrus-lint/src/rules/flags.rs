@@ -106,7 +106,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             ),
             fix: None,
             unsafe_fix: None,
-            suggestion: None,
+            suggestions: Vec::new(),
         });
     }
 }

@@ -293,7 +293,7 @@ pub(crate) fn code_actions(
                 quickfix(title, text_edits(fix, map), false);
             }
         }
-        if let Some(suggestion) = &lint.suggestion {
+        for suggestion in &lint.suggestions {
             quickfix(
                 suggestion.title.clone(),
                 text_edits(&suggestion.edits, map),

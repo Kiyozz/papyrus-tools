@@ -338,7 +338,7 @@ fn a_misspelled_event_is_reported() {
     assert!(event.message.contains("`OnActivate`"), "{}", event.message);
     // Renaming changes the meaning of the code: suggested, never applied.
     assert!(event.fix.is_none());
-    let suggestion = event.suggestion.as_ref().expect("suggestion");
+    let suggestion = event.suggestions.first().expect("suggestion");
     assert_eq!(suggestion.edits[0].text, "OnActivate");
 }
 

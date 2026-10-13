@@ -820,3 +820,134 @@ EndFunction
         assert_eq!(dead(GameId::Skyrim, &files), []);
     }
 }
+
+// ── Fixes ─────────────────────────────────────────────────────────────────
+
+/// `(title, fixed text)` of each fix of the diagnostics of `problem`.
+fn fixes(game: GameId, text: &str, problem: Problem) -> Vec<(String, String)> {
+    let db = Database::default();
+    let file = SourceFile::new(&db, "A.psc".into(), text.to_owned());
+    let project = Project::new(&db, vec![file], Vec::new(), Some(game));
+    let sema = Semantics::new(&db, project);
+    sema.check(file)
+        .into_iter()
+        .filter(|d| d.problem == problem)
+        .flat_map(|d| d.fixes)
+        .map(|fix| {
+            let mut out = text.to_owned();
+            let mut edits = fix.edits;
+            edits.sort_by_key(|e| std::cmp::Reverse(e.range.start()));
+            for edit in edits {
+                out.replace_range(std::ops::Range::<usize>::from(edit.range), &edit.text);
+            }
+            (fix.title, out)
+        })
+        .collect()
+}
+
+/// The line of `text` holding `needle`.
+fn line_of<'a>(text: &'a str, needle: &str) -> &'a str {
+    text.lines()
+        .find(|l| l.contains(needle))
+        .unwrap_or_else(|| panic!("no `{needle}` in:\n{text}"))
+}
+
+#[test]
+fn a_mismatch_offers_a_cast() {
+    let source = script(
+        "\tint a = 1.5\n\tint b = 1.0 + 2.0\n\tActor c = Game.GetPlayer() as ObjectReference\n\
+         \tQuest d = Game.GetPlayer()",
+    );
+    let found = fixes(GameId::Skyrim, &source, Problem::Mismatch);
+    let lines: Vec<(&str, &str)> = found
+        .iter()
+        .map(|(title, text)| (title.as_str(), line_of(text, " as ").trim()))
+        .collect();
+    // `Quest` is no descendant of `Actor`: no cast.
+    assert_eq!(
+        lines,
+        [
+            ("Cast with `as int`", "int a = 1.5 as int"),
+            ("Cast with `as int`", "int b = (1.0 + 2.0) as int"),
+            (
+                "Cast with `as Actor`",
+                "Actor c = Game.GetPlayer() as Actor"
+            ),
+        ]
+    );
+}
+
+#[test]
+fn a_missing_argument_is_added() {
+    let source = script("\tTake()\n\tTake(akWho = None)\n\tUtility.Wait()");
+    let found = fixes(GameId::Skyrim, &source, Problem::Arity);
+    let calls: Vec<(&str, &str)> = found
+        .iter()
+        .zip(["Take(0)", "Take(akWho = None, aiCount = 0)", "Wait(0.0)"])
+        .map(|((title, text), call)| (title.as_str(), line_of(text, call).trim()))
+        .collect();
+    assert_eq!(
+        calls,
+        [
+            ("Add the missing argument `aiCount`", "Take(0)"),
+            (
+                "Add the missing argument `aiCount`",
+                "Take(akWho = None, aiCount = 0)"
+            ),
+            ("Add the missing argument `afSeconds`", "Utility.Wait(0.0)"),
+        ]
+    );
+}
+
+#[test]
+fn optional_parameters_before_a_missing_one_get_their_default() {
+    let source = "ScriptName A extends Quest
+Function Take(int a, float b = 1.0, Actor c)
+EndFunction
+Event OnInit()
+\tTake(1)
+EndEvent
+";
+    let found = fixes(GameId::Skyrim, source, Problem::Arity);
+    assert_eq!(found.len(), 1);
+    assert_eq!(line_of(&found[0].1, "Take(1").trim(), "Take(1, 1.0, None)");
+}
+
+#[test]
+fn an_unknown_function_can_be_created() {
+    let source = "ScriptName A extends Quest
+Event OnInit()
+\tActor who = Game.GetPlayer()
+\tint count = CountItems(who, 2, abSilent = true)
+\tself.Notify(\"done\")
+\tObscure(Missing)
+EndEvent
+int Function Helper() Global
+\tReturn Compute(1.5)
+EndFunction
+";
+    let found = fixes(GameId::Skyrim, source, Problem::UnknownMember);
+    let created: Vec<(&str, &str)> = found
+        .iter()
+        .filter(|(title, _)| title.starts_with("Create"))
+        .map(|(title, text)| (title.as_str(), &text[source.len()..]))
+        .collect();
+    // `Missing` has no known type: `Obscure` is not offered.
+    assert_eq!(
+        created,
+        [
+            (
+                "Create the function `CountItems`",
+                "\nint Function CountItems(Actor who, int param2, bool abSilent)\nEndFunction\n"
+            ),
+            (
+                "Create the function `Notify`",
+                "\nFunction Notify(string param1)\nEndFunction\n"
+            ),
+            (
+                "Create the function `Compute`",
+                "\nint Function Compute(float param1) Global\nEndFunction\n"
+            ),
+        ]
+    );
+}

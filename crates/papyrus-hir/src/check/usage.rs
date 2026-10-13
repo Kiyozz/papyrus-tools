@@ -50,7 +50,7 @@ pub(super) fn check_unreachable(body: &SyntaxNode, out: &mut Vec<Diagnostic>) {
             problem: Problem::Unreachable,
             range,
             message: format!("this code never runs: {why}"),
-            replacement: None,
+            fixes: Vec::new(),
         });
     }
 }
@@ -139,7 +139,7 @@ impl Semantics<'_> {
                 problem: Problem::UnusedLocal,
                 range: trimmed(local),
                 message: format!("the variable `{}` {what}", compact(local)),
-                replacement: None,
+                fixes: Vec::new(),
             });
         }
 
@@ -161,7 +161,7 @@ impl Semantics<'_> {
                 problem: Problem::UnusedParam,
                 range: trimmed(param),
                 message: format!("the parameter `{}` is never used", compact(param)),
-                replacement: None,
+                fixes: Vec::new(),
             });
         }
     }

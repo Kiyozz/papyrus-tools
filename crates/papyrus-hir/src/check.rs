@@ -7,10 +7,10 @@
 //! quiet: missing information is never an error.
 
 use papyrus_dialect::GameId;
-use papyrus_syntax::{SyntaxKind, SyntaxNode, TextRange};
+use papyrus_syntax::{SyntaxKind, SyntaxNode, TextRange, TextSize};
 
 use crate::SourceFile;
-use crate::calls::{Arg, arg_list, args, callee};
+use crate::calls::{Arg, SignatureParam, arg_list, args, callee};
 use crate::items::{ItemKind, compact, trimmed};
 use crate::semantics::{Def, ScriptRef, Semantics, is_callee, locals_in_scope};
 use crate::ty::Ty;
@@ -50,13 +50,36 @@ pub enum Problem {
     UnusedParam,
 }
 
-/// A replacement to suggest; never applied automatically.
+/// A text replacement.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Replacement {
     /// What is replaced.
     pub range: TextRange,
     /// The new text.
     pub text: String,
+}
+
+/// A fix to suggest; never applied automatically: it is likely, not
+/// certain.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Fix {
+    /// What it does: "Replace with `OnActivate`".
+    pub title: String,
+    /// The replacements, in the file of the diagnostic.
+    pub edits: Vec<Replacement>,
+}
+
+impl Fix {
+    /// Replaces `range` with `name`, the likely intended one.
+    fn replace(range: TextRange, name: &str) -> Fix {
+        Fix {
+            title: format!("Replace with `{name}`"),
+            edits: vec![Replacement {
+                range,
+                text: name.to_owned(),
+            }],
+        }
+    }
 }
 
 /// A problem found in a file.
@@ -68,8 +91,9 @@ pub struct Diagnostic {
     pub range: TextRange,
     /// What, and how to fix it.
     pub message: String,
-    /// The likely intended name, for a typo.
-    pub replacement: Option<Replacement>,
+    /// Likely fixes: the intended name of a typo, a cast, a missing
+    /// argument, a function to create.
+    pub fixes: Vec<Fix>,
 }
 
 fn child(node: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxNode> {
@@ -162,22 +186,124 @@ fn decl_name(decl: &SyntaxNode) -> Option<SyntaxNode> {
     child(decl, SyntaxKind::NAME)
 }
 
-/// The explicit cast that would turn `from` into `to`, when there is one.
-fn cast_hint(from: &Ty, to: &Ty) -> String {
-    let castable = matches!(
-        (from, to),
-        (Ty::Float | Ty::String | Ty::Bool, Ty::Int)
-            | (Ty::String | Ty::Bool, Ty::Float)
-            | (Ty::Object(_), Ty::Object(_))
+/// `value as ty`, parenthesized unless `value` binds tighter than `as`.
+fn cast_fix(value: &SyntaxNode, ty: &Ty) -> Fix {
+    let title = format!("Cast with `as {ty}`");
+    // `x as Form`: the cast changes its type.
+    if let Some(target) = (value.kind() == SyntaxKind::CAST_EXPR)
+        .then(|| child(value, SyntaxKind::TYPE_REF))
+        .flatten()
+    {
+        return Fix {
+            title,
+            edits: vec![Replacement {
+                range: trimmed(&target),
+                text: ty.to_string(),
+            }],
+        };
+    }
+    let range = trimmed(value);
+    let atomic = matches!(
+        value.kind(),
+        SyntaxKind::LITERAL
+            | SyntaxKind::NAME_REF
+            | SyntaxKind::PAREN_EXPR
+            | SyntaxKind::CALL_EXPR
+            | SyntaxKind::FIELD_EXPR
+            | SyntaxKind::INDEX_EXPR
     );
-    if castable {
-        format!(" — cast it with `as {to}`")
-    } else {
-        String::new()
+    let mut edits = Vec::new();
+    if !atomic {
+        edits.push(Replacement {
+            range: TextRange::empty(range.start()),
+            text: "(".to_owned(),
+        });
+    }
+    edits.push(Replacement {
+        range: TextRange::empty(range.end()),
+        text: format!("{} as {ty}", if atomic { "" } else { ")" }),
+    });
+    Fix { title, edits }
+}
+
+/// The value a parameter of type `ty` takes when nothing better is known.
+fn placeholder(ty: &Ty) -> &'static str {
+    match ty {
+        Ty::Int => "0",
+        Ty::Float => "0.0",
+        Ty::Bool => "false",
+        Ty::String => "\"\"",
+        _ => "None",
     }
 }
 
+/// Adds the missing arguments of a call before its `)`: positionally when
+/// the call names none, by name otherwise.
+fn missing_args_fix(
+    list: &SyntaxNode,
+    params: &[SignatureParam],
+    given: &[bool],
+    positional: bool,
+) -> Option<Fix> {
+    let close = list
+        .children_with_tokens()
+        .filter_map(|e| e.into_token())
+        .find(|t| t.kind() == SyntaxKind::R_PAREN)?;
+    let missing: Vec<usize> = (0..params.len())
+        .filter(|&i| !given[i] && params[i].default.is_none())
+        .collect();
+    let last = *missing.last()?;
+    let value = |p: &SignatureParam| placeholder(&p.ty).to_owned();
+    let values: Vec<String> = if positional {
+        // The optional parameters before the last missing one are passed
+        // their default value.
+        let first = given.iter().position(|g| !g).unwrap_or(params.len());
+        params[first..=last]
+            .iter()
+            .map(|p| p.default.clone().unwrap_or_else(|| value(p)))
+            .collect()
+    } else {
+        missing
+            .iter()
+            .map(|&i| format!("{} = {}", params[i].name, value(&params[i])))
+            .collect()
+    };
+    let empty = !list.children().any(|c| c.kind() == SyntaxKind::ARG);
+    let names: Vec<String> = missing
+        .iter()
+        .map(|&i| format!("`{}`", params[i].name))
+        .collect();
+    Some(Fix {
+        title: format!(
+            "Add the missing {} {}",
+            if missing.len() == 1 {
+                "argument"
+            } else {
+                "arguments"
+            },
+            names.join(", ")
+        ),
+        edits: vec![Replacement {
+            range: TextRange::empty(close.text_range().start()),
+            text: format!("{}{}", if empty { "" } else { ", " }, values.join(", ")),
+        }],
+    })
+}
+
 impl Semantics<'_> {
+    /// True if `from` can be cast to `to` with `as`: a number from a string
+    /// or a bool, an integer from a float, an object to one of its
+    /// descendants.
+    fn castable(&self, from: &Ty, to: &Ty) -> bool {
+        match (from, to) {
+            (Ty::Float | Ty::String | Ty::Bool, Ty::Int) | (Ty::String | Ty::Bool, Ty::Float) => {
+                true
+            }
+            (Ty::Object(_), Ty::Object(_)) => self.coerces(to, from) == Some(true),
+            _ => false,
+        }
+    }
+
     /// The semantic problems of `file`.
     ///
     /// The native scripts depend on the target. Without one, the file is
@@ -300,7 +426,7 @@ impl Semantics<'_> {
                 compact(&name),
                 compact(&returns)
             ),
-            replacement: None,
+            fixes: Vec::new(),
         });
     }
 
@@ -342,15 +468,19 @@ impl Semantics<'_> {
     ) {
         let found = self.type_of(file, value);
         if self.coerces(&found, expected) == Some(false) {
+            let castable = self.castable(&found, expected);
+            let mut message = message(&found, expected);
+            if castable {
+                message.push_str(&format!(" — cast it with `as {expected}`"));
+            }
             out.push(Diagnostic {
                 problem: Problem::Mismatch,
                 range: trimmed(value),
-                message: format!(
-                    "{}{}",
-                    message(&found, expected),
-                    cast_hint(&found, expected)
-                ),
-                replacement: None,
+                message,
+                fixes: castable
+                    .then(|| cast_fix(value, expected))
+                    .into_iter()
+                    .collect(),
             });
         }
     }
@@ -439,7 +569,7 @@ impl Semantics<'_> {
                     plural(params.len(), "argument"),
                     positional.len()
                 ),
-                replacement: None,
+                fixes: Vec::new(),
             });
             return;
         }
@@ -456,7 +586,7 @@ impl Semantics<'_> {
                     problem: Problem::NamedArg,
                     range: trimmed(arg_name),
                     message: format!("`{}` of `{name}` is already given", params[index].name),
-                    replacement: None,
+                    fixes: Vec::new(),
                 }),
                 Some(index) => given[index] = true,
                 None => {
@@ -470,10 +600,10 @@ impl Semantics<'_> {
                         problem: Problem::NamedArg,
                         range: trimmed(arg_name),
                         message,
-                        replacement: suggestion.map(|s| Replacement {
-                            range: trimmed(arg_name),
-                            text: s.to_owned(),
-                        }),
+                        fixes: suggestion
+                            .map(|s| Fix::replace(trimmed(arg_name), s))
+                            .into_iter()
+                            .collect(),
                     });
                 }
             }
@@ -499,7 +629,9 @@ impl Semantics<'_> {
                     },
                     missing.join(", ")
                 ),
-                replacement: None,
+                fixes: missing_args_fix(&list, params, &given, named.is_empty())
+                    .into_iter()
+                    .collect(),
             });
         }
 
@@ -599,10 +731,10 @@ impl Semantics<'_> {
             problem: Problem::UnknownMember,
             range: trimmed(node),
             message,
-            replacement: suggestion.map(|s| Replacement {
-                range: trimmed(node),
-                text: s.to_owned(),
-            }),
+            fixes: suggestion
+                .map(|s| Fix::replace(trimmed(node), s))
+                .into_iter()
+                .collect(),
         });
     }
 
@@ -657,6 +789,9 @@ impl Semantics<'_> {
                 self.script_name(script)
             );
             self.unknown(callee, message, self.callables(script), out);
+            if script == ScriptRef::Source(file) {
+                self.offer_creation(file, callee, out);
+            }
             return;
         }
 
@@ -691,6 +826,97 @@ impl Semantics<'_> {
             self.script_name(this)
         );
         self.unknown(callee, message, candidates, out);
+        self.offer_creation(file, callee, out);
+    }
+
+    /// Adds "Create the function" to the diagnostic just reported.
+    fn offer_creation(&self, file: SourceFile, callee: &SyntaxNode, out: &mut [Diagnostic]) {
+        if let (Some(fix), Some(last)) = (self.create_function_fix(file, callee), out.last_mut()) {
+            last.fixes.push(fix);
+        }
+    }
+
+    /// `Function Name(...)` at the end of `file`, with a parameter per
+    /// argument, of its type; `None` when one is unknown.
+    fn create_function_fix(&self, file: SourceFile, callee: &SyntaxNode) -> Option<Fix> {
+        let call = callee
+            .ancestors()
+            .find(|n| n.kind() == SyntaxKind::CALL_EXPR)?;
+        let list = arg_list(&call)?;
+        let mut params: Vec<(String, String)> = Vec::new();
+        for (index, arg) in args(&list).iter().enumerate() {
+            let value = arg.value.as_ref()?;
+            let ty = self.type_of(file, value);
+            if matches!(ty, Ty::Unknown | Ty::None) {
+                return None;
+            }
+            let plain = value.kind() == SyntaxKind::NAME_REF
+                && value
+                    .first_token()
+                    .is_some_and(|t| t.kind() == SyntaxKind::IDENT);
+            let mut name = match &arg.name {
+                Some(name) => compact(name),
+                None if plain => compact(value),
+                None => format!("param{}", index + 1),
+            };
+            if params.iter().any(|(_, n)| n.eq_ignore_ascii_case(&name)) {
+                name = format!("{name}{}", index + 1);
+            }
+            params.push((ty.to_string(), name));
+        }
+        let decl = call
+            .ancestors()
+            .find(|n| matches!(n.kind(), SyntaxKind::FUNCTION_DECL | SyntaxKind::EVENT_DECL))?;
+        let global = decl.kind() == SyntaxKind::FUNCTION_DECL
+            && child(&decl, SyntaxKind::FLAG_LIST).is_some_and(|list| {
+                list.children()
+                    .filter_map(|f| f.first_token())
+                    .any(|t| t.kind() == SyntaxKind::GLOBAL_KW)
+            });
+        let returns = self
+            .expected_type(file, &call, &decl)
+            .map(|ty| format!("{ty} "))
+            .unwrap_or_default();
+        let name = compact(callee);
+        let params: Vec<String> = params.iter().map(|(t, n)| format!("{t} {n}")).collect();
+        let text = file.text(self.db());
+        let eol = if text.contains("\r\n") { "\r\n" } else { "\n" };
+        let separator = if text.ends_with('\n') || text.is_empty() {
+            eol.to_owned()
+        } else {
+            eol.repeat(2)
+        };
+        Some(Fix {
+            title: format!("Create the function `{name}`"),
+            edits: vec![Replacement {
+                range: TextRange::empty(TextSize::of(text)),
+                text: format!(
+                    "{separator}{returns}Function {name}({}){}{eol}EndFunction{eol}",
+                    params.join(", "),
+                    if global { " Global" } else { "" }
+                ),
+            }],
+        })
+    }
+
+    /// The type the value of `call` must have, from where it goes: a
+    /// variable initialized, assigned, a value returned.
+    fn expected_type(&self, file: SourceFile, call: &SyntaxNode, decl: &SyntaxNode) -> Option<Ty> {
+        let parent = call.parent()?;
+        let ty = match parent.kind() {
+            SyntaxKind::VARIABLE_DECL => {
+                Ty::parse(&compact(&child(&parent, SyntaxKind::TYPE_REF)?))
+            }
+            SyntaxKind::ASSIGN_STMT if parent.children().nth(1).as_ref() == Some(call) => {
+                self.type_of(file, &parent.children().next()?)
+            }
+            SyntaxKind::RETURN_STMT if decl.kind() == SyntaxKind::FUNCTION_DECL => {
+                Ty::parse(&compact(&child(decl, SyntaxKind::TYPE_REF)?))
+            }
+            _ => return None,
+        };
+        let ty = self.qualify(file, ty);
+        (!matches!(ty, Ty::Unknown | Ty::None)).then_some(ty)
     }
 
     /// A name read or written that resolves to nothing, though everything

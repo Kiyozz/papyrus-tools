@@ -35,14 +35,22 @@ pub(crate) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             message: diagnostic.message,
             fix: None,
             unsafe_fix: None,
-            // The closest name is likely, not certain: suggested only.
-            suggestion: diagnostic.replacement.map(|r| Suggestion {
-                title: format!("Replace with `{}`", r.text),
-                edits: vec![Edit {
-                    range: r.range,
-                    text: r.text,
-                }],
-            }),
+            // Likely, not certain: suggested only.
+            suggestions: diagnostic
+                .fixes
+                .into_iter()
+                .map(|f| Suggestion {
+                    title: f.title,
+                    edits: f
+                        .edits
+                        .into_iter()
+                        .map(|r| Edit {
+                            range: r.range,
+                            text: r.text,
+                        })
+                        .collect(),
+                })
+                .collect(),
         });
     }
 }

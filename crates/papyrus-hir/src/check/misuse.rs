@@ -4,7 +4,7 @@
 
 use papyrus_syntax::{SyntaxKind, SyntaxNode, TextRange, TextSize};
 
-use super::{Diagnostic, Problem, Replacement, child, closest, decl_name};
+use super::{Diagnostic, Fix, Problem, child, closest, decl_name};
 use crate::SourceFile;
 use crate::calls::{arg_list, args};
 use crate::items::{ItemKind, compact, trimmed};
@@ -147,10 +147,10 @@ impl Semantics<'_> {
             problem: Problem::UnknownState,
             range,
             message,
-            replacement: suggestion.map(|s| Replacement {
-                range,
-                text: s.to_owned(),
-            }),
+            fixes: suggestion
+                .map(|s| Fix::replace(range, s))
+                .into_iter()
+                .collect(),
         });
     }
 
@@ -243,7 +243,7 @@ impl Semantics<'_> {
                 "`{}` does not take the parameters of the event of {from}: `Event {label}`",
                 item.name
             ),
-            replacement: None,
+            fixes: Vec::new(),
         });
     }
 
@@ -315,7 +315,7 @@ impl Semantics<'_> {
                 "the property `{}` {why}: it cannot be assigned",
                 compact(&name_ref)
             ),
-            replacement: None,
+            fixes: Vec::new(),
         });
     }
 
@@ -373,7 +373,7 @@ impl Semantics<'_> {
                 self.def_name(&def),
                 self.script_name(script)
             ),
-            replacement: None,
+            fixes: Vec::new(),
         });
     }
 
@@ -411,7 +411,7 @@ impl Semantics<'_> {
                         "`{}` does not exist in `{function}`, which is `Global`",
                         token.text()
                     ),
-                    replacement: None,
+                    fixes: Vec::new(),
                 });
                 continue;
             }
@@ -477,7 +477,7 @@ impl Semantics<'_> {
                     "`{function}` is `Global`: it has no instance, and cannot use the {what} `{}`",
                     self.def_name(&def)
                 ),
-                replacement: None,
+                fixes: Vec::new(),
             });
         }
     }
