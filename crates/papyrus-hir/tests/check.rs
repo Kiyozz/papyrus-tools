@@ -915,6 +915,64 @@ EndFunction
     }
 }
 
+#[test]
+fn locals_the_compiler_refuses_are_reported() {
+    // What PapyrusCompiler refuses, Skyrim's and Fallout 4's alike.
+    let source = "ScriptName A extends Quest
+int field = 0
+int Property P Auto
+Function Run(int a)
+\tint test = 32
+\tint TEST = 33
+\tint a = 1
+\tint d = 1
+\tIf a
+\t\tint d = 2
+\t\tint e = 1
+\tElse
+\t\tint e = 2
+\tEndIf
+\tint e = 3
+\tWhile a
+\t\tint a = 4
+\tEndWhile
+\tint field = 5
+\tint P = 6
+EndFunction
+Function Other()
+\tint test = 1
+EndFunction
+";
+    let found = check_all_in(Some(GameId::Skyrim), &[("A.psc", source)]);
+    let duplicates: Vec<(String, String)> = found
+        .into_iter()
+        .filter(|(p, ..)| *p == Problem::DuplicateLocal)
+        .map(|(_, t, m)| (t, m))
+        .collect();
+    let message = |name: &str, why: &str| (name.to_owned(), format!("the variable `{name}` {why}"));
+    assert_eq!(
+        duplicates,
+        [
+            message("TEST", "is already declared in this block"),
+            message("a", "is already a parameter of this function"),
+            message(
+                "d",
+                "is already declared in an enclosing block, which Papyrus forbids hiding"
+            ),
+            message(
+                "a",
+                "is already declared in an enclosing block, which Papyrus forbids hiding"
+            ),
+            message("field", "is already a variable of the script"),
+        ]
+    );
+
+    let fixed = fixes(GameId::Skyrim, source, Problem::DuplicateLocal);
+    assert_eq!(fixed.len(), 1, "{fixed:?}");
+    assert_eq!(fixed[0].0, "Assign `TEST` instead");
+    assert!(fixed[0].1.contains("\n\tTEST = 33\n"), "{}", fixed[0].1);
+}
+
 // ── Fixes ─────────────────────────────────────────────────────────────────
 
 /// `(title, fixed text)` of each fix of the diagnostics of `problem`.

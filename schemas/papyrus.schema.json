@@ -455,6 +455,26 @@
           ],
           "type": "string"
         },
+        "PAP019": {
+          "description": "local declared twice in a block, named like a parameter or a script variable, or hiding one of an enclosing block (PAP019, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
         "PAP101": {
           "description": "locals and parameters in lowerCamelCase (PAP101, warn by default)",
           "enum": [
@@ -677,6 +697,26 @@
         },
         "flags/placement": {
           "description": "flag the game's .flg file does not allow on this object (PAP002, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "locals/duplicate": {
+          "description": "local declared twice in a block, named like a parameter or a script variable, or hiding one of an enclosing block (PAP019, error by default)",
           "enum": [
             "allow",
             "warn",

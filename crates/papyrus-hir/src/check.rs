@@ -53,6 +53,9 @@ pub enum Problem {
     /// A script neither the project nor its imports declare, once they
     /// hold the game's sources.
     UnknownScript,
+    /// A local declared twice in a block, named like a parameter or a
+    /// variable of the script, or hiding one of an enclosing block.
+    DuplicateLocal,
 }
 
 /// A text replacement.
@@ -499,6 +502,7 @@ impl Semantics<'_> {
                     }
                     self.check_global_body(file, &node, &body, &mut out);
                     usage::check_unreachable(&body, &mut out);
+                    usage::check_duplicates(&root, &node, &body, &mut out);
                     self.check_unused(file, &node, &body, &mut out);
                     for inner in body.descendants() {
                         match inner.kind() {

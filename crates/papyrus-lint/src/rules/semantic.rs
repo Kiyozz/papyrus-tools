@@ -1,12 +1,12 @@
-//! `PAP005` to `PAP018`: calls, types, members, returns, states, events,
-//! read-only properties, `Global` functions, dead code, SKSE's members and
-//! unknown scripts, from the project's semantic model.
+//! `PAP005` to `PAP019`: calls, types, members, returns, states, events,
+//! read-only properties, `Global` functions, dead code, SKSE's members,
+//! unknown scripts and duplicate locals, from the project's semantic model.
 
 use papyrus_hir::Problem;
 
 use crate::{
     CALLS_ARITY, CALLS_NAMED_ARG, CALLS_NOT_GLOBAL, CODE_UNREACHABLE, Context, EVENTS_SIGNATURE,
-    Edit, Finding, LOCALS_UNUSED, MEMBERS_SKSE, MEMBERS_UNKNOWN, PARAMS_UNUSED,
+    Edit, Finding, LOCALS_DUPLICATE, LOCALS_UNUSED, MEMBERS_SKSE, MEMBERS_UNKNOWN, PARAMS_UNUSED,
     PROPERTIES_READONLY, RETURNS_MISSING, SCRIPTS_UNKNOWN, STATES_UNKNOWN, Suggestion,
     TYPES_MISMATCH,
 };
@@ -31,6 +31,7 @@ pub(crate) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             Problem::UnusedParam => &PARAMS_UNUSED,
             Problem::SkseMember => &MEMBERS_SKSE,
             Problem::UnknownScript => &SCRIPTS_UNKNOWN,
+            Problem::DuplicateLocal => &LOCALS_DUPLICATE,
         };
         findings.push(Finding {
             lint,
