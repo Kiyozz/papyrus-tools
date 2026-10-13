@@ -32,7 +32,7 @@ jobs:
           node-version: 24
           cache: npm
       # `release:version` updates Cargo.lock.
-      - uses: dtolnay/rust-toolchain@1.86
+      - uses: dtolnay/rust-toolchain@1.88
       - run: npm ci
       - id: changesets
         uses: changesets/action@v1
