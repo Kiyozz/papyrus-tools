@@ -6,9 +6,14 @@ the Creation Kit — Skyrim, Fallout 4, Starfield.
 - syntax errors as you type, for the targeted game;
 - lints: misspelled events the engine will never call (`OnActivatee`),
   misplaced flags, text the compiler will corrupt, naming conventions;
+- checks across files: missing or extra arguments, values of the wrong type,
+  unknown functions and members (with the closest name), typed functions
+  that can end without `Return`;
 - one-click fixes, and "Allow" to silence a lint on one line;
 - go to definition, hover, completion, references and rename across the
   project's scripts, down to the game's native ones;
+- signature help while typing a call, and the names of the parameters before
+  its arguments;
 - document formatting;
 - document outline, workspace symbols, block folding, semantic highlighting.
 
@@ -17,6 +22,14 @@ the Creation Kit — Skyrim, Fallout 4, Starfield.
 The extension ships with the `papyrus` binary for its platform and runs
 `papyrus lsp`. The `papyrus.server.path` setting points to another binary;
 without an embedded one, the extension looks for `papyrus` in the `PATH`.
+
+## Settings
+
+- `papyrus.inlayHints.parameterNames`: `literals` (default) shows the name of
+  the parameter before literal arguments, `Disable(abFadeOut: true)`; `all`
+  before every argument not already named like it; `none` hides them.
+  `editor.inlayHints.enabled` turns every hint off.
+- `papyrus.server.path`: another `papyrus` binary.
 
 ## Configuration
 
