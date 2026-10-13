@@ -1,7 +1,7 @@
 //! The Papyrus language server: diagnostics, outline, folding, highlighting,
 //! formatting and fixes, definitions, hovers, completion, references,
-//! renames and workspace symbols, for VSCode, IntelliJ (through LSP4IJ) and
-//! any editor that speaks LSP.
+//! renames, workspace symbols, signature help and parameter name hints, for
+//! VSCode, IntelliJ (through LSP4IJ) and any editor that speaks LSP.
 //!
 //! ```sh
 //! papyrus lsp
@@ -15,6 +15,10 @@
 //!
 //! Every script read feeds a `papyrus_hir` database; open documents replace
 //! their on-disk text there as they are edited.
+//!
+//! The parameter name hints follow `inlayHints.parameterNames`, `none`,
+//! `literals` (the default) or `all`, in the initialization options or in
+//! the `papyrus` section of the configuration.
 
 #![forbid(unsafe_code)]
 
@@ -29,10 +33,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use papyrus_dialect::{Dialect, GameId};
-use papyrus_hir::{Database, Semantics, SourceFile};
+use papyrus_hir::{Database, ParameterHints, Semantics, SourceFile};
 use papyrus_lint::{Model, ScriptSummary, Workspace};
 use papyrus_project::{ConfigLocator, decode};
-use papyrus_syntax::TextSize;
+use papyrus_syntax::{TextRange, TextSize};
 use salsa::Setter;
 use tower_lsp_server::jsonrpc::{Error, Result};
 use tower_lsp_server::ls_types::*;
@@ -78,6 +82,19 @@ struct State {
     /// The model's file of each script read, by path; a document without a
     /// path is keyed by its URI.
     sources: HashMap<PathBuf, SourceFile>,
+    /// Which arguments get the name of their parameter.
+    hints: ParameterHints,
+}
+
+/// `inlayHints.parameterNames` in `settings`, or in its `papyrus` section.
+fn parameter_hints(settings: &serde_json::Value) -> Option<ParameterHints> {
+    let section = settings.get("papyrus").unwrap_or(settings);
+    match section.pointer("/inlayHints/parameterNames")?.as_str()? {
+        "none" => Some(ParameterHints::None),
+        "literals" => Some(ParameterHints::Literals),
+        "all" => Some(ParameterHints::All),
+        _ => None,
+    }
 }
 
 /// The key of a document in [`State::sources`].
@@ -550,6 +567,13 @@ impl LanguageServer for Backend {
             .unwrap_or(false);
         {
             let mut state = self.state();
+            if let Some(hints) = params
+                .initialization_options
+                .as_ref()
+                .and_then(parameter_hints)
+            {
+                state.hints = hints;
+            }
             state.columns = if utf8 { Columns::Utf8 } else { Columns::Utf16 };
             state.folders = folders;
             state.can_watch = can_watch;
@@ -575,6 +599,12 @@ impl LanguageServer for Backend {
                 document_formatting_provider: Some(OneOf::Left(true)),
                 definition_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
+                signature_help_provider: Some(SignatureHelpOptions {
+                    trigger_characters: Some(vec!["(".to_owned(), ",".to_owned()]),
+                    retrigger_characters: None,
+                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                }),
+                inlay_hint_provider: Some(OneOf::Left(true)),
                 completion_provider: Some(CompletionOptions {
                     trigger_characters: Some(vec![".".to_owned()]),
                     ..CompletionOptions::default()
@@ -845,6 +875,49 @@ impl LanguageServer for Backend {
                 |nav, project, file, offset| nav.hover(project, file, offset),
             )
             .flatten())
+    }
+
+    async fn signature_help(&self, params: SignatureHelpParams) -> Result<Option<SignatureHelp>> {
+        let at = params.text_document_position_params;
+        let state = self.state();
+        Ok(state
+            .navigate(
+                &at.text_document.uri,
+                at.position,
+                |nav, project, file, offset| nav.signature_help(project, file, offset),
+            )
+            .flatten())
+    }
+
+    async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
+        let state = self.state();
+        let Some((file, model, document)) = state.model(&params.text_document.uri) else {
+            return Ok(None);
+        };
+        let text = &document.decoded.text;
+        let map = LineMap::new(text, state.columns);
+        // A range past the end, as some editors send, runs to the end.
+        let start = map.offset(params.range.start).unwrap_or_default();
+        let end = map
+            .offset(params.range.end)
+            .unwrap_or_else(|| TextSize::of(text.as_str()));
+        let range = TextRange::new(start, end.max(start));
+        let uri_of = |file| state.uri_of(file);
+        let navigator = Navigator {
+            db: &state.db,
+            columns: state.columns,
+            uri: &uri_of,
+        };
+        Ok(Some(navigator.inlay_hints(model, file, range, state.hints)))
+    }
+
+    async fn did_change_configuration(&self, params: DidChangeConfigurationParams) {
+        let Some(hints) = parameter_hints(&params.settings) else {
+            return;
+        };
+        self.state().hints = hints;
+        // Clients that cannot refresh ask again on their own.
+        let _ = self.client.inlay_hint_refresh().await;
     }
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {

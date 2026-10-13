@@ -44,6 +44,15 @@ async function start(context) {
     { command, args: ["lsp"] },
     {
       documentSelector: [{ scheme: "file", language: "papyrus" }],
+      initializationOptions: {
+        inlayHints: {
+          parameterNames: vscode.workspace
+            .getConfiguration("papyrus")
+            .get("inlayHints.parameterNames"),
+        },
+      },
+      // Changes to the `papyrus` settings reach the server.
+      synchronize: { configurationSection: "papyrus" },
     },
   );
   try {

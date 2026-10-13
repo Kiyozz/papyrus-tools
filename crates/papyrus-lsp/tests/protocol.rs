@@ -523,3 +523,148 @@ async fn navigation_across_files() {
     client.notify("exit", Value::Null).await;
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// The codes of a `publishDiagnostics` notification.
+fn codes(message: &Value) -> Vec<String> {
+    message["params"]["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|d| d["code"].as_str().unwrap_or_default().to_owned())
+        .collect()
+}
+
+#[tokio::test]
+async fn calls_are_checked_helped_and_hinted() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-calls-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let lib_text = "ScriptName Lib1 extends Quest\nFunction Start(int stage, bool abForce = false)\nEndFunction\n";
+    std::fs::write(dir.join("Lib1.psc"), lib_text).unwrap();
+
+    let mut client = connect();
+    let result = client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": {},
+                "workspaceFolders": [{ "uri": uri(&dir), "name": "calls" }],
+                "initializationOptions": { "inlayHints": { "parameterNames": "all" } },
+            }),
+        )
+        .await;
+    let capabilities = &result["capabilities"];
+    assert_eq!(capabilities["inlayHintProvider"], true);
+    assert_eq!(
+        capabilities["signatureHelpProvider"]["triggerCharacters"],
+        json!(["(", ","])
+    );
+    client.notify("initialized", json!({})).await;
+    client.wait(|m| m["method"] == "window/logMessage").await;
+
+    // A call missing its argument, in another file than the callee.
+    let child = uri(&dir.join("Child.psc"));
+    let text = "ScriptName Child extends Quest\nLib1 Property other Auto\nEvent OnInit()\n\tother.Start()\n\tother.Start(1, true)\nEndEvent\n";
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": child, "languageId": "papyrus", "version": 1, "text": text,
+            } }),
+        )
+        .await;
+    let published = client
+        .wait(|m| {
+            m["method"] == "textDocument/publishDiagnostics"
+                && decoded(&m["params"]["uri"]) == child
+                && codes(m).contains(&"PAP005".to_owned())
+        })
+        .await;
+    assert_eq!(codes(&published), ["PAP005"]);
+
+    let document = json!({ "uri": child });
+    let help = client
+        .request(
+            "textDocument/signatureHelp",
+            json!({ "textDocument": document, "position": at(text, "Start(1", 6) }),
+        )
+        .await;
+    assert_eq!(
+        help["signatures"][0]["label"],
+        "Start(int stage, bool abForce = false)"
+    );
+    assert_eq!(help["activeParameter"], 0);
+    assert_eq!(
+        help["signatures"][0]["parameters"][1]["label"],
+        json!([17, 37])
+    );
+
+    let whole =
+        json!({ "start": { "line": 0, "character": 0 }, "end": { "line": 9, "character": 0 } });
+    let hints = client
+        .request(
+            "textDocument/inlayHint",
+            json!({ "textDocument": document, "range": whole }),
+        )
+        .await;
+    let labels: Vec<&str> = hints
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|h| h["label"].as_str().unwrap())
+        .collect();
+    assert_eq!(labels, ["stage:", "abForce:"]);
+
+    // Turned off: the server asks the editor to refresh.
+    client
+        .notify(
+            "workspace/didChangeConfiguration",
+            json!({ "settings": { "papyrus": { "inlayHints": { "parameterNames": "none" } } } }),
+        )
+        .await;
+    let refresh = client
+        .wait(|m| m["method"] == "workspace/inlayHint/refresh")
+        .await;
+    client
+        .send(json!({ "jsonrpc": "2.0", "id": refresh["id"], "result": null }))
+        .await;
+    let hints = client
+        .request(
+            "textDocument/inlayHint",
+            json!({ "textDocument": document, "range": whole }),
+        )
+        .await;
+    assert_eq!(hints, json!([]));
+
+    // A default value in the callee clears the caller.
+    let lib = uri(&dir.join("Lib1.psc"));
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": lib, "languageId": "papyrus", "version": 1, "text": lib_text,
+            } }),
+        )
+        .await;
+    client
+        .notify(
+            "textDocument/didChange",
+            json!({
+                "textDocument": { "uri": lib, "version": 2 },
+                "contentChanges": [{ "text": lib_text.replace("int stage", "int stage = 0") }],
+            }),
+        )
+        .await;
+    client
+        .wait(|m| {
+            m["method"] == "textDocument/publishDiagnostics"
+                && decoded(&m["params"]["uri"]) == child
+                && codes(m).is_empty()
+        })
+        .await;
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}

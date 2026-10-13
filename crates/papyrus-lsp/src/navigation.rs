@@ -1,16 +1,19 @@
 //! Cross-file features: definition, hover, completion, references, rename,
-//! workspace symbols. The model answers in files and byte ranges; this
+//! workspace symbols, signature help, inlay hints. The model answers in files and byte ranges; this
 //! module turns them into LSP types.
 
 use std::collections::HashMap;
 
 use papyrus_hir::{
-    CompletionKind, Database, ItemKind, NavTarget, Project, Reference, Semantics, SourceFile,
+    CompletionKind, Database, ItemKind, NavTarget, ParameterHints, Project, Reference, Semantics,
+    SourceFile,
 };
 use papyrus_syntax::{TextRange, TextSize};
 use tower_lsp_server::ls_types::{
-    CompletionItem, CompletionItemKind, Hover, HoverContents, Location, MarkupContent, MarkupKind,
-    Range, SymbolInformation, SymbolKind, TextEdit, Uri, WorkspaceEdit,
+    CompletionItem, CompletionItemKind, Documentation, Hover, HoverContents, InlayHint,
+    InlayHintKind, InlayHintLabel, Location, MarkupContent, MarkupKind, ParameterInformation,
+    ParameterLabel, Range, SignatureHelp, SignatureInformation, SymbolInformation, SymbolKind,
+    TextEdit, Uri, WorkspaceEdit,
 };
 
 use crate::position::{Columns, LineMap};
@@ -46,6 +49,69 @@ impl Navigator<'_> {
             file, focus_range, ..
         } = Semantics::new(self.db, project).definition(file, offset)?;
         self.location(file, focus_range)
+    }
+
+    pub(crate) fn signature_help(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<SignatureHelp> {
+        let help = Semantics::new(self.db, project).signature_help(file, offset)?;
+        let (label, ranges) = help.signature.label();
+        let unit = |i: usize| match self.columns {
+            Columns::Utf8 => i as u32,
+            Columns::Utf16 => label[..i].encode_utf16().count() as u32,
+        };
+        let parameters: Vec<ParameterInformation> = ranges
+            .iter()
+            .map(|&(start, end)| ParameterInformation {
+                label: ParameterLabel::LabelOffsets([unit(start), unit(end)]),
+                documentation: None,
+            })
+            .collect();
+        // Past the last parameter, none is highlighted.
+        let active = help.active.unwrap_or(parameters.len()) as u32;
+        let documentation = help.signature.doc.clone().map(|value| {
+            Documentation::MarkupContent(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value,
+            })
+        });
+        Some(SignatureHelp {
+            signatures: vec![SignatureInformation {
+                label,
+                documentation,
+                parameters: Some(parameters),
+                active_parameter: Some(active),
+            }],
+            active_signature: Some(0),
+            active_parameter: Some(active),
+        })
+    }
+
+    pub(crate) fn inlay_hints(
+        &self,
+        project: Project,
+        file: SourceFile,
+        range: TextRange,
+        mode: ParameterHints,
+    ) -> Vec<InlayHint> {
+        let map = self.map(file);
+        Semantics::new(self.db, project)
+            .parameter_hints(file, range, mode)
+            .into_iter()
+            .map(|hint| InlayHint {
+                position: map.position(hint.offset),
+                label: InlayHintLabel::String(format!("{}:", hint.label)),
+                kind: Some(InlayHintKind::PARAMETER),
+                text_edits: None,
+                tooltip: None,
+                padding_left: None,
+                padding_right: Some(true),
+                data: None,
+            })
+            .collect()
     }
 
     pub(crate) fn hover(

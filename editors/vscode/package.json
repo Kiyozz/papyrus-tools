@@ -56,6 +56,21 @@
           "default": "",
           "markdownDescription": "Path of the `papyrus` binary. Empty: the one bundled with the extension, else `papyrus` from the `PATH`."
         },
+        "papyrus.inlayHints.parameterNames": {
+          "type": "string",
+          "enum": [
+            "none",
+            "literals",
+            "all"
+          ],
+          "enumDescriptions": [
+            "No parameter names.",
+            "Before literals only: `Disable(abFadeOut: true)`.",
+            "Before every argument, unless it already carries the name."
+          ],
+          "default": "literals",
+          "markdownDescription": "Show the name of the parameter before the arguments of a call. `editor.inlayHints.enabled` turns every hint off."
+        },
         "papyrus.trace.server": {
           "type": "string",
           "enum": [

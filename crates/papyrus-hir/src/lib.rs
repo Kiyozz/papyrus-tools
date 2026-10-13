@@ -37,6 +37,7 @@
 mod builtins;
 mod calls;
 mod check;
+mod hints;
 mod ide;
 mod items;
 mod semantics;
@@ -52,6 +53,7 @@ use papyrus_syntax::Parse;
 
 pub use calls::{Signature, SignatureParam};
 pub use check::{Diagnostic, Problem, Replacement};
+pub use hints::{InlayHint, ParameterHints, SignatureHelp};
 pub use ide::{
     Completion, CompletionKind, Hover, NavTarget, Reference, RenameEdit, RenameError, Symbol,
     SymbolKind, workspace_symbols,

@@ -2,8 +2,8 @@
 
 use papyrus_dialect::GameId;
 use papyrus_hir::{
-    CompletionKind, Database, Def, ItemKind, Project, Semantics, SourceFile, SymbolKind,
-    workspace_symbols,
+    CompletionKind, Database, Def, ItemKind, ParameterHints, Project, Semantics, SourceFile,
+    SymbolKind, workspace_symbols,
 };
 use papyrus_syntax::{TextRange, TextSize};
 use salsa::Setter;
@@ -536,4 +536,98 @@ fn short_names_resolve_in_the_namespace_and_imports() {
         ],
     );
     assert_eq!(f.definition().as_deref(), Some("Data.psc:Value"));
+}
+
+// ── Signature help and inlay hints ────────────────────────────────────────
+
+const TAKE: &str = "ScriptName A extends ObjectReference\n\
+    Function Take(int aiCount, float afScale = 1.0)\nEndFunction\n\
+    int Function Count()\nEndFunction\n";
+
+/// The label and active parameter at the cursor of `body`, in an event of
+/// [`TAKE`].
+fn help(body: &str) -> Option<(String, Option<usize>)> {
+    let text = format!("{TAKE}Event OnInit()\n{body}\nEndEvent\n");
+    let fixture = Fixture::new(GameId::Skyrim, &[("A.psc", &text)]);
+    let (file, offset) = fixture.cursor();
+    let help = fixture.sema().signature_help(file, offset)?;
+    Some((help.signature.label().0, help.active))
+}
+
+#[test]
+fn signature_help_follows_the_cursor() {
+    let take = "Take(int aiCount, float afScale = 1.0)".to_owned();
+    assert_eq!(help("\tTake($0"), Some((take.clone(), Some(0))));
+    assert_eq!(help("\tTake(1, $0"), Some((take.clone(), Some(1))));
+    assert_eq!(help("\tTake(1, 2.0, $0)"), Some((take.clone(), None)));
+    assert_eq!(help("\tTake(afScale = $0)"), Some((take.clone(), Some(1))));
+    // The innermost call wins; after `)`, the outer one.
+    assert_eq!(
+        help("\tTake(Count($0))"),
+        Some(("int Count()".to_owned(), None))
+    );
+    assert_eq!(help("\tTake(Count()$0)"), Some((take, Some(0))));
+    assert_eq!(help("\tTake(1)$0"), None);
+
+    let (label, active) = help("\tDebug.Trace(\"x\", $0").unwrap();
+    assert_eq!(label, "Trace(string asTextToPrint, int aiSeverity = 0)");
+    assert_eq!(active, Some(1));
+}
+
+#[test]
+fn signature_labels_give_each_parameter_its_range() {
+    let fixture = Fixture::new(
+        GameId::Skyrim,
+        &[(
+            "A.psc",
+            &format!("{TAKE}Event OnInit()\n\tTake($0\nEndEvent\n"),
+        )],
+    );
+    let (file, offset) = fixture.cursor();
+    let help = fixture.sema().signature_help(file, offset).unwrap();
+    let (label, ranges) = help.signature.label();
+    let params: Vec<&str> = ranges.iter().map(|&(s, e)| &label[s..e]).collect();
+    assert_eq!(params, ["int aiCount", "float afScale = 1.0"]);
+}
+
+#[test]
+fn parameter_hints_name_literals_by_default() {
+    let text = format!(
+        "{TAKE}Event OnInit()\n\tint count = 2\n\tTake(count, 2.0)\n\tTake(-1)\n\tDisable(true)\n\tTake(Count(), afScale = 1.0)\nEndEvent\n"
+    );
+    let fixture = Fixture::new(GameId::Skyrim, &[("A.psc", &text)]);
+    let file = fixture.file("A.psc");
+    let hints = |mode| -> Vec<(String, String)> {
+        let range = TextRange::up_to(TextSize::of(text.as_str()));
+        fixture
+            .sema()
+            .parameter_hints(file, range, mode)
+            .into_iter()
+            .map(|h| {
+                let rest = &text[usize::from(h.offset)..];
+                let value = rest.split([',', ')']).next().unwrap().to_owned();
+                (h.label, value)
+            })
+            .collect()
+    };
+    let pair = |a: &str, b: &str| (a.to_owned(), b.to_owned());
+    assert_eq!(
+        hints(ParameterHints::Literals),
+        [
+            pair("afScale", "2.0"),
+            pair("aiCount", "-1"),
+            pair("abFadeOut", "true"),
+        ]
+    );
+    // `count` already says `aiCount`.
+    assert_eq!(
+        hints(ParameterHints::All),
+        [
+            pair("afScale", "2.0"),
+            pair("aiCount", "-1"),
+            pair("abFadeOut", "true"),
+            pair("aiCount", "Count("),
+        ]
+    );
+    assert_eq!(hints(ParameterHints::None), []);
 }
