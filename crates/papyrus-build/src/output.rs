@@ -16,6 +16,7 @@
 //! ```
 //!
 //! Lines and columns from 1, columns in bytes, with the end of the span.
+//! The path is relative to the folder compiled.
 
 use std::path::PathBuf;
 
@@ -95,6 +96,8 @@ fn noise(line: &str) -> bool {
         "Compilation of '",
         "Adding import directory",
         "Adding current working directory",
+        "Importing files...",
+        "Imported ",
     ];
     PREFIXES.iter().any(|p| line.starts_with(p))
 }
@@ -220,7 +223,9 @@ mod tests {
 
     #[test]
     fn caprica_is_read() {
-        let output = "C:\\Mod\\Foo.psc (3, 6:7): Error: Unknown type 'Foo'!\n\
+        let output = "Importing files...\n\
+            Imported 14326 files.\n\
+            C:\\Mod\\Foo.psc (3, 6:7): Error: Unknown type 'Foo'!\n\
             C:\\Mod\\Foo.psc (8, 2:9): Warning W4001: The value is never used.\n\
             Compilation of 'C:\\Mod\\Foo.psc' failed; 1 warnings and 1 errors were encountered.\n\
             Fatal Error: Unable to find the flags file!\n";

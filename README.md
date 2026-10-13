@@ -199,6 +199,10 @@ own sources, found next to the Creation Kit's compiler; with Caprica, list
 them in `imports`. Each source folder is compiled whole, fragments included.
 The flags are `flags`, else the game's, looked up in those folders. Caprica's
 language extensions are not supported: `papyrus check` would reject them.
+Caprica writes no `.pex` at all once a script fails, where the Creation Kit's
+compiler writes the others; and its 0.3.0 cannot read Fallout 4's vanilla
+`TestKevinActivationScript.psc`, whose header starts with a space: leave it
+out of the folder given in `imports`.
 
 ### Editors
 

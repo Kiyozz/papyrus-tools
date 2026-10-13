@@ -255,7 +255,13 @@ pub fn compile(compiler: &Compiler, job: &Job, root: &Path) -> std::io::Result<O
     let mut text = String::from_utf8_lossy(&output.stdout).into_owned();
     text.push('\n');
     text.push_str(&String::from_utf8_lossy(&output.stderr));
-    let (messages, other) = parse(compiler.kind, &text);
+    let (mut messages, other) = parse(compiler.kind, &text);
+    // Caprica names the files from the folder compiled.
+    for message in &mut messages {
+        if message.path.is_relative() {
+            message.path = root.join(&message.path);
+        }
+    }
     Ok(Outcome {
         success: output.status.success(),
         messages,
