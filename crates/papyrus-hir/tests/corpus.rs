@@ -156,20 +156,27 @@ fn starfield_resolves() {
     resolve_game(GameId::Starfield);
 }
 
-/// The semantic checks on vanilla, by problem: `file:line message`.
+/// The semantic checks on vanilla, by problem: `file:line message`; with
+/// the target, then without, as an unconfigured project would be.
 fn check_game(game: GameId) {
     let db = Database::default();
     let Some(files) = load(&db, game, usize::MAX) else {
         return;
     };
-    let project = Project::new(&db, files.clone(), Vec::new(), Some(game));
-    let sema = Semantics::new(&db, project);
+    for target in [Some(game), None] {
+        check_project(&db, &files, game, target);
+    }
+}
+
+fn check_project(db: &Database, files: &[SourceFile], game: GameId, target: Option<GameId>) {
+    let project = Project::new(db, files.to_vec(), Vec::new(), target);
+    let sema = Semantics::new(db, project);
     let mut found: HashMap<String, Vec<String>> = HashMap::new();
-    for &file in &files {
+    for &file in files {
         for d in sema.check(file) {
-            let text = file.text(&db);
+            let text = file.text(db);
             let line = text[..usize::from(d.range.start())].lines().count();
-            let name = file.path(&db).file_name().unwrap().to_string_lossy();
+            let name = file.path(db).file_name().unwrap().to_string_lossy();
             found
                 .entry(format!("{:?}", d.problem))
                 .or_default()
@@ -178,13 +185,17 @@ fn check_game(game: GameId) {
     }
     for (problem, list) in &mut found {
         list.sort();
-        println!("· {} {problem}: {}", game.display_name(), list.len());
+        let label = if target.is_some() { "" } else { " (no target)" };
+        println!("· {}{label} {problem}: {}", game.display_name(), list.len());
         for line in list.iter().take(25) {
             println!("    {line}");
         }
     }
     found.remove("MissingReturn");
-    assert!(found.is_empty(), "false positives on {game}: {found:#?}");
+    assert!(
+        found.is_empty(),
+        "false positives on {game}, target {target:?}: {found:#?}"
+    );
 }
 
 #[test]

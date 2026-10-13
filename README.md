@@ -137,7 +137,9 @@ certain:
   of another script extender (F4SE…) are known once its sources are in
   `imports`, as they are for the compiler.
 
-They need the target: without `game`, nothing is reported. On the vanilla
+Without a known target, the native scripts are unknown: only calls to the
+project's own functions, values of the base types (`int`, `float`, `bool`,
+`string`) and returns are checked. On the vanilla
 scripts of the three games, `PAP005` to `PAP008` find nothing; `PAP009` finds
 93 typed functions that fall through to the default value.
 

@@ -424,7 +424,22 @@ int Function Native() Native
 }
 
 #[test]
-fn nothing_without_a_target() {
-    let source = script("\tTake()\n\tFoo()");
-    assert_eq!(check_in(None, &[("A.psc", &source)]), []);
+fn without_a_target_only_the_project_decides() {
+    // The project's own functions and the base types are the same in every
+    // game; the native scripts are not.
+    let source = script(
+        "\tTake()\n\tTake(\"x\")\n\tTake(Utility.RandomInt())\n\tTake(1, Game.GetPlayer())\n\
+         \tDebug.Trace()\n\tFoo()\n\tbar = 1",
+    );
+    let found: Vec<(Problem, String)> = check_in(None, &[("A.psc", &source)])
+        .into_iter()
+        .map(|(p, t, _)| (p, t))
+        .collect();
+    assert_eq!(
+        found,
+        [
+            (Problem::Arity, "()".to_owned()),
+            (Problem::Mismatch, "\"x\"".to_owned()),
+        ]
+    );
 }
