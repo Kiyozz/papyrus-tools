@@ -1,20 +1,25 @@
 //! The Papyrus language server: diagnostics, outline, folding, highlighting,
-//! formatting and fixes, for VSCode, IntelliJ (through LSP4IJ) and any
-//! editor that speaks LSP.
+//! formatting and fixes, definitions, hovers, completion, references,
+//! renames and workspace symbols, for VSCode, IntelliJ (through LSP4IJ) and
+//! any editor that speaks LSP.
 //!
 //! ```sh
 //! papyrus lsp
 //! ```
 //!
 //! On startup, the projects of the workspace folders are indexed in the
-//! background: enough to follow `extends` from one file to another and to
-//! deduce the target game when papyrus.toml does not say it. A window may
-//! hold several projects, each with its own `papyrus.toml`: they are kept
-//! apart.
+//! background, with the scripts of their `imports` folders: enough to follow
+//! `extends` and calls from one file to another and to deduce the target
+//! game when papyrus.toml does not say it. A window may hold several
+//! projects, each with its own `papyrus.toml`: they are kept apart.
+//!
+//! Every script read feeds a `papyrus_hir` database; open documents replace
+//! their on-disk text there as they are edited.
 
 #![forbid(unsafe_code)]
 
 mod analysis;
+mod navigation;
 mod position;
 mod semantic;
 mod symbols;
@@ -24,13 +29,17 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use papyrus_dialect::{Dialect, GameId};
+use papyrus_hir::{Database, SourceFile};
 use papyrus_lint::{ScriptSummary, Workspace};
 use papyrus_project::{ConfigLocator, decode};
+use papyrus_syntax::TextSize;
+use salsa::Setter;
 use tower_lsp_server::jsonrpc::{Error, Result};
 use tower_lsp_server::ls_types::*;
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 
 use analysis::{Analysis, Document, Settings, analyze};
+use navigation::Navigator;
 use position::{Columns, LineMap};
 
 /// What the server knows about one project: the folder of a `papyrus.toml`,
@@ -44,6 +53,10 @@ struct Project {
     workspace: Workspace,
     /// The target deduced from its scripts.
     detected: Option<GameId>,
+    /// The target its papyrus.toml sets.
+    configured: Option<GameId>,
+    /// Its model: own scripts, imported ones, target.
+    model: Option<papyrus_hir::Project>,
 }
 
 /// The server's shared state.
@@ -60,6 +73,19 @@ struct State {
     locator: ConfigLocator,
     /// The client can watch files at the server's request.
     can_watch: bool,
+    /// The semantic model.
+    db: Database,
+    /// The model's file of each script read, by path; a document without a
+    /// path is keyed by its URI.
+    sources: HashMap<PathBuf, SourceFile>,
+}
+
+/// The key of a document in [`State::sources`].
+fn key(uri: &Uri, document: &Document) -> PathBuf {
+    document
+        .path
+        .clone()
+        .unwrap_or_else(|| PathBuf::from(uri.as_str()))
 }
 
 impl State {
@@ -81,6 +107,102 @@ impl State {
             .cloned()
             .or_else(|| path.parent().map(Path::to_owned))
             .unwrap_or_default()
+    }
+
+    /// The model's file for `path`, created or brought up to `text`.
+    fn source(&mut self, path: &Path, text: String) -> SourceFile {
+        match self.sources.get(path) {
+            Some(&file) => {
+                if file.text(&self.db) != text {
+                    file.set_text(&mut self.db).to(text);
+                }
+                file
+            }
+            None => {
+                let file = SourceFile::new(&self.db, path.to_owned(), text);
+                self.sources.insert(path.to_owned(), file);
+                file
+            }
+        }
+    }
+
+    /// The target of a project: papyrus.toml's, else the inferred one.
+    fn target(project: &Project) -> Option<GameId> {
+        project.configured.or(project.detected)
+    }
+
+    /// Makes `file` one of the scripts of the project at `root`.
+    fn attach(&mut self, root: &Path, file: SourceFile) {
+        let project = self.projects.entry(root.to_owned()).or_default();
+        let game = State::target(project);
+        match project.model {
+            Some(model) => {
+                if !model.files(&self.db).contains(&file) {
+                    let mut files = model.files(&self.db).to_vec();
+                    files.push(file);
+                    model.set_files(&mut self.db).to(files);
+                }
+            }
+            None => {
+                project.model = Some(papyrus_hir::Project::new(
+                    &self.db,
+                    vec![file],
+                    Vec::new(),
+                    game,
+                ));
+            }
+        }
+    }
+
+    /// Feeds the text of document `uri` to the model.
+    fn feed(&mut self, uri: &Uri) {
+        let Some(document) = self.documents.get(uri) else {
+            return;
+        };
+        let (path, root, text) = (
+            key(uri, document),
+            document.project.clone(),
+            document.decoded.text.clone(),
+        );
+        let file = self.source(&path, text);
+        self.attach(&root, file);
+    }
+
+    /// The model's file of document `uri`, and its project's model.
+    fn model(&self, uri: &Uri) -> Option<(SourceFile, papyrus_hir::Project, &Document)> {
+        let document = self.documents.get(uri)?;
+        let file = *self.sources.get(&key(uri, document))?;
+        let model = self.projects.get(&document.project)?.model?;
+        Some((file, model, document))
+    }
+
+    /// The URI of a file of the model.
+    fn uri_of(&self, file: SourceFile) -> Option<Uri> {
+        let path = file.path(&self.db);
+        self.documents
+            .iter()
+            .find(|(uri, document)| key(uri, document) == *path)
+            .map(|(uri, _)| uri.clone())
+            .or_else(|| Uri::from_file_path(path))
+    }
+
+    /// Runs `f` with the model of document `uri` and the offset of
+    /// `position` in it.
+    fn navigate<T>(
+        &self,
+        uri: &Uri,
+        position: Position,
+        f: impl FnOnce(&Navigator<'_>, papyrus_hir::Project, SourceFile, TextSize) -> T,
+    ) -> Option<T> {
+        let (file, model, document) = self.model(uri)?;
+        let offset = LineMap::new(&document.decoded.text, self.columns).offset(position)?;
+        let uri_of = |file| self.uri_of(file);
+        let navigator = Navigator {
+            db: &self.db,
+            columns: self.columns,
+            uri: &uri_of,
+        };
+        Some(f(&navigator, model, file, offset))
     }
 
     /// Analyzes `document` within its project.
@@ -167,6 +289,16 @@ struct Scanned {
     root: PathBuf,
     summaries: Vec<ScriptSummary>,
     detected: Option<GameId>,
+    configured: Option<GameId>,
+    /// Its scripts and their text.
+    scripts: Vec<(PathBuf, String)>,
+    /// The scripts of its `imports` folders and their text.
+    imported: Vec<(PathBuf, String)>,
+}
+
+/// The text of a script on disk.
+fn read(path: &Path) -> Option<String> {
+    std::fs::read(path).ok().map(|bytes| decode(&bytes).text)
 }
 
 /// Indexes the projects under `folders`, as `papyrus check` would; a folder
@@ -186,29 +318,49 @@ fn scan(folders: &[PathBuf]) -> (Vec<Scanned>, Vec<String>) {
         for project in projects {
             let mut summaries = Vec::new();
             let mut verdicts = Vec::new();
-            for path in &project.scripts {
-                let Ok(bytes) = std::fs::read(path) else {
+            let mut scripts = Vec::new();
+            for path in project.scripts {
+                let Some(text) = read(&path) else {
                     continue;
                 };
-                let root = papyrus_syntax::parse(&decode(&bytes).text, widest).syntax();
+                let root = papyrus_syntax::parse(&text, widest).syntax();
                 verdicts.push(papyrus_project::detect::evidence(&root).verdict());
                 summaries.extend(ScriptSummary::of(&root));
+                scripts.push((path, text));
+            }
+            // Imported scripts relay `extends`, but do not vote on the game.
+            let mut imported = Vec::new();
+            for path in project.imported {
+                let Some(text) = read(&path) else {
+                    continue;
+                };
+                let root = papyrus_syntax::parse(&text, widest).syntax();
+                let summary = ScriptSummary::of(&root);
+                if summary.as_ref().is_some_and(|s| {
+                    !summaries
+                        .iter()
+                        .any(|o| o.name.eq_ignore_ascii_case(&s.name))
+                }) {
+                    summaries.extend(summary);
+                }
+                imported.push((path, text));
             }
             scanned.push(Scanned {
                 root: project.root,
                 summaries,
                 detected: papyrus_project::detect::majority(verdicts).map(|(game, _, _)| game),
+                configured: project.config.game,
+                scripts,
+                imported,
             });
         }
     }
     (scanned, errors)
 }
 
-/// The summary of a script on disk.
-fn summary_on_disk(path: &Path) -> Option<ScriptSummary> {
-    let bytes = std::fs::read(path).ok()?;
-    let root =
-        papyrus_syntax::parse(&decode(&bytes).text, Dialect::new(GameId::Starfield)).syntax();
+/// The summary of a script's text.
+fn summary_of(text: &str) -> Option<ScriptSummary> {
+    let root = papyrus_syntax::parse(text, Dialect::new(GameId::Starfield)).syntax();
     ScriptSummary::of(&root)
 }
 
@@ -261,6 +413,12 @@ impl Backend {
                 .collect();
             let batch = {
                 let mut state = backend.state();
+                // Open documents take precedence over the disk.
+                let open: HashMap<PathBuf, String> = state
+                    .documents
+                    .iter()
+                    .map(|(uri, d)| (key(uri, d), d.decoded.text.clone()))
+                    .collect();
                 let mut projects: HashMap<PathBuf, Project> = HashMap::new();
                 for project in scanned {
                     let target = match project.detected {
@@ -268,19 +426,34 @@ impl Backend {
                         None => "unknown target".to_owned(),
                     };
                     log.push(format!(
-                        "papyrus: {}: {} scripts indexed, {target}",
+                        "papyrus: {}: {} scripts indexed, {} imported, {target}",
                         project.root.display(),
-                        project.summaries.len()
+                        project.scripts.len(),
+                        project.imported.len()
                     ));
                     let mut workspace = Workspace::default();
                     for summary in project.summaries {
                         workspace.insert(summary);
                     }
+                    let mut feed = |list: Vec<(PathBuf, String)>| -> Vec<SourceFile> {
+                        list.into_iter()
+                            .map(|(path, text)| {
+                                let text = open.get(&path).cloned().unwrap_or(text);
+                                state.source(&path, text)
+                            })
+                            .collect()
+                    };
+                    let files = feed(project.scripts);
+                    let imports = feed(project.imported);
+                    let game = project.configured.or(project.detected);
+                    let model = papyrus_hir::Project::new(&state.db, files, imports, game);
                     projects.insert(
                         project.root,
                         Project {
                             workspace,
                             detected: project.detected,
+                            configured: project.configured,
+                            model: Some(model),
                         },
                     );
                 }
@@ -302,6 +475,11 @@ impl Backend {
                     }
                 }
                 state.projects = projects;
+                // Open documents outside every scanned project keep a model.
+                let uris: Vec<Uri> = state.documents.keys().cloned().collect();
+                for uri in &uris {
+                    state.feed(uri);
+                }
                 state.all()
             };
             for line in log {
@@ -385,6 +563,18 @@ impl LanguageServer for Backend {
                 document_symbol_provider: Some(OneOf::Left(true)),
                 folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
                 document_formatting_provider: Some(OneOf::Left(true)),
+                definition_provider: Some(OneOf::Left(true)),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
+                completion_provider: Some(CompletionOptions {
+                    trigger_characters: Some(vec![".".to_owned()]),
+                    ..CompletionOptions::default()
+                }),
+                references_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Right(RenameOptions {
+                    prepare_provider: Some(true),
+                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                })),
+                workspace_symbol_provider: Some(OneOf::Left(true)),
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensOptions(
                         SemanticTokensOptions {
@@ -455,6 +645,7 @@ impl LanguageServer for Backend {
             let mut document = Document::new(item.text, item.version, path.clone());
             document.project = state.root_of(path.as_deref());
             state.documents.insert(item.uri.clone(), document);
+            state.feed(&item.uri);
             state.refresh(&item.uri)
         };
         self.publish(batch).await;
@@ -473,6 +664,7 @@ impl LanguageServer for Backend {
             };
             document.decoded.text = change.text;
             document.version = params.text_document.version;
+            state.feed(&uri);
             state.refresh(&uri)
         };
         self.publish(batch).await;
@@ -494,8 +686,17 @@ impl LanguageServer for Backend {
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri;
-        self.state().documents.remove(&uri);
-        // The file stays in the index: it is still part of its project.
+        {
+            let mut state = self.state();
+            // The file stays in the index, with its text on disk: it is still
+            // part of its project.
+            if let Some(document) = state.documents.remove(&uri) {
+                if let Some(text) = document.path.as_deref().and_then(read) {
+                    let path = key(&uri, &document);
+                    state.source(&path, text);
+                }
+            }
+        }
         self.client.publish_diagnostics(uri, Vec::new(), None).await;
     }
 
@@ -518,14 +719,22 @@ impl LanguageServer for Backend {
                     && !state.documents.contains_key(&change.uri)
                 {
                     // A script modified outside the editor.
-                    if let Some(summary) = summary_on_disk(&path) {
+                    if let Some(text) = read(&path) {
                         let root = state.root_of(Some(&path));
-                        state
-                            .projects
-                            .entry(root)
-                            .or_default()
-                            .workspace
-                            .insert(summary);
+                        if let Some(summary) = summary_of(&text) {
+                            state
+                                .projects
+                                .entry(root.clone())
+                                .or_default()
+                                .workspace
+                                .insert(summary);
+                        }
+                        let known = state.sources.contains_key(&path);
+                        let file = state.source(&path, text);
+                        // An imported script is already part of its project.
+                        if !known {
+                            state.attach(&root, file);
+                        }
                     }
                 }
             }
@@ -600,6 +809,119 @@ impl LanguageServer for Backend {
         }))
     }
 
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        let at = params.text_document_position_params;
+        let state = self.state();
+        Ok(state
+            .navigate(
+                &at.text_document.uri,
+                at.position,
+                |nav, project, file, offset| nav.definition(project, file, offset),
+            )
+            .flatten()
+            .map(GotoDefinitionResponse::Scalar))
+    }
+
+    async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        let at = params.text_document_position_params;
+        let state = self.state();
+        Ok(state
+            .navigate(
+                &at.text_document.uri,
+                at.position,
+                |nav, project, file, offset| nav.hover(project, file, offset),
+            )
+            .flatten())
+    }
+
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        let at = params.text_document_position;
+        let state = self.state();
+        Ok(state
+            .navigate(
+                &at.text_document.uri,
+                at.position,
+                |nav, project, file, offset| nav.completion(project, file, offset),
+            )
+            .map(CompletionResponse::Array))
+    }
+
+    async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
+        let at = params.text_document_position;
+        let include = params.context.include_declaration;
+        let state = self.state();
+        Ok(state
+            .navigate(
+                &at.text_document.uri,
+                at.position,
+                |nav, project, file, offset| nav.references(project, file, offset, include),
+            )
+            .flatten())
+    }
+
+    async fn prepare_rename(
+        &self,
+        params: TextDocumentPositionParams,
+    ) -> Result<Option<PrepareRenameResponse>> {
+        let result = self.state().navigate(
+            &params.text_document.uri,
+            params.position,
+            |nav, project, file, offset| nav.prepare_rename(project, file, offset),
+        );
+        match result {
+            None => Ok(None),
+            Some(Ok((range, placeholder))) => {
+                Ok(Some(PrepareRenameResponse::RangeWithPlaceholder {
+                    range,
+                    placeholder,
+                }))
+            }
+            Some(Err(message)) => Err(refused(message)),
+        }
+    }
+
+    async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+        let at = params.text_document_position;
+        let result = self.state().navigate(
+            &at.text_document.uri,
+            at.position,
+            |nav, project, file, offset| nav.rename(project, file, offset, &params.new_name),
+        );
+        match result {
+            None => Ok(None),
+            Some(Ok((edit, warning))) => {
+                if let Some(warning) = warning {
+                    self.client
+                        .show_message(MessageType::WARNING, format!("papyrus: {warning}"))
+                        .await;
+                }
+                Ok(Some(edit))
+            }
+            Some(Err(message)) => Err(refused(message)),
+        }
+    }
+
+    async fn symbol(
+        &self,
+        params: WorkspaceSymbolParams,
+    ) -> Result<Option<WorkspaceSymbolResponse>> {
+        let state = self.state();
+        let projects: Vec<papyrus_hir::Project> =
+            state.projects.values().filter_map(|p| p.model).collect();
+        let uri_of = |file| state.uri_of(file);
+        let navigator = Navigator {
+            db: &state.db,
+            columns: state.columns,
+            uri: &uri_of,
+        };
+        Ok(Some(WorkspaceSymbolResponse::Flat(
+            navigator.symbols(&projects, &params.query),
+        )))
+    }
+
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let result = self.with_document(&params.text_document.uri, |state, document, map| {
             let analysis = state.analyze(document);
@@ -615,6 +937,13 @@ impl LanguageServer for Backend {
             }
         }
     }
+}
+
+/// A request the server declines, with the reason for the user.
+fn refused(message: String) -> Error {
+    let mut error = Error::invalid_request();
+    error.message = message.into();
+    error
 }
 
 /// Serves the protocol on `input` and `output` until `exit`.

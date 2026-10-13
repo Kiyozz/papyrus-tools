@@ -349,3 +349,177 @@ async fn each_project_of_a_window_stays_apart() {
     client.notify("exit", Value::Null).await;
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// A URI the server built, with the drive colon decoded as `uri` writes it.
+fn decoded(uri: &Value) -> String {
+    uri.as_str().unwrap().replace("%3A", ":")
+}
+
+/// The position of the first `needle` in `text`, plus `shift` characters.
+fn at(text: &str, needle: &str, shift: usize) -> Value {
+    let offset = text.find(needle).unwrap() + shift;
+    let line = text[..offset].matches('\n').count();
+    let character = offset - text[..offset].rfind('\n').map_or(0, |i| i + 1);
+    json!({ "line": line, "character": character })
+}
+
+#[tokio::test]
+async fn navigation_across_files() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-nav-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    for (path, text) in [
+        (
+            "mod/papyrus.toml",
+            "game = \"skyrim\"\nimports = [\"../lib\"]\n",
+        ),
+        (
+            "mod/MyBase.psc",
+            "ScriptName MyBase extends Lib\nint Property Count Auto\n{ How many }\nFunction Greet()\nEndFunction\n",
+        ),
+        (
+            "lib/Lib.psc",
+            "ScriptName Lib extends ObjectReference\nFunction Shared()\nEndFunction\n",
+        ),
+    ] {
+        let path = dir.join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    }
+    let root = dir.join("mod");
+
+    let mut client = connect();
+    let result = client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": {},
+                "workspaceFolders": [{ "uri": uri(&root), "name": "mod" }],
+            }),
+        )
+        .await;
+    let capabilities = &result["capabilities"];
+    assert_eq!(capabilities["definitionProvider"], true);
+    assert_eq!(capabilities["renameProvider"]["prepareProvider"], true);
+    client.notify("initialized", json!({})).await;
+    let log = client.wait(|m| m["method"] == "window/logMessage").await;
+    let log = log["params"]["message"].as_str().unwrap().to_owned();
+    assert!(log.contains("1 scripts indexed, 1 imported"), "{log}");
+
+    let child = uri(&root.join("Child.psc"));
+    let text = "ScriptName Child extends MyBase\nEvent OnInit()\n\tGreet()\n\tShared()\n\tCount += 1\n\tself.\nEndEvent\n";
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": child, "languageId": "papyrus", "version": 1, "text": text,
+            } }),
+        )
+        .await;
+    let document = json!({ "uri": child });
+    let position = |needle: &str, shift: usize| json!({ "textDocument": document, "position": at(text, needle, shift) });
+
+    // Into the project, and into an imported script.
+    let found = client
+        .request("textDocument/definition", position("Greet", 1))
+        .await;
+    assert_eq!(decoded(&found["uri"]), uri(&root.join("MyBase.psc")));
+    assert_eq!(
+        found["range"]["start"],
+        json!({ "line": 3, "character": 9 })
+    );
+    let found = client
+        .request("textDocument/definition", position("Shared", 1))
+        .await;
+    assert_eq!(
+        decoded(&found["uri"]),
+        uri(&dir.join("lib").join("Lib.psc"))
+    );
+
+    let hover = client
+        .request("textDocument/hover", position("Count", 1))
+        .await;
+    let value = hover["contents"]["value"].as_str().unwrap();
+    assert!(value.contains("int Property Count Auto"), "{value}");
+    assert!(value.contains("How many"), "{value}");
+
+    let completion = client
+        .request("textDocument/completion", position("self.", 5))
+        .await;
+    let labels: Vec<&str> = completion
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["label"].as_str().unwrap())
+        .collect();
+    for expected in ["Count", "Greet", "Shared", "MoveTo"] {
+        assert!(labels.contains(&expected), "{expected} in {labels:?}");
+    }
+
+    let references = client
+        .request(
+            "textDocument/references",
+            json!({
+                "textDocument": document,
+                "position": at(text, "Count", 1),
+                "context": { "includeDeclaration": true },
+            }),
+        )
+        .await;
+    assert_eq!(references.as_array().unwrap().len(), 2, "{references}");
+
+    let symbols = client
+        .request("workspace/symbol", json!({ "query": "greet" }))
+        .await;
+    assert_eq!(symbols[0]["name"], "Greet");
+
+    // A property can be renamed, with a warning.
+    let prepared = client
+        .request("textDocument/prepareRename", position("Count", 1))
+        .await;
+    assert_eq!(prepared["placeholder"], "Count");
+    // The edit, and a warning, in any order.
+    client.next_id += 1;
+    let id = client.next_id;
+    client
+        .send(json!({
+            "jsonrpc": "2.0", "id": id, "method": "textDocument/rename",
+            "params": {
+                "textDocument": document,
+                "position": at(text, "Count", 1),
+                "newName": "Total",
+            },
+        }))
+        .await;
+    let (mut edit, mut warning) = (Value::Null, Value::Null);
+    while edit.is_null() || warning.is_null() {
+        let message = client
+            .wait(|m| m["id"] == id || m["method"] == "window/showMessage")
+            .await;
+        if message["id"] == id {
+            edit = message;
+        } else {
+            warning = message;
+        }
+    }
+    let warning = warning["params"]["message"].as_str().unwrap();
+    assert!(warning.contains("Creation Kit"), "{warning}");
+    let changes = edit["result"]["changes"].as_object().unwrap();
+    assert_eq!(changes.len(), 2, "{edit}");
+
+    // An imported function cannot.
+    client.next_id += 1;
+    let id = client.next_id;
+    client
+        .send(json!({
+            "jsonrpc": "2.0", "id": id, "method": "textDocument/prepareRename",
+            "params": position("Shared", 1),
+        }))
+        .await;
+    let refused = client.wait(|m| m["id"] == id).await;
+    let message = refused["error"]["message"].as_str().unwrap();
+    assert!(message.contains("imported"), "{message}");
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
