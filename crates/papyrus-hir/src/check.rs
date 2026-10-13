@@ -881,14 +881,16 @@ impl Semantics<'_> {
         Some(Diagnostic {
             problem: Problem::UnknownMember,
             range,
+            // The declared name, whatever the case written.
             message: format!(
-                "`{name}` is a function{of}, not a variable: call it with parentheses, `{name}()`"
+                "`{declared}` is a function{of}, not a variable: call it with parentheses, \
+                 `{declared}()`"
             ),
             fixes: vec![Fix {
                 title: format!("Call `{declared}()`"),
                 edits: vec![Replacement {
-                    range: TextRange::empty(range.end()),
-                    text: "()".to_owned(),
+                    range,
+                    text: format!("{declared}()"),
                 }],
             }],
         })

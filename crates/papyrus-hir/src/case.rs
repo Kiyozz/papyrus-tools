@@ -80,9 +80,44 @@ pub fn is_pascal(name: &str) -> bool {
     name.starts_with(|c: char| c.is_ascii_uppercase()) && !name.contains('_')
 }
 
+/// The style `name` is written in, for messages: `snake_case`,
+/// `SCREAMING_SNAKE_CASE`, `PascalCase`, `lowerCamelCase`, or `mixed case`.
+pub fn style_of(name: &str) -> &'static str {
+    let letters = name.chars().filter(char::is_ascii_alphabetic);
+    let upper = letters.clone().any(|c| c.is_ascii_uppercase());
+    let lower = letters.clone().any(|c| c.is_ascii_lowercase());
+    let underscored = name.trim_matches('_').contains('_');
+    match (underscored, upper, lower) {
+        (true, false, _) => "snake_case",
+        (true, true, false) => "SCREAMING_SNAKE_CASE",
+        (true, true, true) => "mixed case",
+        (false, false, _) => "lowercase",
+        (false, true, false) if name.len() > 1 => "uppercase",
+        _ if is_pascal(name) => "PascalCase",
+        _ if is_lower_camel(name) => "lowerCamelCase",
+        _ => "mixed case",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn styles_are_named() {
+        for (name, style) in [
+            ("a_reference", "snake_case"),
+            ("MAX_COUNT", "SCREAMING_SNAKE_CASE"),
+            ("Private_Shift", "mixed case"),
+            ("initialize", "lowercase"),
+            ("COUNT", "uppercase"),
+            ("HitCount", "PascalCase"),
+            ("hitCount", "lowerCamelCase"),
+            ("_private", "lowercase"),
+        ] {
+            assert_eq!(style_of(name), style, "{name}");
+        }
+    }
 
     #[test]
     fn lower_camel() {

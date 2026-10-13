@@ -995,7 +995,7 @@ EndFunction
 Function Go()
 \tint a = MyScript.count
 \tint b = Run
-\tint c = self.Run
+\tint c = self.RUN
 \tint d = MyScript.Count()
 EndFunction
 ";
@@ -1008,9 +1008,10 @@ EndFunction
         .filter(|(p, ..)| *p == Problem::UnknownMember)
         .map(|(_, t, m)| (t, m))
         .collect();
-    let call = |name: &str, of: &str| {
+    // The message and the fix name the function as declared.
+    let call = |written: &str, name: &str, of: &str| {
         (
-            name.to_owned(),
+            written.to_owned(),
             format!(
                 "`{name}` is a function{of}, not a variable: call it with parentheses, `{name}()`"
             ),
@@ -1019,14 +1020,20 @@ EndFunction
     assert_eq!(
         messages,
         [
-            call("count", " of `MyScript`"),
-            call("Run", ""),
-            call("Run", " of `A`"),
+            call("count", "Count", " of `MyScript`"),
+            call("Run", "Run", ""),
+            call("RUN", "Run", " of `A`"),
         ]
     );
+    // `MyScript` is not part of this one-file project.
     let fixed = fixes(GameId::Skyrim, main, Problem::UnknownMember);
-    assert_eq!(fixed[0].0, "Call `Run()`");
-    assert!(fixed[0].1.contains("\tint b = Run()\n"), "{}", fixed[0].1);
+    let titles: Vec<&str> = fixed.iter().map(|(t, _)| t.as_str()).collect();
+    assert_eq!(titles, ["Call `Run()`", "Call `Run()`"]);
+    assert!(
+        fixed[1].1.contains("\tint c = self.Run()\n"),
+        "{}",
+        fixed[1].1
+    );
 }
 
 #[test]

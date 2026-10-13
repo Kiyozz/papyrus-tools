@@ -16,7 +16,7 @@
 
 use papyrus_syntax::{SyntaxKind, SyntaxNode, SyntaxToken};
 
-use crate::case::{is_lower_camel, is_pascal, to_lower_camel, to_pascal};
+use crate::case::{is_lower_camel, is_pascal, style_of, to_lower_camel, to_pascal};
 use crate::{Context, Edit, Finding, Lint, NAMING_FUNCTIONS, NAMING_LOCALS, NAMING_VARIABLES};
 
 /// What a name designates.
@@ -140,7 +140,8 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             lint: role.lint(),
             range: token.text_range(),
             message: format!(
-                "`{text}`: {} is written in {style}, `{suggestion}`.{note}",
+                "`{text}` is in {}, but {} is written in {style}: `{suggestion}`.{note}",
+                style_of(text),
                 role.describe()
             ),
             fix,
