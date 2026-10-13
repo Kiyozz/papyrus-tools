@@ -11,6 +11,7 @@
 
 mod report;
 
+use std::collections::HashMap;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -19,10 +20,14 @@ use std::str::FromStr;
 use clap::{Args, Parser, Subcommand};
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_fmt::{FormatError, FormatOptions, Indent};
-use papyrus_lint::{LINTS, Levels, ScriptSummary, Workspace, apply_fixes_with, vanilla_flags};
+use papyrus_hir::{Database, Semantics, SourceFile};
+use papyrus_lint::{
+    LINTS, Levels, Model, ScriptSummary, Workspace, apply_fixes_with, vanilla_flags,
+};
 use papyrus_project::flags::{FlagDef, parse_flags};
 use papyrus_project::{Decoded, IndentSetting, Level, Project, decode, encode};
 use papyrus_syntax::Parse;
+use salsa::Setter;
 
 use report::{Diagnostic, Reporter, Severity};
 
@@ -273,11 +278,32 @@ fn read(path: &Path, reporter: &mut Reporter) -> Option<Vec<u8>> {
     }
 }
 
+/// A project as `papyrus check` sees it: what its scripts declare, and its
+/// semantic model.
+struct Index {
+    workspace: Workspace,
+    db: Database,
+    project: papyrus_hir::Project,
+    files: HashMap<PathBuf, SourceFile>,
+}
+
+impl Index {
+    /// The model's file of `path`, kept at `text`.
+    fn file(&mut self, path: &Path, text: &str) -> Option<SourceFile> {
+        let file = *self.files.get(path)?;
+        if file.text(&self.db) != text {
+            file.set_text(&mut self.db).to(text.to_owned());
+        }
+        Some(file)
+    }
+}
+
 /// The tree and the lint diagnostics of a file.
 fn analyze(
     decoded: &Decoded,
     settings: &Settings,
-    workspace: &Workspace,
+    index: &Index,
+    file: Option<SourceFile>,
 ) -> (Parse, Vec<papyrus_lint::Diagnostic>) {
     let parse = papyrus_syntax::parse(&decoded.text, settings.dialect());
     let root = parse.syntax();
@@ -286,16 +312,23 @@ fn analyze(
         root: &root,
         game: settings.game,
         flags: &settings.flags,
-        workspace,
+        workspace: &index.workspace,
+        model: file.map(|file| Model {
+            semantics: Semantics::new(&index.db, index.project),
+            file,
+        }),
     };
     let lints = papyrus_lint::run(&context, &settings.levels);
     (parse, lints)
 }
 
-/// What a project's scripts, then its imported ones, declare, to follow
-/// `extends` from one file to another.
-fn index(settings: &Settings) -> Workspace {
+/// Reads a project's scripts, then its imported ones: what they declare, to
+/// follow `extends` from one file to another, and the semantic model.
+fn index(settings: &Settings) -> Index {
     let mut workspace = Workspace::default();
+    let db = Database::default();
+    let mut files = HashMap::new();
+    let (mut own, mut imports) = (Vec::new(), Vec::new());
     let dialect = settings.dialect();
     for (path, imported) in settings
         .scripts
@@ -306,15 +339,25 @@ fn index(settings: &Settings) -> Workspace {
         let Ok(bytes) = std::fs::read(path) else {
             continue;
         };
-        let parse = papyrus_syntax::parse(&decode(&bytes).text, dialect);
+        let text = decode(&bytes).text;
+        let parse = papyrus_syntax::parse(&text, dialect);
         if let Some(summary) = ScriptSummary::of(&parse.syntax()) {
             // The project's own script wins over an imported one.
             if !imported || workspace.get(&summary.name).is_none() {
                 workspace.insert(summary);
             }
         }
+        let file = SourceFile::new(&db, path.clone(), text);
+        files.insert(path.clone(), file);
+        if imported { &mut imports } else { &mut own }.push(file);
     }
-    workspace
+    let project = papyrus_hir::Project::new(&db, own, imports, settings.game);
+    Index {
+        workspace,
+        db,
+        project,
+        files,
+    }
 }
 
 /// Which fixes to apply.
@@ -332,9 +375,9 @@ fn check(projects: &[Settings], fix: bool, unsafe_fixes: bool, reporter: &mut Re
     };
     for settings in projects {
         // A project only sees its own scripts, and those it imports.
-        let workspace = index(settings);
+        let mut index = index(settings);
         for path in &settings.scripts {
-            fixed += usize::from(check_file(path, settings, &workspace, fixes, reporter));
+            fixed += usize::from(check_file(path, settings, &mut index, fixes, reporter));
         }
     }
 
@@ -350,7 +393,7 @@ fn check(projects: &[Settings], fix: bool, unsafe_fixes: bool, reporter: &mut Re
 fn check_file(
     path: &Path,
     settings: &Settings,
-    workspace: &Workspace,
+    index: &mut Index,
     fixes: Fixes,
     reporter: &mut Reporter,
 ) -> bool {
@@ -358,7 +401,8 @@ fn check_file(
         return false;
     };
     let mut decoded = decode(&bytes);
-    let (mut parse, mut lints) = analyze(&decoded, settings, workspace);
+    let file = index.file(path, &decoded.text);
+    let (mut parse, mut lints) = analyze(&decoded, settings, index, file);
 
     // Never on an incomplete tree, nor on a badly decoded file.
     let mut fixed = false;
@@ -376,7 +420,8 @@ fn check_file(
                 }
                 fixed = true;
                 decoded.text = text;
-                (parse, lints) = analyze(&decoded, settings, workspace);
+                let file = index.file(path, &decoded.text);
+                (parse, lints) = analyze(&decoded, settings, index, file);
             }
             None => reporter.skip(path, "fix refused — please report this bug"),
         }

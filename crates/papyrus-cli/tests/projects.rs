@@ -145,3 +145,40 @@ EndFunction
     assert!(refused.contains("--fix"), "{refused}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn calls_are_checked_across_files_and_imports() {
+    let root = tree(
+        "calls",
+        &[
+            (
+                "mod/papyrus.toml",
+                "game = \"skyrim\"\nimports = [\"../lib\"]\n",
+            ),
+            (
+                "mod/Quest1.psc",
+                "ScriptName Quest1 extends Quest\nFunction Start(int stage)\nEndFunction\n",
+            ),
+            (
+                "mod/Quest2.psc",
+                "ScriptName Quest2 extends Quest\nimport Tools\nQuest1 Property first Auto\nEvent OnInit()\n  first.Start()\n  Help(1.5)\nEndEvent\n",
+            ),
+            (
+                "lib/Tools.psc",
+                "ScriptName Tools\nFunction Help(int count) Global\nEndFunction\n",
+            ),
+        ],
+    );
+    let stderr = check(&root.join("mod"));
+    assert!(stderr.contains("PAP005"), "{stderr}");
+    assert!(
+        stderr.contains("`Start` is missing argument `stage`"),
+        "{stderr}"
+    );
+    assert!(stderr.contains("PAP007"), "{stderr}");
+    assert!(
+        stderr.contains("`Help` expects `int` for `count`, found `float`"),
+        "{stderr}"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}

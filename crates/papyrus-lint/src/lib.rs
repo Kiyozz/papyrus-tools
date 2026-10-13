@@ -76,6 +76,46 @@ pub static EVENTS_UNKNOWN: Lint = Lint {
     description: "event the script never receives, most often a typo",
 };
 
+/// `PAP005`: call with too few or too many arguments.
+pub static CALLS_ARITY: Lint = Lint {
+    code: "PAP005",
+    name: "calls/arity",
+    default: Level::Error,
+    description: "call with too few or too many arguments",
+};
+
+/// `PAP006`: named argument the callee does not declare.
+pub static CALLS_NAMED_ARG: Lint = Lint {
+    code: "PAP006",
+    name: "calls/named-arg",
+    default: Level::Warn,
+    description: "named argument the callee does not declare, or already given",
+};
+
+/// `PAP007`: value of a type the compiler does not cast implicitly.
+pub static TYPES_MISMATCH: Lint = Lint {
+    code: "PAP007",
+    name: "types/mismatch",
+    default: Level::Error,
+    description: "argument, assignment or return value of a type the compiler does not cast implicitly",
+};
+
+/// `PAP008`: member that does not exist.
+pub static MEMBERS_UNKNOWN: Lint = Lint {
+    code: "PAP008",
+    name: "members/unknown",
+    default: Level::Warn,
+    description: "function, variable, property or field that does not exist, most often a typo",
+};
+
+/// `PAP009`: typed function that can end without `Return`.
+pub static RETURNS_MISSING: Lint = Lint {
+    code: "PAP009",
+    name: "returns/missing",
+    default: Level::Warn,
+    description: "typed function that can reach its end without `Return`, and return the default value",
+};
+
 /// `PAP101`: locals and parameters in lowerCamelCase.
 pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
@@ -106,6 +146,11 @@ pub static LINTS: &[&Lint] = &[
     &FLAGS_PLACEMENT,
     &ALLOW_UNKNOWN,
     &EVENTS_UNKNOWN,
+    &CALLS_ARITY,
+    &CALLS_NAMED_ARG,
+    &TYPES_MISMATCH,
+    &MEMBERS_UNKNOWN,
+    &RETURNS_MISSING,
     &NAMING_LOCALS,
     &NAMING_VARIABLES,
     &NAMING_FUNCTIONS,
@@ -235,6 +280,18 @@ pub struct Context<'a> {
     pub flags: &'a [FlagDef],
     /// The other scripts of the project.
     pub workspace: &'a Workspace,
+    /// The semantic model of the project, and the file in it: the lints
+    /// that follow calls and types across files stay quiet without it.
+    pub model: Option<Model<'a>>,
+}
+
+/// A file within the semantic model of its project.
+#[derive(Debug, Clone, Copy)]
+pub struct Model<'a> {
+    /// The project's model.
+    pub semantics: papyrus_hir::Semantics<'a>,
+    /// The file, with the text being linted.
+    pub file: papyrus_hir::SourceFile,
 }
 
 /// What the rules produce, before levels and suppressions.

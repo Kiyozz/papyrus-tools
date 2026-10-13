@@ -35,10 +35,13 @@
 #![forbid(unsafe_code)]
 
 mod builtins;
+mod calls;
+mod check;
 mod ide;
 mod items;
 mod semantics;
 mod ty;
+mod types;
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -47,6 +50,8 @@ use std::path::PathBuf;
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_syntax::Parse;
 
+pub use calls::{Signature, SignatureParam};
+pub use check::{Diagnostic, Problem, Replacement};
 pub use ide::{
     Completion, CompletionKind, Hover, NavTarget, Reference, RenameEdit, RenameError, Symbol,
     SymbolKind, workspace_symbols,

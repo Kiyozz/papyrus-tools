@@ -1,7 +1,7 @@
 //! Name resolution and the types of expressions, from declarations alone.
 
 use papyrus_dialect::GameId;
-use papyrus_stdlib::{Function, Script};
+use papyrus_stdlib::{Function, Property, Script};
 use papyrus_syntax::{SyntaxKind, SyntaxNode, SyntaxToken, TextRange, TextSize};
 
 use crate::builtins;
@@ -48,6 +48,13 @@ pub enum Def {
         /// An event rather than a function.
         event: bool,
     },
+    /// A property of a native script.
+    NativeProperty {
+        /// The script declaring it.
+        script: &'static Script,
+        /// The property.
+        property: &'static Property,
+    },
 }
 
 /// A script, from source or native.
@@ -81,7 +88,7 @@ impl Namespace {
 }
 
 /// The longest `extends` chain followed; deeper means a cycle.
-const MAX_DEPTH: usize = 64;
+pub(crate) const MAX_DEPTH: usize = 64;
 
 /// Resolves names and types within one project.
 #[derive(Clone, Copy)]
@@ -269,7 +276,11 @@ impl<'db> Semantics<'db> {
             }
             ScriptRef::Native(script) => {
                 if ns != Namespace::Callable {
-                    return None;
+                    return script
+                        .properties
+                        .iter()
+                        .find(|p| p.name.eq_ignore_ascii_case(name))
+                        .map(|property| Def::NativeProperty { script, property });
                 }
                 let find = |list: &'static [Function]| {
                     list.iter().find(|f| f.name.eq_ignore_ascii_case(name))
@@ -291,7 +302,7 @@ impl<'db> Semantics<'db> {
     }
 
     /// True for Skyrim, whose scripts have no common ancestor.
-    fn skyrim(&self) -> bool {
+    pub(crate) fn skyrim(&self) -> bool {
         self.game.is_some_and(|g| g.rank() == 0)
     }
 
@@ -319,7 +330,7 @@ impl<'db> Semantics<'db> {
 
     /// Gives a struct type the script declaring it, `Script:Struct`, so that
     /// it still resolves from another file.
-    fn qualify(&self, file: SourceFile, ty: Ty) -> Ty {
+    pub(crate) fn qualify(&self, file: SourceFile, ty: Ty) -> Ty {
         match ty {
             Ty::Array(element) => Ty::Array(Box::new(self.qualify(file, *element))),
             Ty::Object(name) => match self.script_in(file, &name) {
@@ -567,6 +578,7 @@ impl<'db> Semantics<'db> {
                 }
             }
             Def::NativeFunction { function, .. } => function.returns.map_or(Ty::Unknown, Ty::parse),
+            Def::NativeProperty { property, .. } => Ty::parse(property.ty),
             Def::Script { .. } | Def::NativeScript(_) => Ty::Unknown,
         }
     }
@@ -643,7 +655,10 @@ impl<'db> Semantics<'db> {
                 {
                     Ty::Bool
                 } else {
-                    first().map_or(Ty::Unknown, |e| self.type_of(file, &e))
+                    match first().map(|e| self.type_of(file, &e)) {
+                        Some(ty @ (Ty::Int | Ty::Float)) => ty,
+                        _ => Ty::Unknown,
+                    }
                 }
             }
             SyntaxKind::BIN_EXPR => {
@@ -663,17 +678,23 @@ impl<'db> Semantics<'db> {
                         | SyntaxKind::AMP2
                         | SyntaxKind::PIPE2,
                     ) => Ty::Bool,
-                    _ => {
+                    Some(operator) => {
                         let operands: Vec<Ty> =
                             expr.children().map(|e| self.type_of(file, &e)).collect();
-                        if operands.contains(&Ty::String) {
+                        // `+` with a string on either side concatenates.
+                        if operator == SyntaxKind::PLUS && operands.contains(&Ty::String) {
                             Ty::String
+                        } else if operands.len() != 2
+                            || !operands.iter().all(|t| matches!(t, Ty::Int | Ty::Float))
+                        {
+                            Ty::Unknown
                         } else if operands.contains(&Ty::Float) {
                             Ty::Float
                         } else {
-                            operands.into_iter().next().unwrap_or(Ty::Unknown)
+                            Ty::Int
                         }
                     }
+                    None => Ty::Unknown,
                 }
             }
             _ => Ty::Unknown,
@@ -718,6 +739,7 @@ impl<'db> Semantics<'db> {
             Def::Script { file } => &self.items(*file).name,
             Def::NativeScript(script) => script.name,
             Def::NativeFunction { function, .. } => function.name,
+            Def::NativeProperty { property, .. } => property.name,
         }
     }
 }
@@ -742,7 +764,7 @@ pub(crate) fn name_node_at(root: &SyntaxNode, offset: TextSize) -> Option<Syntax
 }
 
 /// True if `node` is called: the first child of a `CALL_EXPR`.
-fn is_callee(node: &SyntaxNode) -> bool {
+pub(crate) fn is_callee(node: &SyntaxNode) -> bool {
     node.parent().is_some_and(|p| {
         p.kind() == SyntaxKind::CALL_EXPR && p.children().next().as_ref() == Some(node)
     })

@@ -581,10 +581,12 @@ dependencies = [
  "clap",
  "papyrus-dialect",
  "papyrus-fmt",
+ "papyrus-hir",
  "papyrus-lint",
  "papyrus-lsp",
  "papyrus-project",
  "papyrus-syntax",
+ "salsa",
 ]
 
 [[package]]
@@ -619,6 +621,7 @@ version = "0.4.0"
 dependencies = [
  "insta",
  "papyrus-dialect",
+ "papyrus-hir",
  "papyrus-project",
  "papyrus-stdlib",
  "papyrus-syntax",

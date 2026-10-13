@@ -1,8 +1,10 @@
 //! The lints on the vanilla corpus.
 //!
-//! Vanilla compiles: any `PAP002` there would be a false positive. The
-//! `PAP004` findings are real dead events, reviewed one by one: the list is
-//! frozen. The real `.flg` files must match the embedded tables. And
+//! Vanilla compiles: any `PAP002`, or `PAP005` to `PAP008`, there would be
+//! a false positive. The `PAP004` findings are real dead events, reviewed
+//! one by one: the list is frozen. So are the `PAP009` findings, typed
+//! functions that fall through to the default value, in
+//! `missing-returns.txt`. The real `.flg` files must match the embedded tables. And
 //! `--fix`, applied in memory to every script, must stay safe and complete.
 #![cfg(feature = "external-corpus")]
 
@@ -10,7 +12,10 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use papyrus_dialect::{Dialect, GameId};
-use papyrus_lint::{Context, Levels, ScriptSummary, Workspace, apply_fixes, run, vanilla_flags};
+use papyrus_hir::{Database, Project, Semantics, SourceFile};
+use papyrus_lint::{
+    Context, Levels, Model, ScriptSummary, Workspace, apply_fixes, run, vanilla_flags,
+};
 use papyrus_project::flags::parse_flags;
 use papyrus_project::{DiscoverOptions, decode, discover};
 
@@ -49,6 +54,16 @@ fn dead_events(game: GameId) -> Vec<String> {
     found.iter().map(|s| (*s).to_owned()).collect()
 }
 
+/// The frozen `PAP009` findings of `game`: `file function`.
+fn missing_returns(game: GameId) -> Vec<String> {
+    let prefix = format!("{} ", game.as_str());
+    include_str!("missing-returns.txt")
+        .lines()
+        .filter_map(|l| l.strip_prefix(&prefix))
+        .map(str::to_owned)
+        .collect()
+}
+
 fn run_game(game: GameId) {
     let Some(root) = corpus(game) else {
         eprintln!("· {} skipped", game.display_name());
@@ -81,11 +96,24 @@ fn run_game(game: GameId) {
         }
     }
 
+    // The semantic model of the whole game.
+    let db = Database::default();
+    let sources: Vec<SourceFile> = scripts
+        .iter()
+        .map(|path| {
+            let text = decode(&std::fs::read(path).expect("read")).text;
+            SourceFile::new(&db, path.clone(), text)
+        })
+        .collect();
+    let project = Project::new(&db, sources.clone(), Vec::new(), Some(game));
+    let semantics = Semantics::new(&db, project);
+
     let mut events = Vec::new();
+    let mut returns = Vec::new();
     let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
     let mut false_positives = Vec::new();
     let mut fixed_files = 0;
-    for path in &scripts {
+    for (path, &file) in scripts.iter().zip(&sources) {
         let decoded = decode(&std::fs::read(path).expect("read"));
         let parse = papyrus_syntax::parse(&decoded.text, dialect);
         let root = parse.syntax();
@@ -95,6 +123,7 @@ fn run_game(game: GameId) {
             game: Some(game),
             flags: &flags,
             workspace: &workspace,
+            model: Some(Model { semantics, file }),
         };
         let diagnostics = run(&context, &levels);
         for d in &diagnostics {
@@ -103,7 +132,15 @@ fn run_game(game: GameId) {
                 let name = path.file_name().unwrap().to_string_lossy();
                 events.push(format!("{name} {}", &decoded.text[d.range]));
             }
-            if d.lint.code == "PAP002" && false_positives.len() < 20 {
+            if d.lint.code == "PAP009" {
+                let name = path.file_name().unwrap().to_string_lossy();
+                returns.push(format!("{name} {}", &decoded.text[d.range]));
+            }
+            let compiles = matches!(
+                d.lint.code,
+                "PAP002" | "PAP005" | "PAP006" | "PAP007" | "PAP008"
+            );
+            if compiles && false_positives.len() < 20 {
                 false_positives.push(format!("{} : {}", path.display(), d.message));
             }
         }
@@ -128,6 +165,7 @@ fn run_game(game: GameId) {
                     game: Some(game),
                     flags: &flags,
                     workspace: &workspace,
+                    model: None,
                 },
                 &levels,
             );
@@ -149,9 +187,12 @@ fn run_game(game: GameId) {
     events.sort();
     events.dedup();
     assert_eq!(events, dead_events(game), "PAP004 on {game}");
+    returns.sort();
+    returns.dedup();
+    assert_eq!(returns, missing_returns(game), "PAP009 on {game}");
     assert!(
         false_positives.is_empty(),
-        "PAP002 on code that compiles:\n{}",
+        "errors on code that compiles:\n{}",
         false_positives.join("\n")
     );
 }

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_fmt::{FormatError, FormatOptions, Indent};
-use papyrus_lint::{Levels, Workspace, apply_fixes, vanilla_flags};
+use papyrus_lint::{Levels, Model, Workspace, apply_fixes, vanilla_flags};
 use papyrus_project::flags::{FlagDef, parse_flags};
 use papyrus_project::{Config, Decoded, IndentSetting, Level, SourceEncoding, decode};
 use papyrus_syntax::{Parse, TextRange, TextSize};
@@ -134,7 +134,7 @@ pub(crate) struct Analysis {
 }
 
 /// Analyzes `document`. `detected`: the target deduced from the project's
-/// scripts.
+/// scripts; `model`: the document in its project's semantic model.
 ///
 /// The target comes from papyrus.toml, else from the project, else from the
 /// document itself. Without any clue, Starfield's syntax applies and
@@ -143,6 +143,7 @@ pub(crate) fn analyze(
     document: &Document,
     workspace: &Workspace,
     detected: Option<GameId>,
+    model: Option<Model<'_>>,
 ) -> Analysis {
     let text = &document.decoded.text;
     let widest = Dialect::new(GameId::Starfield);
@@ -169,6 +170,7 @@ pub(crate) fn analyze(
         game,
         flags: &flags,
         workspace,
+        model,
     };
     let lints = papyrus_lint::run(&context, &document.settings.levels);
     Analysis { parse, game, lints }

@@ -5,6 +5,8 @@
 //! 99.99 % at least; the most frequent misses are reported, and
 //! `PAPYRUS_SHOW_MISSES=name,…` locates them. Completion must
 //! answer within 200 ms on a 500-script project, even right after an edit.
+//! Vanilla compiles: the semantic checks find nothing there but typed
+//! functions that can end without `Return`, which `papyrus-lint` freezes.
 #![cfg(feature = "external-corpus")]
 
 use std::collections::HashMap;
@@ -152,6 +154,52 @@ fn fallout4_resolves() {
 #[test]
 fn starfield_resolves() {
     resolve_game(GameId::Starfield);
+}
+
+/// The semantic checks on vanilla, by problem: `file:line message`.
+fn check_game(game: GameId) {
+    let db = Database::default();
+    let Some(files) = load(&db, game, usize::MAX) else {
+        return;
+    };
+    let project = Project::new(&db, files.clone(), Vec::new(), Some(game));
+    let sema = Semantics::new(&db, project);
+    let mut found: HashMap<String, Vec<String>> = HashMap::new();
+    for &file in &files {
+        for d in sema.check(file) {
+            let text = file.text(&db);
+            let line = text[..usize::from(d.range.start())].lines().count();
+            let name = file.path(&db).file_name().unwrap().to_string_lossy();
+            found
+                .entry(format!("{:?}", d.problem))
+                .or_default()
+                .push(format!("{name}:{line} {}", d.message));
+        }
+    }
+    for (problem, list) in &mut found {
+        list.sort();
+        println!("· {} {problem}: {}", game.display_name(), list.len());
+        for line in list.iter().take(25) {
+            println!("    {line}");
+        }
+    }
+    found.remove("MissingReturn");
+    assert!(found.is_empty(), "false positives on {game}: {found:#?}");
+}
+
+#[test]
+fn skyrim_checks() {
+    check_game(GameId::Skyrim);
+}
+
+#[test]
+fn fallout4_checks() {
+    check_game(GameId::Fallout4);
+}
+
+#[test]
+fn starfield_checks() {
+    check_game(GameId::Starfield);
 }
 
 /// Completion on a 500-script project, cold, warm, and after an edit.

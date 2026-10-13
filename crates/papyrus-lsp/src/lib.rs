@@ -29,8 +29,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use papyrus_dialect::{Dialect, GameId};
-use papyrus_hir::{Database, SourceFile};
-use papyrus_lint::{ScriptSummary, Workspace};
+use papyrus_hir::{Database, Semantics, SourceFile};
+use papyrus_lint::{Model, ScriptSummary, Workspace};
 use papyrus_project::{ConfigLocator, decode};
 use papyrus_syntax::TextSize;
 use salsa::Setter;
@@ -205,11 +205,23 @@ impl State {
         Some(f(&navigator, model, file, offset))
     }
 
-    /// Analyzes `document` within its project.
+    /// Analyzes `document` within its project, for its tree.
     fn analyze(&self, document: &Document) -> Analysis {
         let empty = Project::default();
         let project = self.projects.get(&document.project).unwrap_or(&empty);
-        analyze(document, &project.workspace, project.detected)
+        analyze(document, &project.workspace, project.detected, None)
+    }
+
+    /// Analyzes document `uri` within its project and its semantic model,
+    /// for its diagnostics.
+    fn lint(&self, uri: &Uri, document: &Document) -> Analysis {
+        let empty = Project::default();
+        let project = self.projects.get(&document.project).unwrap_or(&empty);
+        let model = self.model(uri).map(|(file, model, _)| Model {
+            semantics: Semantics::new(&self.db, model),
+            file,
+        });
+        analyze(document, &project.workspace, project.detected, model)
     }
 
     /// Updates the summary of document `uri` in its project; true if it
@@ -248,7 +260,7 @@ impl State {
     /// The diagnostics of `uri`.
     fn diagnostics(&self, uri: &Uri) -> Option<(Uri, Vec<Diagnostic>, i32)> {
         let document = self.documents.get(uri)?;
-        let analysis = self.analyze(document);
+        let analysis = self.lint(uri, document);
         let map = LineMap::new(&document.decoded.text, self.columns);
         Some((
             uri.clone(),
@@ -258,16 +270,14 @@ impl State {
     }
 
     /// Reanalyzes `uri` after a change, and the other open documents of its
-    /// project if what it declares changed.
+    /// project: a signature they call may have changed.
     fn refresh(&mut self, uri: &Uri) -> Vec<(Uri, Vec<Diagnostic>, i32)> {
         let Some(document) = self.documents.get(uri) else {
             return Vec::new();
         };
         let root = document.project.clone();
         let parse = papyrus_syntax::parse(&document.decoded.text, Dialect::new(GameId::Starfield));
-        if !self.declare(uri, ScriptSummary::of(&parse.syntax())) {
-            return self.diagnostics(uri).into_iter().collect();
-        }
+        self.declare(uri, ScriptSummary::of(&parse.syntax()));
         self.documents
             .iter()
             .filter(|(_, d)| d.project == root)
@@ -801,7 +811,7 @@ impl LanguageServer for Backend {
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let uri = params.text_document.uri;
         Ok(self.with_document(&uri, |state, document, map| {
-            let analysis = state.analyze(document);
+            let analysis = state.lint(&uri, document);
             let Some(range) = map.text_range(params.range) else {
                 return Vec::new();
             };

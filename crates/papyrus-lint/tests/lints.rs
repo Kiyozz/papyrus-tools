@@ -34,6 +34,7 @@ fn diagnostics_in(
         game,
         flags: &flags,
         workspace,
+        model: None,
     };
     run(&context, &Levels::default())
 }

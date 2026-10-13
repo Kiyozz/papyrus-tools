@@ -272,7 +272,7 @@ impl Semantics<'_> {
                     focus_range: items.name_range,
                 })
             }
-            Def::NativeScript(_) | Def::NativeFunction { .. } => None,
+            Def::NativeScript(_) | Def::NativeFunction { .. } | Def::NativeProperty { .. } => None,
         }
     }
 
@@ -343,6 +343,12 @@ impl Semantics<'_> {
             } => Hover {
                 range,
                 signature: native_signature(function, *event),
+                doc: None,
+                origin: Some(script.name.to_owned()),
+            },
+            Def::NativeProperty { script, property } => Hover {
+                range,
+                signature: format!("{} Property {}", property.ty, property.name),
                 doc: None,
                 origin: Some(script.name.to_owned()),
             },
@@ -460,6 +466,13 @@ impl Semantics<'_> {
                     }
                 }
                 if !global_only {
+                    for property in script.properties {
+                        proposals.push(
+                            property.name,
+                            CompletionKind::Property,
+                            Some(format!("{} Property {}", property.ty, property.name)),
+                        );
+                    }
                     for event in script.events {
                         proposals.push(
                             event.name,
@@ -651,9 +664,9 @@ impl Semantics<'_> {
     fn renamable(&self, def: &Def) -> Result<Option<String>, RenameError> {
         let name = self.def_name(def).to_owned();
         match self.canonical(def) {
-            Def::NativeScript(_) | Def::NativeFunction { .. } => Err(RenameError(format!(
-                "`{name}` comes from the game's native scripts"
-            ))),
+            Def::NativeScript(_) | Def::NativeFunction { .. } | Def::NativeProperty { .. } => Err(
+                RenameError(format!("`{name}` comes from the game's native scripts")),
+            ),
             Def::Script { .. } => Err(RenameError(format!(
                 "renaming the script `{name}` means renaming its file, which is not supported"
             ))),
