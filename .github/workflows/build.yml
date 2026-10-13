@@ -58,9 +58,13 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
-      - uses: dtolnay/rust-toolchain@1.88
-        with:
-          targets: ${{ matrix.rust }}
+      # The toolchain of rust-toolchain.toml, which overrides any other in
+      # the checkout: the target must be added to that one.
+      - name: Rust
+        shell: bash
+        run: |
+          rustup toolchain install
+          rustup target add ${{ matrix.rust }}
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.rust }}
