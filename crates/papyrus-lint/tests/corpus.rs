@@ -1,10 +1,12 @@
 //! The lints on the vanilla corpus.
 //!
-//! Vanilla compiles: any `PAP002`, or `PAP005` to `PAP008`, there would be
-//! a false positive. The `PAP004` findings are real dead events, reviewed
-//! one by one: the list is frozen. So are the `PAP009` findings, typed
-//! functions that fall through to the default value, in
-//! `missing-returns.txt`. The real `.flg` files must match the embedded tables. And
+//! Vanilla compiles: any `PAP002`, `PAP005` to `PAP008`, or `PAP011` to
+//! `PAP013`, there would be a false positive. The `PAP004` findings are real
+//! dead events, reviewed one by one: the list is frozen. So are the `PAP009`
+//! findings, typed functions that fall through to the default value, in
+//! `missing-returns.txt`, and the `PAP010` ones, `GotoState` to undeclared
+//! states, in `unknown-states.txt`. The real `.flg` files must match the
+//! embedded tables. And
 //! `--fix`, applied in memory to every script, must stay safe and complete.
 #![cfg(feature = "external-corpus")]
 
@@ -54,14 +56,23 @@ fn dead_events(game: GameId) -> Vec<String> {
     found.iter().map(|s| (*s).to_owned()).collect()
 }
 
-/// The frozen `PAP009` findings of `game`: `file function`.
-fn missing_returns(game: GameId) -> Vec<String> {
+/// The frozen findings of `game` in `list`: `file text`.
+fn frozen(list: &str, game: GameId) -> Vec<String> {
     let prefix = format!("{} ", game.as_str());
-    include_str!("missing-returns.txt")
-        .lines()
+    list.lines()
         .filter_map(|l| l.strip_prefix(&prefix))
         .map(str::to_owned)
         .collect()
+}
+
+/// The frozen `PAP009` findings of `game`: `file function`.
+fn missing_returns(game: GameId) -> Vec<String> {
+    frozen(include_str!("missing-returns.txt"), game)
+}
+
+/// The frozen `PAP010` findings of `game`: `file state`.
+fn unknown_states(game: GameId) -> Vec<String> {
+    frozen(include_str!("unknown-states.txt"), game)
 }
 
 fn run_game(game: GameId) {
@@ -110,6 +121,7 @@ fn run_game(game: GameId) {
 
     let mut events = Vec::new();
     let mut returns = Vec::new();
+    let mut states = Vec::new();
     let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
     let mut false_positives = Vec::new();
     let mut fixed_files = 0;
@@ -136,9 +148,20 @@ fn run_game(game: GameId) {
                 let name = path.file_name().unwrap().to_string_lossy();
                 returns.push(format!("{name} {}", &decoded.text[d.range]));
             }
+            if d.lint.code == "PAP010" {
+                let name = path.file_name().unwrap().to_string_lossy();
+                states.push(format!("{name} {}", &decoded.text[d.range]));
+            }
             let compiles = matches!(
                 d.lint.code,
-                "PAP002" | "PAP005" | "PAP006" | "PAP007" | "PAP008"
+                "PAP002"
+                    | "PAP005"
+                    | "PAP006"
+                    | "PAP007"
+                    | "PAP008"
+                    | "PAP011"
+                    | "PAP012"
+                    | "PAP013"
             );
             if compiles && false_positives.len() < 20 {
                 false_positives.push(format!("{} : {}", path.display(), d.message));
@@ -190,6 +213,14 @@ fn run_game(game: GameId) {
     returns.sort();
     returns.dedup();
     assert_eq!(returns, missing_returns(game), "PAP009 on {game}");
+    states.sort();
+    states.dedup();
+    if std::env::var_os("PAPYRUS_PRINT_STATES").is_some() {
+        for state in &states {
+            println!("{} {state}", game.as_str());
+        }
+    }
+    assert_eq!(states, unknown_states(game), "PAP010 on {game}");
     assert!(
         false_positives.is_empty(),
         "errors on code that compiles:\n{}",

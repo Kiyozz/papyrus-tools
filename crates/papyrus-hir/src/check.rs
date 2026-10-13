@@ -1,4 +1,5 @@
-//! Semantic diagnostics: calls, types, members, returns.
+//! Semantic diagnostics: calls, types, members, returns, states, events,
+//! read-only properties, `Global` functions and dead code.
 //!
 //! Each one is certain. A call is only judged when its callee is resolved,
 //! a type when its whole `extends` chain is known, a missing member when
@@ -15,6 +16,9 @@ use crate::semantics::{Def, ScriptRef, Semantics, is_callee, locals_in_scope};
 use crate::ty::Ty;
 use crate::types::Object;
 
+mod misuse;
+mod usage;
+
 /// What is wrong.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Problem {
@@ -28,6 +32,22 @@ pub enum Problem {
     UnknownMember,
     /// A typed function that can reach its end without `Return`.
     MissingReturn,
+    /// `GotoState` to a state the script does not declare.
+    UnknownState,
+    /// An event whose parameters differ from the one it implements.
+    EventSignature,
+    /// An assignment to an `AutoReadOnly` or `Const` property, or one
+    /// without `Set`.
+    ReadOnly,
+    /// An instance member reached without an instance: from a `Global`
+    /// function, or on the script itself.
+    NotGlobal,
+    /// Statements after one that always returns.
+    Unreachable,
+    /// A local variable never read.
+    UnusedLocal,
+    /// A parameter never read, after the last one read.
+    UnusedParam,
 }
 
 /// A replacement to suggest; never applied automatically.
@@ -210,10 +230,25 @@ impl Semantics<'_> {
                         continue;
                     }
                     self.check_returns(&node, &body, &mut out);
+                    if node.kind() == SyntaxKind::EVENT_DECL {
+                        self.check_event_signature(file, &node, &mut out);
+                    }
+                    self.check_global_body(file, &node, &body, &mut out);
+                    usage::check_unreachable(&body, &mut out);
+                    self.check_unused(file, &node, &body, &mut out);
                     for inner in body.descendants() {
                         match inner.kind() {
-                            SyntaxKind::CALL_EXPR => self.check_call(file, &inner, &mut out),
-                            SyntaxKind::ASSIGN_STMT => self.check_assign(file, &inner, &mut out),
+                            SyntaxKind::CALL_EXPR => {
+                                self.check_call(file, &inner, &mut out);
+                                if let Some(callee) = callee(&inner) {
+                                    self.check_state(file, &inner, &callee, &mut out);
+                                    self.check_static_call(file, &callee, &mut out);
+                                }
+                            }
+                            SyntaxKind::ASSIGN_STMT => {
+                                self.check_assign(file, &inner, &mut out);
+                                self.check_readonly(file, &inner, &mut out);
+                            }
                             SyntaxKind::VARIABLE_DECL => self.check_init(file, &inner, &mut out),
                             SyntaxKind::RETURN_STMT => {
                                 self.check_return_value(file, &node, &inner, &mut out);

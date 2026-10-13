@@ -139,7 +139,7 @@ async fn a_full_session() {
     // local.
     let child = dir.join("Child.psc");
     let child_uri = uri(&child);
-    let text = "ScriptName Child extends MyBase\nEvent OnRitualDome()\nEndEvent\nFunction F()\n    int HP = 1\nEndFunction\n";
+    let text = "ScriptName Child extends MyBase\nEvent OnRitualDome()\nEndEvent\nFunction F()\n    int HP = 1\n    Debug.Trace(HP)\nEndFunction\n";
     client
         .notify(
             "textDocument/didOpen",
@@ -224,7 +224,7 @@ async fn a_full_session() {
             json!({ "textDocument": document }),
         )
         .await;
-    assert_eq!(folds, json!([{ "startLine": 3, "endLine": 4 }]));
+    assert_eq!(folds, json!([{ "startLine": 3, "endLine": 5 }]));
 
     // Fixed in the editor: the diagnostics follow.
     client

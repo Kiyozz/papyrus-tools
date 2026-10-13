@@ -1,11 +1,13 @@
-//! `PAP005` to `PAP009`: calls, types, members and returns, from the
+//! `PAP005` to `PAP016`: calls, types, members, returns, states, events,
+//! read-only properties, `Global` functions and dead code, from the
 //! project's semantic model.
 
 use papyrus_hir::Problem;
 
 use crate::{
-    CALLS_ARITY, CALLS_NAMED_ARG, Context, Edit, Finding, MEMBERS_UNKNOWN, RETURNS_MISSING,
-    Suggestion, TYPES_MISMATCH,
+    CALLS_ARITY, CALLS_NAMED_ARG, CALLS_NOT_GLOBAL, CODE_UNREACHABLE, Context, EVENTS_SIGNATURE,
+    Edit, Finding, LOCALS_UNUSED, MEMBERS_UNKNOWN, PARAMS_UNUSED, PROPERTIES_READONLY,
+    RETURNS_MISSING, STATES_UNKNOWN, Suggestion, TYPES_MISMATCH,
 };
 
 pub(crate) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
@@ -19,6 +21,13 @@ pub(crate) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             Problem::Mismatch => &TYPES_MISMATCH,
             Problem::UnknownMember => &MEMBERS_UNKNOWN,
             Problem::MissingReturn => &RETURNS_MISSING,
+            Problem::UnknownState => &STATES_UNKNOWN,
+            Problem::EventSignature => &EVENTS_SIGNATURE,
+            Problem::ReadOnly => &PROPERTIES_READONLY,
+            Problem::NotGlobal => &CALLS_NOT_GLOBAL,
+            Problem::Unreachable => &CODE_UNREACHABLE,
+            Problem::UnusedLocal => &LOCALS_UNUSED,
+            Problem::UnusedParam => &PARAMS_UNUSED,
         };
         findings.push(Finding {
             lint,

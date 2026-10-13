@@ -116,6 +116,62 @@ pub static RETURNS_MISSING: Lint = Lint {
     description: "typed function that can reach its end without `Return`, and return the default value",
 };
 
+/// `PAP010`: `GotoState` to a state that does not exist.
+pub static STATES_UNKNOWN: Lint = Lint {
+    code: "PAP010",
+    name: "states/unknown",
+    default: Level::Error,
+    description: "`GotoState` to a state the script does not declare, which behaves as the empty state",
+};
+
+/// `PAP011`: event whose parameters are not the engine's.
+pub static EVENTS_SIGNATURE: Lint = Lint {
+    code: "PAP011",
+    name: "events/signature",
+    default: Level::Error,
+    description: "event whose parameters differ from the event it implements",
+};
+
+/// `PAP012`: read-only property assigned.
+pub static PROPERTIES_READONLY: Lint = Lint {
+    code: "PAP012",
+    name: "properties/readonly",
+    default: Level::Error,
+    description: "assignment to an `AutoReadOnly` or `Const` property, or one without `Set`",
+};
+
+/// `PAP013`: instance member reached without an instance.
+pub static CALLS_NOT_GLOBAL: Lint = Lint {
+    code: "PAP013",
+    name: "calls/not-global",
+    default: Level::Error,
+    description: "non-`Global` function called on its script, or `self` and members used in a `Global` function",
+};
+
+/// `PAP014`: code after `Return`.
+pub static CODE_UNREACHABLE: Lint = Lint {
+    code: "PAP014",
+    name: "code/unreachable",
+    default: Level::Warn,
+    description: "statements after one that always returns, which never run",
+};
+
+/// `PAP015`: local variable never read.
+pub static LOCALS_UNUSED: Lint = Lint {
+    code: "PAP015",
+    name: "locals/unused",
+    default: Level::Warn,
+    description: "local variable never read",
+};
+
+/// `PAP016`: parameter never read.
+pub static PARAMS_UNUSED: Lint = Lint {
+    code: "PAP016",
+    name: "params/unused",
+    default: Level::Warn,
+    description: "parameter never read, after the last one read; events and overrides excepted",
+};
+
 /// `PAP101`: locals and parameters in lowerCamelCase.
 pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
@@ -151,6 +207,13 @@ pub static LINTS: &[&Lint] = &[
     &TYPES_MISMATCH,
     &MEMBERS_UNKNOWN,
     &RETURNS_MISSING,
+    &STATES_UNKNOWN,
+    &EVENTS_SIGNATURE,
+    &PROPERTIES_READONLY,
+    &CALLS_NOT_GLOBAL,
+    &CODE_UNREACHABLE,
+    &LOCALS_UNUSED,
+    &PARAMS_UNUSED,
     &NAMING_LOCALS,
     &NAMING_VARIABLES,
     &NAMING_FUNCTIONS,

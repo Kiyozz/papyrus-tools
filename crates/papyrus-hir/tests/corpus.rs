@@ -6,7 +6,8 @@
 //! `PAPYRUS_SHOW_MISSES=name,…` locates them. Completion must
 //! answer within 200 ms on a 500-script project, even right after an edit.
 //! Vanilla compiles: the semantic checks find nothing there but typed
-//! functions that can end without `Return`, which `papyrus-lint` freezes.
+//! functions that can end without `Return` and `GotoState` to undeclared
+//! states, which `papyrus-lint` freezes, and dead code.
 #![cfg(feature = "external-corpus")]
 
 use std::collections::HashMap;
@@ -191,7 +192,15 @@ fn check_project(db: &Database, files: &[SourceFile], game: GameId, target: Opti
             println!("    {line}");
         }
     }
-    found.remove("MissingReturn");
+    for allowed in [
+        "MissingReturn",
+        "UnknownState",
+        "Unreachable",
+        "UnusedLocal",
+        "UnusedParam",
+    ] {
+        found.remove(allowed);
+    }
     assert!(
         found.is_empty(),
         "false positives on {game}, target {target:?}: {found:#?}"

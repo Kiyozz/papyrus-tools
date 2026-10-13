@@ -1,0 +1,20 @@
+# PAP010 on vanilla: `GotoState` to a state the script does not declare,
+# which the object enters with none of its functions. Reviewed, frozen:
+# `game file state`.
+skyrim CWFortGateTriggerScript.psc None
+skyrim CWReinforcementControllerScript.psc none
+skyrim CWScript.psc ResolvingCampaignOffscreen
+skyrim CWScript.psc WaitingToStartNewCampaign
+skyrim DLC1DunStatueHitSCRIPT.psc Busy
+skyrim DLC2QALearnShouts.psc Close
+skyrim DLC2QALearnSpells.psc Close
+skyrim DragonPriestAmbushScript.psc done
+skyrim FXCameraAttachScript.psc waiting
+skyrim MG06ArmillaryScript.psc busy
+skyrim MG06Dome01Script.psc busy
+skyrim MS12UnmeltingSnowActivator.psc Done
+skyrim TrapDweBallista.psc Disabled
+skyrim V01SetstageAmuletThief.psc hasBeenTriggered
+skyrim WETriggerScript.psc On
+skyrim dunCGOnHitActorScript.psc DoNothing
+skyrim dunFallowstoneCaveSCRIPT.psc phase10

@@ -11,7 +11,7 @@ use papyrus_project::flags::{FlagDef, parse_flags};
 use papyrus_project::{Config, Decoded, IndentSetting, Level, SourceEncoding, decode};
 use papyrus_syntax::{Parse, TextRange, TextSize};
 use tower_lsp_server::ls_types::{
-    CodeAction, CodeActionKind, CodeActionOrCommand, Diagnostic, DiagnosticSeverity,
+    CodeAction, CodeActionKind, CodeActionOrCommand, Diagnostic, DiagnosticSeverity, DiagnosticTag,
     NumberOrString, Position, Range, TextEdit, Uri, WorkspaceEdit,
 };
 
@@ -187,6 +187,14 @@ fn lint_diagnostic(lint: &papyrus_lint::Diagnostic, map: &LineMap) -> Diagnostic
         code: Some(NumberOrString::String(lint.lint.code.to_owned())),
         source: Some(SOURCE.to_owned()),
         message: format!("{} [{}]", lint.message, lint.lint.name),
+        // Dead code, which editors fade.
+        tags: [
+            papyrus_lint::CODE_UNREACHABLE.code,
+            papyrus_lint::LOCALS_UNUSED.code,
+            papyrus_lint::PARAMS_UNUSED.code,
+        ]
+        .contains(&lint.lint.code)
+        .then(|| vec![DiagnosticTag::UNNECESSARY]),
         ..Diagnostic::default()
     }
 }

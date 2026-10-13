@@ -88,6 +88,9 @@ pub struct Item {
     pub global: bool,
     /// `Native`: implemented by the engine.
     pub native: bool,
+    /// A property that cannot be assigned: `AutoReadOnly`, `Const`, or a
+    /// full property without `Set`.
+    pub readonly: bool,
     /// The declaration line, whitespace collapsed: `int Function Foo(int a) Global`.
     pub signature: String,
     /// The docstring, braces and surrounding whitespace removed.
@@ -240,6 +243,18 @@ fn has_flag(node: &SyntaxNode, flag: SyntaxKind) -> bool {
     })
 }
 
+fn readonly(property: &SyntaxNode) -> bool {
+    if has_flag(property, SyntaxKind::AUTOREADONLY_KW) || has_flag(property, SyntaxKind::CONST_KW) {
+        return true;
+    }
+    !has_flag(property, SyntaxKind::AUTO_KW)
+        && !property
+            .children()
+            .filter(|c| c.kind() == SyntaxKind::FUNCTION_DECL)
+            .filter_map(|f| child(&f, SyntaxKind::NAME))
+            .any(|n| compact(&n).eq_ignore_ascii_case("Set"))
+}
+
 fn params(node: &SyntaxNode) -> Vec<Param> {
     let Some(list) = child(node, SyntaxKind::PARAM_LIST) else {
         return Vec::new();
@@ -300,6 +315,7 @@ fn item(node: &SyntaxNode, container: Option<&str>) -> Option<Item> {
         remote,
         global: has_flag(node, SyntaxKind::GLOBAL_KW),
         native: has_flag(node, SyntaxKind::NATIVE_KW),
+        readonly: kind == ItemKind::Property && readonly(node),
         signature: signature(node),
         doc: doc(node),
     })
