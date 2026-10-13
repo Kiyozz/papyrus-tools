@@ -8,11 +8,14 @@ and IntelliJ.
 
 ## Status
 
-**v0.4** — `papyrus check`, `papyrus fmt`, configurable lints, language server.
+**v0.5** — `papyrus check`, `papyrus fmt`, configurable lints, language
+server with cross-file navigation: definition, hover, completion, references,
+rename.
 
 ```sh
 papyrus check --game skyrim Data/Source/Scripts   # syntax + lints
 papyrus check --fix .                             # apply safe fixes
+papyrus check --fix --unsafe .                    # and the case of properties
 papyrus fmt .                                     # format in place
 papyrus fmt --check --indent tab .                # CI: fail if a file needs formatting
 papyrus lints                                     # list the lints
@@ -26,6 +29,7 @@ papyrus lsp                                       # language server, for an edit
 | `papyrus-project` | `papyrus.toml`, `.psc` decoding, `.flg`, file discovery |
 | `papyrus-lint` | Lint registry, in-code suppression, fixes |
 | `papyrus-stdlib` | Embedded signatures of each game's native scripts |
+| `papyrus-hir` | Semantic model on `salsa`: cross-file index, name resolution, declared types |
 | `papyrus-fmt` | Canonical formatter |
 | `papyrus-lsp` | Language server |
 | `papyrus-cli` | The `papyrus` binary |
@@ -56,6 +60,7 @@ scripts: no verdict crosses the border between Skyrim and the other games.
 game = "skyrim"
 include-fragments = false
 # flags = "MyFlags.flg"      # replaces the game's vanilla flags
+imports = ["../SkyUI/Scripts/Source"]  # read, never checked
 
 [fmt]
 indent = 2                   # or "tab"
@@ -64,6 +69,12 @@ indent = 2                   # or "tab"
 "naming/variables" = "allow" # allow, warn or error; by name or by code
 PAP001 = "error"
 ```
+
+`imports` lists folders of scripts the project builds on — a library, a
+framework, another mod — relative to papyrus.toml, like the compiler's import
+folders. They are read to follow `extends` and calls, for the lints and the
+editor, but never checked nor changed. A project's own script wins over an
+imported one of the same name.
 
 ### Lints
 
@@ -81,8 +92,8 @@ To allow a case: `; papyrus: allow(naming/locals)` at the end of the line, or
 alone on the line before. `all` covers every lint.
 
 `--fix` only fixes case. Papyrus being case-insensitive, the rename changes
-nothing for the compiler and cannot collide with anything. Properties are never
-renamed: `.esp` files bind them by name.
+nothing for the compiler and cannot collide with anything. Properties are only
+renamed with `--fix --unsafe`: plugins (`.esp`, `.esm`) bind them by name.
 
 ### Dead events
 
@@ -108,9 +119,25 @@ folders) are skipped by default; `--include-fragments` includes them.
 
 `papyrus lsp` speaks LSP over standard input and output: diagnostics as you
 type, fixes and "Allow on this line", formatting, document outline, folding,
-semantic highlighting. On startup, it indexes each project's scripts to follow
-`extends` from one file to another and infer the game, and rescans when a
-`papyrus.toml` appears or changes.
+semantic highlighting, and across files: go to definition, hover with the
+signature and docstring, completion, references, rename, workspace symbols.
+On startup, it indexes each project's scripts and those of its `imports`
+folders, infers the game, and rescans when a `papyrus.toml` appears or
+changes.
+
+Names resolve through declarations alone: locals and parameters, members
+inherited down to the game's native scripts, global functions of `import`ed
+scripts, `self` and `parent`, and members reached through declared types —
+variables, properties, return types, casts, array elements, struct fields.
+What cannot be known that way stays unknown, never an error. On the vanilla
+scripts of the three games, every `extends` chain and 99.99 % of names
+resolve, and completion answers in a few milliseconds on a 500-script
+project.
+
+A rename covers the whole project, overrides included. It is refused on
+native and imported declarations, on events, which the engine calls by name,
+and on script names, which are file names; on a property, it warns that
+plugins must be filled again in the Creation Kit.
 
 **VSCode** — the extension, in `editors/vscode`, is published once per platform
 (Windows x64 and arm64, macOS arm64, Linux x64 and arm64), with the `papyrus`
@@ -120,7 +147,7 @@ binary embedded. To build it locally:
 npm ci && npm ci --prefix editors/vscode
 cargo build --release -p papyrus-cli
 npm run package:extension -- --target win32-x64 --binary target/release/papyrus.exe
-code --install-extension dist/papyrus-tools-win32-x64-0.4.0.vsix
+code --install-extension dist/papyrus-tools-win32-x64-<version>.vsix
 ```
 
 The `papyrus.server.path` setting points to another binary; without an
@@ -173,7 +200,7 @@ PAPYRUS_CORPUS_SKYRIM=".../Skyrim Special Edition/Data/Source/Scripts" \
 PAPYRUS_CORPUS_FALLOUT4=".../Fallout 4/Data/Scripts/Source" \
 PAPYRUS_CORPUS_STARFIELD=".../Starfield/Data/Scripts/Source" \
   cargo test --release --workspace \
-    --features papyrus-syntax/external-corpus,papyrus-fmt/external-corpus,papyrus-lint/external-corpus,papyrus-project/external-corpus \
+    --features papyrus-syntax/external-corpus,papyrus-fmt/external-corpus,papyrus-lint/external-corpus,papyrus-project/external-corpus,papyrus-hir/external-corpus \
     -- --nocapture
 ```
 

@@ -7,8 +7,10 @@ the Creation Kit — Skyrim, Fallout 4, Starfield.
 - lints: misspelled events the engine will never call (`OnActivatee`),
   misplaced flags, text the compiler will corrupt, naming conventions;
 - one-click fixes, and "Allow" to silence a lint on one line;
+- go to definition, hover, completion, references and rename across the
+  project's scripts, down to the game's native ones;
 - document formatting;
-- document outline, block folding, semantic highlighting.
+- document outline, workspace symbols, block folding, semantic highlighting.
 
 ## Installation
 
@@ -18,12 +20,14 @@ without an embedded one, the extension looks for `papyrus` in the `PATH`.
 
 ## Configuration
 
-A `papyrus.toml` at the project root sets the game, the indent and the level of
-each lint. Without it, the game is inferred from the scripts. A window with
-several projects gives each one its own `papyrus.toml`.
+A `papyrus.toml` at the project root sets the game, the indent, the level of
+each lint and the folders of scripts the project builds on. Without it, the
+game is inferred from the scripts. A window with several projects gives each
+one its own `papyrus.toml`.
 
 ```toml
 game = "skyrim"
+imports = ["../SkyUI/Scripts/Source"]
 
 [fmt]
 indent = 2
