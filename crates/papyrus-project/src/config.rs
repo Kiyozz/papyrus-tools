@@ -73,6 +73,9 @@ pub struct Config {
     pub indent: Option<IndentSetting>,
     /// A `.flg` file replacing the game's vanilla flags.
     pub flags: Option<PathBuf>,
+    /// Folders of scripts the project builds on — a library, another mod —
+    /// read but never checked, like the compiler's import folders.
+    pub imports: Vec<PathBuf>,
     /// The level of each lint, by code (`PAP001`) or by name
     /// (`encoding/lossy`). Validating the keys is the registry's job.
     pub lints: BTreeMap<String, Level>,
@@ -103,6 +106,8 @@ struct Raw {
     #[serde(default)]
     include_fragments: bool,
     flags: Option<PathBuf>,
+    #[serde(default)]
+    imports: Vec<PathBuf>,
     #[serde(default)]
     fmt: RawFmt,
     #[serde(default)]
@@ -157,10 +162,12 @@ impl Config {
             .collect::<Result<_, ConfigError>>()?;
 
         // A relative path is relative to the configuration file.
-        let flags = raw.flags.map(|f| match path.parent() {
+        let relative = |f: PathBuf| match path.parent() {
             Some(dir) if f.is_relative() => dir.join(f),
             _ => f,
-        });
+        };
+        let flags = raw.flags.map(relative);
+        let imports = raw.imports.into_iter().map(relative).collect();
 
         Ok(Config {
             path: Some(path.to_owned()),
@@ -168,6 +175,7 @@ impl Config {
             include_fragments: raw.include_fragments,
             indent,
             flags,
+            imports,
             lints,
         })
     }

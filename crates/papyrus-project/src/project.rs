@@ -26,6 +26,9 @@ pub struct Project {
     pub config: Config,
     /// Its scripts, sorted.
     pub scripts: Vec<PathBuf>,
+    /// The scripts of its `imports` folders, sorted: read to follow
+    /// `extends` and calls, never checked. Fragments are left out.
+    pub imported: Vec<PathBuf>,
 }
 
 /// Why projects could not be gathered.
@@ -111,19 +114,34 @@ pub fn projects(roots: &[PathBuf], include_fragments: bool) -> Result<Vec<Projec
             ));
         }
     }
-    Ok(gather
+    gather
         .projects
         .into_iter()
         .map(|(root, (config, mut scripts))| {
             scripts.sort();
             scripts.dedup();
-            Project {
+            let imported = imported(&config)?;
+            Ok(Project {
                 root,
                 config,
                 scripts,
-            }
+                imported,
+            })
         })
-        .collect())
+        .collect()
+}
+
+/// The scripts of the `imports` folders of `config`.
+pub fn imported(config: &Config) -> Result<Vec<PathBuf>, ProjectError> {
+    let mut out = Vec::new();
+    for dir in &config.imports {
+        let found = crate::discover(std::slice::from_ref(dir), crate::DiscoverOptions::default())
+            .map_err(|e| ProjectError::Io(dir.clone(), io::Error::from(e.kind())))?;
+        out.extend(found);
+    }
+    out.sort();
+    out.dedup();
+    Ok(out)
 }
 
 struct Gather {
@@ -256,6 +274,32 @@ mod tests {
         let file = root.join("TIF__0001.psc");
         let found = projects(&[file], false).unwrap();
         assert_eq!(names(&found[0]), ["TIF__0001.psc"]);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn imports_are_read_relative_to_papyrus_toml() {
+        let root = tree(
+            "imports",
+            &[
+                ("mod/papyrus.toml", "imports = [\"../lib\"]\n"),
+                ("mod/A.psc", ""),
+                ("lib/Base.psc", ""),
+                ("lib/TIF__0001.psc", ""),
+            ],
+        );
+        let found = projects(&[root.join("mod")], false).unwrap();
+        assert_eq!(names(&found[0]), ["A.psc"]);
+        let imported: Vec<_> = found[0]
+            .imported
+            .iter()
+            .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(imported, ["Base.psc"]);
+
+        std::fs::write(root.join("mod/papyrus.toml"), "imports = [\"../nope\"]\n").unwrap();
+        let error = projects(&[root.join("mod")], false).unwrap_err();
+        assert!(error.to_string().contains("nope"), "{error}");
         let _ = std::fs::remove_dir_all(&root);
     }
 
