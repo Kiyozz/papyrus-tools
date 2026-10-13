@@ -10,3 +10,4 @@
 *.pex
 node_modules/
 /dist/
+var/
