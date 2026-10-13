@@ -502,8 +502,8 @@ impl Semantics<'_> {
                     }
                     self.check_global_body(file, &node, &body, &mut out);
                     usage::check_unreachable(&body, &mut out);
-                    usage::check_duplicates(&root, &node, &body, &mut out);
-                    self.check_unused(file, &node, &body, &mut out);
+                    let duplicated = usage::check_duplicates(&root, &node, &body, &mut out);
+                    self.check_unused(file, &node, &body, &duplicated, &mut out);
                     for inner in body.descendants() {
                         match inner.kind() {
                             SyntaxKind::CALL_EXPR => {

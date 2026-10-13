@@ -941,9 +941,20 @@ Function Run(int a)
 EndFunction
 Function Other()
 \tint test = 1
+\tDebug.Trace(test)
 EndFunction
 ";
     let found = check_all_in(Some(GameId::Skyrim), &[("A.psc", source)]);
+    // One problem per name: never unused on top of duplicate.
+    let unused: Vec<String> = found
+        .iter()
+        .filter(|(p, ..)| matches!(p, Problem::UnusedLocal | Problem::UnusedParam))
+        .map(|(_, t, _)| t.to_ascii_lowercase())
+        .collect();
+    for name in ["test", "a", "d", "field"] {
+        assert!(!unused.iter().any(|u| u == name), "{name}: {unused:?}");
+    }
+    assert!(unused.iter().any(|u| u == "e"), "{unused:?}");
     let duplicates: Vec<(String, String)> = found
         .into_iter()
         .filter(|(p, ..)| *p == Problem::DuplicateLocal)

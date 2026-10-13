@@ -64,7 +64,7 @@ pub(super) fn check_duplicates(
     decl: &SyntaxNode,
     body: &SyntaxNode,
     out: &mut Vec<Diagnostic>,
-) {
+) -> Vec<String> {
     let lower = |n: &SyntaxNode| compact(n).to_ascii_lowercase();
     let script: Vec<String> = root
         .children()
@@ -82,9 +82,11 @@ pub(super) fn check_duplicates(
         script,
         params,
         blocks: Vec::new(),
+        duplicated: Vec::new(),
         out,
     };
     scopes.block(body);
+    scopes.duplicated
 }
 
 /// The names declared so far, block by block.
@@ -93,6 +95,8 @@ struct Scopes<'a> {
     /// The parameters, in the body's own block.
     params: Vec<String>,
     blocks: Vec<Vec<String>>,
+    /// The names reported, lowercase.
+    duplicated: Vec<String>,
     out: &'a mut Vec<Diagnostic>,
 }
 
@@ -160,6 +164,7 @@ impl Scopes<'_> {
                 }
                 _ => Vec::new(),
             };
+            self.duplicated.push(key.clone());
             self.out.push(Diagnostic {
                 problem: Problem::DuplicateLocal,
                 range: trimmed(&name),
@@ -187,8 +192,11 @@ impl Semantics<'_> {
         file: SourceFile,
         decl: &SyntaxNode,
         body: &SyntaxNode,
+        duplicated: &[String],
         out: &mut Vec<Diagnostic>,
     ) {
+        // A name `locals/duplicate` reports: one problem is enough.
+        let reported = |n: &SyntaxNode| duplicated.contains(&compact(n).to_ascii_lowercase());
         let Some(name) = decl_name(decl) else {
             return;
         };
@@ -245,7 +253,7 @@ impl Semantics<'_> {
 
         for local in &locals {
             let found = use_of(local);
-            if found.read {
+            if found.read || reported(local) {
                 continue;
             }
             let what = if found.written {
@@ -274,7 +282,7 @@ impl Semantics<'_> {
         {
             return;
         }
-        for param in &params[first_unused..] {
+        for param in params[first_unused..].iter().filter(|p| !reported(p)) {
             out.push(Diagnostic {
                 problem: Problem::UnusedParam,
                 range: trimmed(param),
