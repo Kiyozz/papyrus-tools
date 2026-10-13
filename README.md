@@ -89,7 +89,7 @@ imported one of the same name.
 | `PAP005` | `calls/arity` | error | Call with too few or too many arguments |
 | `PAP006` | `calls/named-arg` | warn | Named argument the callee does not declare, or already given |
 | `PAP007` | `types/mismatch` | error | Argument, assignment, initial or return value the compiler does not cast implicitly |
-| `PAP008` | `members/unknown` | warn | Function, variable, property or field that does not exist — with the closest name |
+| `PAP008` | `members/unknown` | error | Function, variable, property or field that does not exist — with the closest name |
 | `PAP009` | `returns/missing` | warn | Typed function that can end without `Return`, and return the default value |
 | `PAP101` | `naming/locals` | warn | Locals and parameters not in lowerCamelCase — fixable |
 | `PAP102` | `naming/variables` | warn | Script variables, properties, fields not in lowerCamelCase |

@@ -104,7 +104,7 @@ pub static TYPES_MISMATCH: Lint = Lint {
 pub static MEMBERS_UNKNOWN: Lint = Lint {
     code: "PAP008",
     name: "members/unknown",
-    default: Level::Warn,
+    default: Level::Error,
     description: "function, variable, property or field that does not exist, most often a typo",
 };
 
