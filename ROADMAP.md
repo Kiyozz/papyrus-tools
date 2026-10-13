@@ -41,24 +41,29 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
   the model, cancelled by an edit; indexing progress. Measured on Skyrim's
   14,000 vanilla scripts imported: every request within 80 ms.
 
-## Next
-
 - **v0.9 — The VSCode extension, polished.** `papyrus.toml` stays the source
   of truth: quick fixes setting a lint's level or SKSE there, created if
   missing; "Create papyrus.toml"; its JSON schema for TOML editors.
   `papyrus build` and `check` as tasks with their problems
   (`--message-format short`), snippets, a TextMate grammar highlighting
-  without the server.
+  without the server, named arguments completed. `PAP019` duplicate locals,
+  `PAP020` the case of names, a function named without parentheses.
+
+## Next
+
+- **v0.10 — The grammar, tested.** `vscode-tmgrammar-test` in CI: annotated
+  `.psc` files, the scope expected on each token.
+- **v0.11 — The extension, tested in VSCode.** A few integration tests with
+  `@vscode/test-cli`: activation, "Create papyrus.toml", the `build` and
+  `check` tasks, a diagnostic from the server; on Linux, under `xvfb-run`.
+- **v0.12 — More lints and formatting rules.** To define: a survey of what
+  is missing, against the compiler's errors and the habits of modders.
+- **v0.13 — A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the
+  binary embedded, settings, `papyrus build` as a run configuration. Starts
+  with a discovery of the best way to match the VSCode extension — Kotlin,
+  Gradle, the IntelliJ Platform's LSP API or LSP4IJ.
 
 ## Later
 
 - **Publication**: the extension on the Marketplace and Open VSX (tokens),
   CI on the release PR.
-- **Tests of the VSCode extension**: the grammar against annotated `.psc`
-  files with `vscode-tmgrammar-test`, in CI; a few integration tests in a
-  real VSCode with `@vscode/test-cli` — activation, "Create papyrus.toml",
-  the `build` and `check` tasks, a diagnostic from the server —, on Linux
-  under `xvfb-run`.
-- **A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the binary
-  embedded, settings, `papyrus build` as a run configuration. Parked until
-  the VSCode extension is polished.
