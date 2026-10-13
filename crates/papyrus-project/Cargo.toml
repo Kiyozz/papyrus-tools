@@ -14,6 +14,7 @@ papyrus-stdlib.workspace = true
 encoding_rs.workspace = true
 serde.workspace = true
 toml.workspace = true
+toml_edit.workspace = true
 
 [lints]
 workspace = true

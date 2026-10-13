@@ -305,11 +305,7 @@ fn main() -> ExitCode {
 
 fn lints() {
     for lint in LINTS {
-        let level = match lint.default {
-            Level::Allow => "allow",
-            Level::Warn => "warn",
-            Level::Error => "error",
-        };
+        let level = lint.default.as_str();
         println!(
             "{}  {:<18} {:<6} {}",
             lint.code, lint.name, level, lint.description

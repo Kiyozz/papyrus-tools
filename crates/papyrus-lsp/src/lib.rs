@@ -16,6 +16,9 @@
 //! Every script read feeds a `papyrus_hir` database; open documents replace
 //! their on-disk text there as they are edited.
 //!
+//! The quick fixes also set a lint's level, or SKSE, in `papyrus.toml`,
+//! created if missing; `papyrus.server.createConfig` writes one on request.
+//!
 //! The parameter name hints follow `inlayHints.parameterNames`, `none`,
 //! `literals` (the default) or `all`, in the initialization options or in
 //! the `papyrus` section of the configuration.
@@ -45,7 +48,7 @@ use tower_lsp_server::{
     Bounded, Client, LanguageServer, LspService, NotCancellable, OngoingProgress, Server,
 };
 
-use analysis::{Analysis, Document, Settings, analyze};
+use analysis::{Analysis, ConfigEdits, Document, Settings, analyze};
 use navigation::Navigator;
 use position::{Columns, LineMap};
 
@@ -82,6 +85,8 @@ struct State {
     can_watch: bool,
     /// The client shows the progress of the server's work.
     can_progress: bool,
+    /// The client creates files in a workspace edit.
+    can_create: bool,
     /// The semantic model.
     db: Database,
     /// The model's file of each script read, by path; a document without a
@@ -731,6 +736,17 @@ impl LanguageServer for Backend {
             .as_ref()
             .and_then(|w| w.work_done_progress)
             .unwrap_or(false);
+        let can_create = params
+            .capabilities
+            .workspace
+            .as_ref()
+            .and_then(|w| w.workspace_edit.as_ref())
+            .is_some_and(|e| {
+                e.document_changes == Some(true)
+                    && e.resource_operations
+                        .as_ref()
+                        .is_some_and(|ops| ops.contains(&ResourceOperationKind::Create))
+            });
         {
             let mut state = self.state();
             if let Some(hints) = params
@@ -744,6 +760,7 @@ impl LanguageServer for Backend {
             state.folders = folders;
             state.can_watch = can_watch;
             state.can_progress = can_progress;
+            state.can_create = can_create;
         }
 
         Ok(InitializeResult {
@@ -806,6 +823,10 @@ impl LanguageServer for Backend {
                         ..CodeActionOptions::default()
                     },
                 )),
+                execute_command_provider: Some(ExecuteCommandOptions {
+                    commands: vec![CREATE_CONFIG.to_owned()],
+                    ..ExecuteCommandOptions::default()
+                }),
                 ..ServerCapabilities::default()
             },
             server_info: Some(ServerInfo {
@@ -1018,7 +1039,11 @@ impl LanguageServer for Backend {
             let Some(range) = map.text_range(params.range) else {
                 return Vec::new();
             };
-            analysis::code_actions(&uri, document, &analysis, map, range)
+            let config = ConfigEdits {
+                columns: state.columns,
+                can_create: state.can_create,
+            };
+            analysis::code_actions(&uri, document, &analysis, map, range, config)
         }))
     }
 
@@ -1301,7 +1326,43 @@ impl LanguageServer for Backend {
             }
         }
     }
+
+    async fn execute_command(&self, params: ExecuteCommandParams) -> Result<Option<LSPAny>> {
+        if params.command != CREATE_CONFIG {
+            return Err(refused(format!("unknown command `{}`", params.command)));
+        }
+        let folder = params
+            .arguments
+            .first()
+            .and_then(|a| a.as_str())
+            .and_then(|a| a.parse::<Uri>().ok())
+            .and_then(|uri| file_path(&uri))
+            .ok_or_else(|| refused(format!("{CREATE_CONFIG}: expected a folder URI")))?;
+        let path = folder.join(papyrus_project::config::FILE_NAME);
+        let created = !path.exists();
+        if created {
+            // The target its scripts suggest, if they agree.
+            let game = {
+                let state = self.state();
+                let mut games = state
+                    .projects
+                    .iter()
+                    .filter(|(root, _)| root.starts_with(&folder))
+                    .filter_map(|(_, p)| p.detected);
+                let first = games.next();
+                first.filter(|&g| games.all(|other| other == g))
+            };
+            let text = papyrus_project::edit::template(game);
+            std::fs::write(&path, text).map_err(|e| refused(format!("{}: {e}", path.display())))?;
+        }
+        let uri = Uri::from_file_path(&path).map(|u| u.as_str().to_owned());
+        Ok(Some(serde_json::json!({ "uri": uri, "created": created })))
+    }
 }
+
+/// `workspace/executeCommand`: writes a `papyrus.toml` in the folder given
+/// as argument, unless it has one, and answers `{ uri, created }`.
+const CREATE_CONFIG: &str = "papyrus.server.createConfig";
 
 /// A request the server declines, with the reason for the user.
 fn refused(message: String) -> Error {

@@ -7,15 +7,18 @@ use std::path::{Path, PathBuf};
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_fmt::{FormatError, FormatOptions, Indent};
 use papyrus_lint::{Levels, Model, Workspace, apply_fixes, vanilla_flags};
+use papyrus_project::edit::{self as config, Change};
 use papyrus_project::flags::{FlagDef, parse_flags};
 use papyrus_project::{Config, Decoded, IndentSetting, Level, SourceEncoding, decode};
 use papyrus_syntax::{Parse, TextRange, TextSize};
 use tower_lsp_server::ls_types::{
-    CodeAction, CodeActionKind, CodeActionOrCommand, Diagnostic, DiagnosticSeverity, DiagnosticTag,
-    NumberOrString, Position, Range, TextEdit, Uri, WorkspaceEdit,
+    CodeAction, CodeActionKind, CodeActionOrCommand, CreateFile, CreateFileOptions, Diagnostic,
+    DiagnosticSeverity, DiagnosticTag, DocumentChangeOperation, DocumentChanges, NumberOrString,
+    OneOf, OptionalVersionedTextDocumentIdentifier, Position, Range, ResourceOp, TextDocumentEdit,
+    TextEdit, Uri, WorkspaceEdit,
 };
 
-use crate::position::LineMap;
+use crate::position::{Columns, LineMap};
 
 /// The diagnostics source, as the editor displays it.
 const SOURCE: &str = "papyrus";
@@ -32,6 +35,8 @@ pub(crate) struct Settings {
     /// Why papyrus.toml could not be read: the defaults apply, and the
     /// document says so.
     pub(crate) error: Option<String>,
+    /// The papyrus.toml these settings come from.
+    pub(crate) config: Option<PathBuf>,
 }
 
 impl Settings {
@@ -73,6 +78,7 @@ impl Settings {
                 None => Indent::default(),
             },
             error: None,
+            config: config.path,
         })
     }
 }
@@ -250,17 +256,93 @@ fn indentation<'a>(text: &'a str, map: &LineMap, offset: TextSize) -> (TextSize,
     (start, &line[..width])
 }
 
-/// The actions offered on `range`: safe fixes, suggestions, suppression, and
-/// fixing the whole file.
+/// How the client takes the edits of papyrus.toml.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ConfigEdits {
+    pub(crate) columns: Columns,
+    /// The client creates files: without a papyrus.toml, one is created.
+    pub(crate) can_create: bool,
+}
+
+impl ConfigEdits {
+    /// `change` made to the papyrus.toml of `document`, or to a new one at
+    /// the root of its project; `None` if the file cannot be read or
+    /// parsed.
+    fn edit(
+        &self,
+        document: &Document,
+        game: Option<GameId>,
+        change: Change<'_>,
+    ) -> Option<WorkspaceEdit> {
+        if let Some(path) = &document.settings.config {
+            let text = std::fs::read_to_string(path).ok()?;
+            let new = config::apply(&text, change)?;
+            let uri = Uri::from_file_path(path)?;
+            return Some(edit(&uri, vec![minimal_edit(&text, &new, self.columns)]));
+        }
+        document.path.as_ref()?;
+        if !self.can_create {
+            return None;
+        }
+        let path = document.project.join(papyrus_project::config::FILE_NAME);
+        let uri = Uri::from_file_path(&path)?;
+        let text = config::apply(&config::template(game), change)?;
+        let create = DocumentChangeOperation::Op(ResourceOp::Create(CreateFile {
+            uri: uri.clone(),
+            options: Some(CreateFileOptions {
+                overwrite: Some(false),
+                ignore_if_exists: Some(true),
+            }),
+            annotation_id: None,
+        }));
+        let fill = DocumentChangeOperation::Edit(TextDocumentEdit {
+            text_document: OptionalVersionedTextDocumentIdentifier { uri, version: None },
+            edits: vec![OneOf::Left(TextEdit::new(Range::default(), text))],
+        });
+        Some(WorkspaceEdit {
+            document_changes: Some(DocumentChanges::Operations(vec![create, fill])),
+            ..WorkspaceEdit::default()
+        })
+    }
+}
+
+/// The edit turning `old` into `new`: what lies between their common
+/// prefix and suffix.
+fn minimal_edit(old: &str, new: &str, columns: Columns) -> TextEdit {
+    let prefix = old
+        .char_indices()
+        .zip(new.chars())
+        .find(|((_, a), b)| a != b)
+        .map_or(old.len().min(new.len()), |((i, _), _)| i);
+    let suffix = old[prefix..]
+        .chars()
+        .rev()
+        .zip(new[prefix..].chars().rev())
+        .take_while(|(a, b)| a == b)
+        .map(|(a, _)| a.len_utf8())
+        .sum::<usize>();
+    let map = LineMap::new(old, columns);
+    let range = TextRange::new(
+        TextSize::from(prefix as u32),
+        TextSize::from((old.len() - suffix) as u32),
+    );
+    TextEdit::new(map.range(range), new[prefix..new.len() - suffix].to_owned())
+}
+
+/// The actions offered on `range`: safe fixes, suggestions, suppression on
+/// the line or in papyrus.toml, and fixing the whole file.
 pub(crate) fn code_actions(
     uri: &Uri,
     document: &Document,
     analysis: &Analysis,
     map: &LineMap,
     range: TextRange,
+    config: ConfigEdits,
 ) -> Vec<CodeActionOrCommand> {
     let text = &document.decoded.text;
     let mut actions = Vec::new();
+    // Each lint once in papyrus.toml, whatever its diagnostics in range.
+    let mut configured = Vec::new();
     for lint in &analysis.lints {
         if lint.range.intersect(range).is_none() {
             continue;
@@ -310,6 +392,46 @@ pub(crate) fn code_actions(
             )],
             false,
         );
+
+        if configured.contains(&lint.lint.code) {
+            continue;
+        }
+        configured.push(lint.lint.code);
+        let mut in_config = |title: String, change: Change<'_>| {
+            if let Some(edit) = config.edit(document, analysis.game, change) {
+                actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                    title,
+                    kind: Some(CodeActionKind::QUICKFIX),
+                    diagnostics: Some(vec![diagnostic.clone()]),
+                    edit: Some(edit),
+                    ..CodeAction::default()
+                }));
+            }
+        };
+        if lint.lint.code == papyrus_lint::MEMBERS_SKSE.code {
+            in_config("Enable SKSE in papyrus.toml".to_owned(), Change::EnableSkse);
+        }
+        let name = lint.lint.name;
+        let level = |level| Change::Lint {
+            code: lint.lint.code,
+            name,
+            level,
+        };
+        in_config(
+            format!("Allow `{name}` in papyrus.toml"),
+            level(Level::Allow),
+        );
+        if lint.level == Level::Warn {
+            in_config(
+                format!("Make `{name}` an error in papyrus.toml"),
+                level(Level::Error),
+            );
+        } else {
+            in_config(
+                format!("Make `{name}` a warning in papyrus.toml"),
+                level(Level::Warn),
+            );
+        }
     }
 
     // Every safe fix of the file at once: `source.fixAll`, which editors can

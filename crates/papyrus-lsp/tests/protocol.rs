@@ -752,3 +752,152 @@ async fn calls_are_checked_helped_and_hinted() {
     client.notify("exit", Value::Null).await;
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// A session on `dir`, whose client creates files in its workspace edits.
+async fn editing_client(dir: &Path) -> Client {
+    let mut client = connect();
+    client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": { "workspace": { "workspaceEdit": {
+                    "documentChanges": true, "resourceOperations": ["create"],
+                } } },
+                "workspaceFolders": [{ "uri": uri(dir), "name": "project" }],
+            }),
+        )
+        .await;
+    client.notify("initialized", json!({})).await;
+    client
+        .wait(|m| {
+            m["method"] == "window/logMessage"
+                && m["params"]["message"]
+                    .as_str()
+                    .is_some_and(|s| s.contains("indexed"))
+        })
+        .await;
+    client
+}
+
+/// The code actions on the first diagnostic of `code` in `text`, by title.
+async fn actions_on(client: &mut Client, path: &Path, text: &str, code: &str) -> Vec<Value> {
+    let document = uri(path);
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": document, "languageId": "papyrus", "version": 1, "text": text,
+            } }),
+        )
+        .await;
+    let published = client
+        .wait(|m| m["method"] == "textDocument/publishDiagnostics")
+        .await;
+    let diagnostic = published["params"]["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["code"] == code)
+        .unwrap_or_else(|| panic!("no {code} in {published}"))
+        .clone();
+    let actions = client
+        .request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": document },
+                "range": diagnostic["range"],
+                "context": { "diagnostics": [] },
+            }),
+        )
+        .await;
+    actions.as_array().unwrap().clone()
+}
+
+fn titled<'a>(actions: &'a [Value], title: &str) -> &'a Value {
+    let titles: Vec<&str> = actions
+        .iter()
+        .map(|a| a["title"].as_str().unwrap())
+        .collect();
+    actions
+        .iter()
+        .find(|a| a["title"] == title)
+        .unwrap_or_else(|| panic!("no {title:?} in {titles:?}"))
+}
+
+const SKSE_CALL: &str = "ScriptName MyQuest extends Quest\nFunction F()\n    Game.GetPlayer().GetWornForm(4)\nEndFunction\n";
+
+#[tokio::test]
+async fn papyrus_toml_is_edited_from_a_diagnostic() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-config-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let config = dir.join("papyrus.toml");
+    std::fs::write(
+        &config,
+        "game = \"skyrim\" # SE\n\n[lints]\nPAP001 = \"allow\"\n",
+    )
+    .unwrap();
+    std::fs::write(dir.join("MyQuest.psc"), SKSE_CALL).unwrap();
+    let mut client = editing_client(&dir).await;
+
+    let actions = actions_on(&mut client, &dir.join("MyQuest.psc"), SKSE_CALL, "PAP017").await;
+    let edit = |title| {
+        let changes = titled(&actions, title)["edit"]["changes"]
+            .as_object()
+            .unwrap();
+        let (file, edits) = changes.iter().next().unwrap();
+        assert_eq!(decoded(&json!(file)), uri(&config));
+        edits[0].clone()
+    };
+    assert_eq!(
+        edit("Enable SKSE in papyrus.toml"),
+        json!({
+            "range": { "start": { "line": 1, "character": 0 }, "end": { "line": 1, "character": 0 } },
+            "newText": "skse = true\n",
+        })
+    );
+    assert_eq!(
+        edit("Allow `members/skse` in papyrus.toml")["newText"],
+        "\"members/skse\" = \"allow\"\n"
+    );
+    titled(&actions, "Make `members/skse` an error in papyrus.toml");
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn without_papyrus_toml_one_is_created() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-noconfig-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let config = dir.join("papyrus.toml");
+    let _ = std::fs::remove_file(&config);
+    // A quick fix creates the file, then fills it.
+    let text = "ScriptName MyQuest extends Quest\nFunction F()\n    int Unused = 1\nEndFunction\n";
+    std::fs::write(dir.join("MyQuest.psc"), text).unwrap();
+    let mut client = editing_client(&dir).await;
+    let actions = actions_on(&mut client, &dir.join("MyQuest.psc"), text, "PAP015").await;
+    let changes =
+        &titled(&actions, "Allow `locals/unused` in papyrus.toml")["edit"]["documentChanges"];
+    assert_eq!(changes[0]["kind"], "create");
+    assert_eq!(decoded(&changes[0]["uri"]), uri(&config));
+    let filled = changes[1]["edits"][0]["newText"].as_str().unwrap();
+    assert!(filled.contains("\"locals/unused\" = \"allow\""), "{filled}");
+
+    // The command writes it, once.
+    let folder = uri(&dir);
+    let command = json!({ "command": "papyrus.server.createConfig", "arguments": [folder] });
+    let result = client
+        .request("workspace/executeCommand", command.clone())
+        .await;
+    assert_eq!(result["created"], true);
+    assert_eq!(decoded(&result["uri"]), uri(&config));
+    let written = std::fs::read_to_string(&config).unwrap();
+    assert!(written.contains("[lints]"), "{written}");
+    let result = client.request("workspace/executeCommand", command).await;
+    assert_eq!(result["created"], false);
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
