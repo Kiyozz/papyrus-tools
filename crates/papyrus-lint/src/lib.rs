@@ -15,7 +15,7 @@
 
 #![forbid(unsafe_code)]
 
-mod case;
+use papyrus_hir::case;
 mod rules;
 mod suppress;
 mod workspace;

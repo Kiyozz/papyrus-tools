@@ -1,4 +1,4 @@
-//! Case conversions, for the suggestions of the naming lints.
+//! Case conversions and checks, for the naming conventions.
 //!
 //! Leading acronyms fold as one block: `HPMax` gives `hpMax`, as in Go.
 //! `_` separates words, which get a capital letter back.
@@ -71,12 +71,12 @@ pub fn to_pascal(name: &str) -> String {
 }
 
 /// True if `name` is in lowerCamelCase.
-pub(crate) fn is_lower_camel(name: &str) -> bool {
+pub fn is_lower_camel(name: &str) -> bool {
     name.starts_with(|c: char| c.is_ascii_lowercase()) && !name.contains('_')
 }
 
 /// True if `name` is in PascalCase.
-pub(crate) fn is_pascal(name: &str) -> bool {
+pub fn is_pascal(name: &str) -> bool {
     name.starts_with(|c: char| c.is_ascii_uppercase()) && !name.contains('_')
 }
 

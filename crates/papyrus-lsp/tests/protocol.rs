@@ -901,3 +901,38 @@ async fn without_papyrus_toml_one_is_created() {
     client.notify("exit", Value::Null).await;
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[tokio::test]
+async fn a_declaration_against_the_convention_takes_the_case_of_its_use() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-case-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let text = "ScriptName MyQuest extends Quest\nEvent OnInit()\n    Initialize()\nEndEvent\nFunction initialize()\nEndFunction\n";
+    let script = dir.join("MyQuest.psc");
+    std::fs::write(&script, text).unwrap();
+    let mut client = editing_client(&dir).await;
+
+    let actions = actions_on(&mut client, &script, text, "PAP020").await;
+    let rename = titled(&actions, "Rename the declaration to `Initialize`");
+    let changes = rename["edit"]["changes"].as_object().unwrap();
+    let edits = changes.values().next().unwrap().as_array().unwrap();
+    let lines: Vec<u64> = edits
+        .iter()
+        .map(|e| {
+            assert_eq!(e["newText"], "Initialize");
+            e["range"]["start"]["line"].as_u64().unwrap()
+        })
+        .collect();
+    assert!(lines.contains(&2) && lines.contains(&4), "{edits:?}");
+    // The use keeps its case: no fix rewrites it.
+    assert!(
+        actions
+            .iter()
+            .all(|a| a["title"] != "Rename to `initialize`"),
+        "{actions:?}"
+    );
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}

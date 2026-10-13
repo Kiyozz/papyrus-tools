@@ -36,6 +36,7 @@
 
 mod builtins;
 mod calls;
+pub mod case;
 mod check;
 mod hierarchy;
 mod hints;

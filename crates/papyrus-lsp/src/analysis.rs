@@ -182,7 +182,7 @@ pub(crate) fn analyze(
     Analysis { parse, game, lints }
 }
 
-fn lint_diagnostic(lint: &papyrus_lint::Diagnostic, map: &LineMap) -> Diagnostic {
+pub(crate) fn lint_diagnostic(lint: &papyrus_lint::Diagnostic, map: &LineMap) -> Diagnostic {
     Diagnostic {
         range: map.range(lint.range),
         severity: Some(if lint.level == Level::Error {

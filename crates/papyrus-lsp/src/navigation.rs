@@ -221,6 +221,20 @@ impl Navigator<'_> {
         Ok((self.range(file, range), sema.def_name(&def).to_owned()))
     }
 
+    /// The declaration of the name at `offset` renamed to the case of this
+    /// use, when the use follows the naming convention the declaration
+    /// breaks: the action's title and its edits.
+    pub(crate) fn rename_declaration(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<(String, WorkspaceEdit)> {
+        let new_name = Semantics::new(self.db, project).case_rename(file, offset)?;
+        let (edit, _) = self.rename(project, file, offset, &new_name).ok()?;
+        Some((format!("Rename the declaration to `{new_name}`"), edit))
+    }
+
     /// The edits of a rename, and the warning to show.
     pub(crate) fn rename(
         &self,

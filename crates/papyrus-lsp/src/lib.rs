@@ -1043,7 +1043,33 @@ impl LanguageServer for Backend {
                 columns: state.columns,
                 can_create: state.can_create,
             };
-            analysis::code_actions(&uri, document, &analysis, map, range, config)
+            let mut actions = analysis::code_actions(&uri, document, &analysis, map, range, config);
+            // A use following the naming convention its declaration breaks:
+            // the declaration takes its case, across the project.
+            for lint in &analysis.lints {
+                if lint.lint.code != papyrus_lint::NAMES_CASE.code
+                    || lint.range.intersect(range).is_none()
+                {
+                    continue;
+                }
+                let position = map.position(lint.range.start());
+                let renamed = state
+                    .navigate(&uri, position, |nav, project, file, offset| {
+                        nav.rename_declaration(project, file, offset)
+                    })
+                    .flatten();
+                if let Some((title, edit)) = renamed {
+                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title,
+                        kind: Some(CodeActionKind::QUICKFIX),
+                        diagnostics: Some(vec![analysis::lint_diagnostic(lint, map)]),
+                        edit: Some(edit),
+                        is_preferred: Some(true),
+                        ..CodeAction::default()
+                    }));
+                }
+            }
+            actions
         }))
     }
 

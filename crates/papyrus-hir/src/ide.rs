@@ -707,7 +707,7 @@ impl Semantics<'_> {
 
     /// Checks that `def` can be renamed; a warning when it compiles but may
     /// break what binds it by name.
-    fn renamable(&self, def: &Def) -> Result<Option<String>, RenameError> {
+    pub(crate) fn renamable(&self, def: &Def) -> Result<Option<String>, RenameError> {
         let name = self.def_name(def).to_owned();
         match self.canonical(def) {
             Def::NativeScript(_) | Def::NativeFunction { .. } | Def::NativeProperty { .. } => Err(

@@ -2,6 +2,7 @@
 
 use papyrus_dialect::GameId;
 use papyrus_hir::{Database, Problem, Project, Semantics, SourceFile};
+use papyrus_syntax::TextSize;
 use salsa::Setter;
 
 /// True for dead code, which the examples are full of: checked apart.
@@ -1037,9 +1038,49 @@ EndFunction
         ]
     );
 
+    // `Initialize()` follows the convention `initialize` breaks: the
+    // declaration is the one to rename, the use keeps its case.
     let fixed = fixes(GameId::Fallout4, source, Problem::NameCase);
-    assert_eq!(fixed[0].0, "Write `initialize`");
-    assert!(fixed[0].1.contains("\n\tinitialize()\n"), "{}", fixed[0].1);
+    assert!(
+        fixed.iter().all(|(t, _)| t != "Write `initialize`"),
+        "{fixed:?}"
+    );
+    assert_eq!(fixed[0].0, "Write `Debug`");
+    assert!(
+        fixed[0].1.contains("\n\tDebug.trace(\"x\")\n"),
+        "{}",
+        fixed[0].1
+    );
+    let db = Database::default();
+    let file = SourceFile::new(&db, "A.psc".into(), source.to_owned());
+    let project = Project::new(&db, vec![file], Vec::new(), Some(GameId::Fallout4));
+    let sema = Semantics::new(&db, project);
+    let at = |needle: &str| TextSize::new(source.find(needle).unwrap() as u32 + 1);
+    assert_eq!(
+        sema.case_rename(file, at("Initialize()")).as_deref(),
+        Some("Initialize")
+    );
+    // `COUNT` breaks the convention too: the use is the one to fix.
+    assert_eq!(sema.case_rename(file, at("COUNT")), None);
+
+    // An imported declaration stays as it is: the use follows it.
+    let lib = "ScriptName Lib Hidden\nFunction helper() global\nEndFunction\n";
+    let main = "ScriptName A extends Quest\nFunction Run()\n\tLib.Helper()\nEndFunction\n";
+    let db = Database::default();
+    let file = SourceFile::new(&db, "A.psc".into(), main.to_owned());
+    let imported = SourceFile::new(&db, "lib/Lib.psc".into(), lib.to_owned());
+    let project = Project::new(&db, vec![file], vec![imported], Some(GameId::Skyrim));
+    let sema = Semantics::new(&db, project);
+    let offset = TextSize::new(main.find("Helper").unwrap() as u32 + 1);
+    assert_eq!(sema.case_rename(file, offset), None);
+    let found: Vec<_> = sema
+        .check(file)
+        .into_iter()
+        .filter(|d| d.problem == Problem::NameCase)
+        .flat_map(|d| d.fixes)
+        .map(|f| f.title)
+        .collect();
+    assert_eq!(found, ["Write `helper`"]);
 }
 
 // ── Fixes ─────────────────────────────────────────────────────────────────
