@@ -164,6 +164,9 @@ impl Navigator<'_> {
             .completions(file, offset)
             .into_iter()
             .map(|c| CompletionItem {
+                // `value = `, first in the list.
+                insert_text: (c.kind == CompletionKind::NamedArg).then(|| format!("{} ", c.label)),
+                sort_text: (c.kind == CompletionKind::NamedArg).then(|| format!("0{}", c.label)),
                 kind: Some(match c.kind {
                     CompletionKind::Local | CompletionKind::Variable => {
                         CompletionItemKind::VARIABLE
@@ -178,6 +181,7 @@ impl Navigator<'_> {
                     CompletionKind::Script => CompletionItemKind::CLASS,
                     CompletionKind::Type => CompletionItemKind::TYPE_PARAMETER,
                     CompletionKind::Keyword => CompletionItemKind::KEYWORD,
+                    CompletionKind::NamedArg => CompletionItemKind::FIELD,
                 }),
                 detail: c.detail,
                 label: c.label,

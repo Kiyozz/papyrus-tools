@@ -238,7 +238,7 @@ name, a cast, the missing arguments, the unknown function created —, a lint's
 level or SKSE set in `papyrus.toml`, created if missing,
 formatting, document outline, folding,
 semantic highlighting, and across files: go to definition, hover with the
-signature and docstring, completion, references, rename, workspace symbols,
+signature and docstring, completion — named arguments included —, references, rename, workspace symbols,
 signature help with the current parameter, the names of the parameters
 before the arguments of a call, the uses of the symbol under the cursor,
 the overrides of a function or an event (go to implementation), the call

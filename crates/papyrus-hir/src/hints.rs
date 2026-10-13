@@ -57,6 +57,13 @@ fn bare(name: &str) -> String {
 }
 
 /// True if `value` already says which parameter it fills: `akActor` or
+/// The index of the argument of `list` at `offset`: the commas before it.
+pub(crate) fn arg_index(list: &SyntaxNode, offset: TextSize) -> usize {
+    list.children_with_tokens()
+        .filter(|e| e.kind() == SyntaxKind::COMMA && e.text_range().end() <= offset)
+        .count()
+}
+
 /// `self.actor` for `akActor`.
 fn named_like(value: &SyntaxNode, param: &str) -> bool {
     let last = match value.kind() {
@@ -75,6 +82,27 @@ fn named_like(value: &SyntaxNode, param: &str) -> bool {
 impl Semantics<'_> {
     /// The signature of the call whose arguments hold `offset`.
     pub fn signature_help(&self, file: SourceFile, offset: TextSize) -> Option<SignatureHelp> {
+        let (list, signature) = self.call_at(file, offset)?;
+        let index = arg_index(&list, offset);
+        // A named argument is on its own parameter.
+        let named = args(&list)
+            .into_iter()
+            .nth(index)
+            .and_then(|a| a.name)
+            .map(|n| signature.param(&compact(&n)));
+        let active = match named {
+            Some(param) => param,
+            None => (index < signature.params.len()).then_some(index),
+        };
+        Some(SignatureHelp { signature, active })
+    }
+
+    /// The argument list holding `offset`, and the signature of its call.
+    pub(crate) fn call_at(
+        &self,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<(SyntaxNode, Signature)> {
         let root = self.root(file);
         let mut token = root.token_at_offset(offset).left_biased()?;
         // After `Foo(1, `, the space may lie outside the unclosed list.
@@ -100,22 +128,7 @@ impl Semantics<'_> {
             .filter(|p| p.kind() == SyntaxKind::CALL_EXPR)?;
         let def = self.resolve_name_ref(file, &callee(&call)?)?;
         let signature = self.signature(&def)?;
-
-        let index = list
-            .children_with_tokens()
-            .filter(|e| e.kind() == SyntaxKind::COMMA && e.text_range().end() <= offset)
-            .count();
-        // A named argument is on its own parameter.
-        let named = args(&list)
-            .into_iter()
-            .nth(index)
-            .and_then(|a| a.name)
-            .map(|n| signature.param(&compact(&n)));
-        let active = match named {
-            Some(param) => param,
-            None => (index < signature.params.len()).then_some(index),
-        };
-        Some(SignatureHelp { signature, active })
+        Some((list, signature))
     }
 
     /// The parameter names to show before the arguments of the calls in

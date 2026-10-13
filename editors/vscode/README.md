@@ -15,7 +15,7 @@ the Creation Kit — Skyrim, Fallout 4, Starfield.
   unknown function created —, "Allow" to silence a lint on one line, and,
   written to `papyrus.toml`, a lint's level for the whole project or SKSE
   enabled;
-- go to definition, hover, completion, references and rename across the
+- go to definition, hover, completion — named arguments included —, references and rename across the
   project's scripts, down to the game's native ones;
 - the uses of the symbol under the cursor, the overrides of a function or an
   event, the call hierarchy, and reference counts above declarations;
