@@ -22,10 +22,23 @@ pub(crate) struct Diagnostic {
     pub(crate) range: TextRange,
 }
 
+/// How diagnostics are printed.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, clap::ValueEnum)]
+pub(crate) enum MessageFormat {
+    /// With the source line and a caret.
+    #[default]
+    Human,
+    /// One line each, for editors:
+    /// `path:line:column:end line:end column: error[PAP001]: message`,
+    /// lines and columns from 1, in characters.
+    Short,
+}
+
 /// Prints diagnostics and counts them.
 #[derive(Debug)]
 pub(crate) struct Reporter {
     color: bool,
+    pub(crate) format: MessageFormat,
     errors: usize,
     warnings: usize,
 }
@@ -34,6 +47,7 @@ impl Reporter {
     pub(crate) fn new(color: bool) -> Reporter {
         Reporter {
             color,
+            format: MessageFormat::Human,
             errors: 0,
             warnings: 0,
         }
@@ -62,6 +76,10 @@ impl Reporter {
                     (ReportKind::Warning, Color::Yellow)
                 }
             };
+            if self.format == MessageFormat::Short {
+                eprintln!("{}", short(path, source, diagnostic));
+                continue;
+            }
             let span = span(diagnostic.range, source);
             let report = Report::build(kind, (name.as_str(), span.clone()))
                 .with_config(
@@ -105,6 +123,30 @@ impl Reporter {
             self.errors, self.warnings
         );
     }
+}
+
+/// `diagnostic` on one line, its path absolute.
+fn short(path: &Path, source: &str, diagnostic: &Diagnostic) -> String {
+    // Line and column from 1, in characters.
+    let at = |offset: usize| {
+        let before = &source[..offset.min(source.len())];
+        let line = before.matches('\n').count() + 1;
+        let start = before.rfind('\n').map_or(0, |i| i + 1);
+        (line, before[start..].chars().count() + 1)
+    };
+    let (line, column) = at(usize::from(diagnostic.range.start()));
+    let (end_line, end_column) = at(usize::from(diagnostic.range.end()));
+    let path = std::path::absolute(path).unwrap_or_else(|_| path.to_owned());
+    let severity = match diagnostic.severity {
+        Severity::Error => "error",
+        Severity::Warning => "warning",
+    };
+    format!(
+        "{}:{line}:{column}:{end_line}:{end_column}: {severity}[{}]: {}",
+        path.display(),
+        diagnostic.code,
+        diagnostic.message
+    )
 }
 
 /// The byte range, widened by one character when empty (end of file): an

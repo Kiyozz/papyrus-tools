@@ -16,6 +16,7 @@ use crate::semantics::{Def, ScriptRef, Semantics, is_callee, locals_in_scope};
 use crate::ty::Ty;
 use crate::types::Object;
 
+mod case;
 mod misuse;
 mod usage;
 
@@ -53,6 +54,11 @@ pub enum Problem {
     /// A script neither the project nor its imports declare, once they
     /// hold the game's sources.
     UnknownScript,
+    /// A local declared twice in a block, named like a parameter or a
+    /// variable of the script, or hiding one of an enclosing block.
+    DuplicateLocal,
+    /// A name written with another case than its declaration.
+    NameCase,
 }
 
 /// A text replacement.
@@ -499,7 +505,8 @@ impl Semantics<'_> {
                     }
                     self.check_global_body(file, &node, &body, &mut out);
                     usage::check_unreachable(&body, &mut out);
-                    self.check_unused(file, &node, &body, &mut out);
+                    let duplicated = usage::check_duplicates(&root, &node, &body, &mut out);
+                    self.check_unused(file, &node, &body, &duplicated, &mut out);
                     for inner in body.descendants() {
                         match inner.kind() {
                             SyntaxKind::CALL_EXPR => {
@@ -519,6 +526,7 @@ impl Semantics<'_> {
                             }
                             SyntaxKind::NAME_REF => {
                                 self.check_value(file, &node, &inner, &mut out);
+                                self.check_case(file, &inner, &mut out);
                             }
                             _ => {}
                         }
@@ -532,6 +540,9 @@ impl Semantics<'_> {
                         && !broken(&node) =>
                 {
                     self.check_init(file, &node, &mut out);
+                }
+                SyntaxKind::TYPE_REF if !broken(&node) => {
+                    self.check_type_case(file, &node, &mut out);
                 }
                 _ => {}
             }
@@ -852,6 +863,39 @@ impl Semantics<'_> {
         out
     }
 
+    /// A function of `script` named as a value, `MyScript.Run` for
+    /// `MyScript.Run()`: what it is, and the parentheses to call it.
+    fn not_called(
+        &self,
+        script: ScriptRef,
+        node: &SyntaxNode,
+        owner: Option<&str>,
+    ) -> Option<Diagnostic> {
+        let name = compact(node);
+        let declared = self
+            .callables(script)
+            .into_iter()
+            .find(|c| c.eq_ignore_ascii_case(&name))?;
+        let of = owner.map(|o| format!(" of `{o}`")).unwrap_or_default();
+        let range = trimmed(node);
+        Some(Diagnostic {
+            problem: Problem::UnknownMember,
+            range,
+            // The declared name, whatever the case written.
+            message: format!(
+                "`{declared}` is a function{of}, not a variable: call it with parentheses, \
+                 `{declared}()`"
+            ),
+            fixes: vec![Fix {
+                title: format!("Call `{declared}()`"),
+                edits: vec![Replacement {
+                    range,
+                    text: format!("{declared}()"),
+                }],
+            }],
+        })
+    }
+
     fn unknown(
         &self,
         node: &SyntaxNode,
@@ -1103,6 +1147,17 @@ impl Semantics<'_> {
             let Some(receiver) = receiver else {
                 return;
             };
+            // `MyScript.Run`: a script names only its global functions.
+            let script = match self.resolve_name_ref(file, &receiver) {
+                Some(Def::Script { file }) => Some(ScriptRef::Source(file)),
+                Some(Def::NativeScript(script)) => Some(ScriptRef::Native(script)),
+                _ => None,
+            };
+            if let Some(script) = script.filter(|_| receiver.kind() == SyntaxKind::NAME_REF) {
+                let owner = self.script_name(script);
+                out.extend(self.not_called(script, name_ref, Some(owner)));
+                return;
+            }
             match self.type_of(file, &receiver) {
                 Ty::Array(_) => self.unknown(
                     name_ref,
@@ -1112,10 +1167,13 @@ impl Semantics<'_> {
                 ),
                 Ty::Object(object) => match self.object(&object) {
                     Some(Object::Script(script)) if self.chain_complete(script) => {
-                        let message = format!(
-                            "`{}` and its parents have no property `{name}`",
-                            self.script_name(script)
-                        );
+                        let owner = self.script_name(script);
+                        if let Some(d) = self.not_called(script, name_ref, Some(owner)) {
+                            out.push(d);
+                            return;
+                        }
+                        let message =
+                            format!("`{owner}` and its parents have no property `{name}`");
                         self.unknown(name_ref, message, self.values(script), out);
                     }
                     Some(Object::Struct(file, index)) => {
@@ -1160,16 +1218,16 @@ impl Semantics<'_> {
         if !self.chain_complete(this) {
             return;
         }
-        // A function, a state or a struct used as a value: another error,
-        // which the compiler words better.
-        let elsewhere = self
-            .callables(this)
-            .iter()
-            .any(|c| c.eq_ignore_ascii_case(&name))
-            || self.chain(this).any(|script| match script {
-                ScriptRef::Source(f) => self.items(f).named(&name).next().is_some(),
-                ScriptRef::Native(_) => false,
-            });
+        if let Some(d) = self.not_called(this, name_ref, None) {
+            out.push(d);
+            return;
+        }
+        // A state or a struct used as a value: another error, which the
+        // compiler words better.
+        let elsewhere = self.chain(this).any(|script| match script {
+            ScriptRef::Source(f) => self.items(f).named(&name).next().is_some(),
+            ScriptRef::Native(_) => false,
+        });
         if elsewhere {
             return;
         }

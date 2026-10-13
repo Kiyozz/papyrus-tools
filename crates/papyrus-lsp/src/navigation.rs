@@ -164,6 +164,9 @@ impl Navigator<'_> {
             .completions(file, offset)
             .into_iter()
             .map(|c| CompletionItem {
+                // `value = `, first in the list.
+                insert_text: (c.kind == CompletionKind::NamedArg).then(|| format!("{} ", c.label)),
+                sort_text: (c.kind == CompletionKind::NamedArg).then(|| format!("0{}", c.label)),
                 kind: Some(match c.kind {
                     CompletionKind::Local | CompletionKind::Variable => {
                         CompletionItemKind::VARIABLE
@@ -178,6 +181,7 @@ impl Navigator<'_> {
                     CompletionKind::Script => CompletionItemKind::CLASS,
                     CompletionKind::Type => CompletionItemKind::TYPE_PARAMETER,
                     CompletionKind::Keyword => CompletionItemKind::KEYWORD,
+                    CompletionKind::NamedArg => CompletionItemKind::FIELD,
                 }),
                 detail: c.detail,
                 label: c.label,
@@ -215,6 +219,20 @@ impl Navigator<'_> {
         let sema = Semantics::new(self.db, project);
         let (range, def) = sema.prepare_rename(file, offset).map_err(|e| e.0)?;
         Ok((self.range(file, range), sema.def_name(&def).to_owned()))
+    }
+
+    /// The declaration of the name at `offset` renamed to the case of this
+    /// use, when the use follows the naming convention the declaration
+    /// breaks: the action's title and its edits.
+    pub(crate) fn rename_declaration(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<(String, WorkspaceEdit)> {
+        let new_name = Semantics::new(self.db, project).case_rename(file, offset)?;
+        let (edit, _) = self.rename(project, file, offset, &new_name).ok()?;
+        Some((format!("Rename the declaration to `{new_name}`"), edit))
     }
 
     /// The edits of a rename, and the warning to show.

@@ -66,12 +66,85 @@ async function start(context) {
   }
 }
 
+/**
+ * A `papyrus build` or `papyrus check` task, its problems in the Problems
+ * view.
+ * @param {vscode.ExtensionContext} context
+ * @param {vscode.WorkspaceFolder} folder
+ * @param {{ type: string, command: string, args?: string[] }} definition
+ */
+function task(context, folder, definition) {
+  const args = [definition.command, "--message-format", "short", ...(definition.args ?? [])];
+  const execution = new vscode.ProcessExecution(serverPath(context), args, {
+    cwd: folder.uri.fsPath,
+  });
+  const created = new vscode.Task(
+    definition,
+    folder,
+    definition.command,
+    "papyrus",
+    execution,
+    "$papyrus",
+  );
+  if (definition.command === "build") {
+    created.group = vscode.TaskGroup.Build;
+  }
+  return created;
+}
+
+/**
+ * Writes a `papyrus.toml` in a workspace folder, the server choosing its
+ * target, and opens it.
+ */
+async function createConfig() {
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  const folder =
+    folders.length > 1 ? await vscode.window.showWorkspaceFolderPick() : folders[0];
+  if (!folder) {
+    if (folders.length === 0) {
+      vscode.window.showErrorMessage("Papyrus: open a folder to create its papyrus.toml.");
+    }
+    return;
+  }
+  if (!client) {
+    vscode.window.showErrorMessage("Papyrus: the server is not running.");
+    return;
+  }
+  /** @type {{ uri: string, created: boolean }} */
+  const result = await client.sendRequest("workspace/executeCommand", {
+    command: "papyrus.server.createConfig",
+    arguments: [folder.uri.toString()],
+  });
+  if (!result.created) {
+    vscode.window.showInformationMessage(`Papyrus: ${folder.name} already has a papyrus.toml.`);
+  }
+  await vscode.window.showTextDocument(vscode.Uri.parse(result.uri));
+}
+
 /** @param {vscode.ExtensionContext} context */
 async function activate(context) {
   context.subscriptions.push(
     vscode.commands.registerCommand("papyrus.restart", async () => {
       await client?.stop();
       await start(context);
+    }),
+    vscode.commands.registerCommand("papyrus.createConfig", createConfig),
+    vscode.tasks.registerTaskProvider("papyrus", {
+      provideTasks: () =>
+        (vscode.workspace.workspaceFolders ?? []).flatMap((folder) =>
+          ["build", "check"].map((command) =>
+            task(context, folder, { type: "papyrus", command }),
+          ),
+        ),
+      // A task of tasks.json: its definition, the execution added.
+      resolveTask: (resolved) => {
+        const scope = resolved.scope;
+        const definition = /** @type {any} */ (resolved.definition);
+        if (typeof scope !== "object" || typeof definition.command !== "string") {
+          return undefined;
+        }
+        return task(context, scope, definition);
+      },
     }),
     // The reference lenses: the server sends LSP types, which
     // `editor.action.showReferences` wants as VSCode's.

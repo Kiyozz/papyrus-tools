@@ -1,0 +1,92 @@
+{
+  "ScriptName": {
+    "prefix": "scriptname",
+    "body": ["ScriptName ${1:${TM_FILENAME_BASE}} extends ${2:Quest}", "", "$0"],
+    "description": "Script header"
+  },
+  "Function": {
+    "prefix": "function",
+    "body": ["Function ${1:Name}(${2})", "\t$0", "EndFunction"],
+    "description": "Function"
+  },
+  "Function returning": {
+    "prefix": "functionr",
+    "body": ["${1:Int} Function ${2:Name}(${3})", "\t$0", "\tReturn ${4:value}", "EndFunction"],
+    "description": "Function with a return value"
+  },
+  "Event": {
+    "prefix": "event",
+    "body": ["Event ${1:OnInit}(${2})", "\t$0", "EndEvent"],
+    "description": "Event"
+  },
+  "Property, auto": {
+    "prefix": "property",
+    "body": "${1:Actor} Property ${2:Name} Auto${3: Const}",
+    "description": "Auto property, filled in the Creation Kit"
+  },
+  "Property, full": {
+    "prefix": "propertyfull",
+    "body": [
+      "${1:Int} Property ${2:Name}",
+      "\t${1} Function Get()",
+      "\t\tReturn ${3:_value}",
+      "\tEndFunction",
+      "\tFunction Set(${1} value)",
+      "\t\t${3} = value",
+      "\tEndFunction",
+      "EndProperty"
+    ],
+    "description": "Property with Get and Set"
+  },
+  "State": {
+    "prefix": "state",
+    "body": ["State ${1:Name}", "\t$0", "EndState"],
+    "description": "State"
+  },
+  "Auto state": {
+    "prefix": "autostate",
+    "body": ["Auto State ${1:Waiting}", "\t$0", "EndState"],
+    "description": "State the script starts in"
+  },
+  "If": {
+    "prefix": "if",
+    "body": ["If ${1:condition}", "\t$0", "EndIf"],
+    "description": "If"
+  },
+  "If Else": {
+    "prefix": "ifelse",
+    "body": ["If ${1:condition}", "\t$2", "Else", "\t$0", "EndIf"],
+    "description": "If, Else"
+  },
+  "While": {
+    "prefix": "while",
+    "body": ["While ${1:condition}", "\t$0", "EndWhile"],
+    "description": "While"
+  },
+  "Loop over an array": {
+    "prefix": "foreach",
+    "body": [
+      "Int ${1:i} = 0",
+      "While ${1} < ${2:array}.Length",
+      "\t$0",
+      "\t${1} += 1",
+      "EndWhile"
+    ],
+    "description": "While over each index of an array"
+  },
+  "Struct": {
+    "prefix": "struct",
+    "body": ["Struct ${1:Name}", "\t$0", "EndStruct"],
+    "description": "Struct (Fallout 4, Starfield)"
+  },
+  "Group": {
+    "prefix": "group",
+    "body": ["Group ${1:Name}", "\t$0", "EndGroup"],
+    "description": "Property group (Fallout 4, Starfield)"
+  },
+  "Custom event": {
+    "prefix": "customevent",
+    "body": "CustomEvent ${1:Name}",
+    "description": "Custom event (Fallout 4, Starfield)"
+  }
+}

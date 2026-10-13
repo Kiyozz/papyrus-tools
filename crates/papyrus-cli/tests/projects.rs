@@ -209,3 +209,25 @@ fn build_says_which_compiler_is_missing() {
     );
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn the_short_format_puts_each_problem_on_a_line() {
+    let root = tree(
+        "short",
+        &[
+            ("papyrus.toml", "game = \"skyrim\"\n"),
+            (
+                "MyQuest.psc",
+                "ScriptName MyQuest extends Quest\nFunction F()\n\tint unused = 1\nEndFunction\n",
+            ),
+        ],
+    );
+    let stderr = run(&root, &["--message-format", "short"]);
+    let path = std::path::absolute(root.join("MyQuest.psc")).unwrap();
+    let expected = format!(
+        "{}:3:6:3:12: warning[PAP015 locals/unused]: the variable `unused` is never used",
+        path.display()
+    );
+    assert_eq!(stderr.lines().next(), Some(expected.as_str()), "{stderr}");
+    let _ = std::fs::remove_dir_all(&root);
+}

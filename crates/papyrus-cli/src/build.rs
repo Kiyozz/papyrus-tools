@@ -94,6 +94,21 @@ pub(crate) fn build(
             CompilerKind::PapyrusCompiler => "PapyrusCompiler",
             CompilerKind::Caprica => "Caprica",
         };
+        if job.flags_missing() {
+            let hint = match compiler.kind {
+                CompilerKind::Caprica => {
+                    "Caprica ships without the game: add the game's sources to `imports` in papyrus.toml"
+                }
+                CompilerKind::PapyrusCompiler => {
+                    "the game's sources are not next to the compiler: add them to `imports` in papyrus.toml, or set `flags`"
+                }
+            };
+            return Err(format!(
+                "{}: flags file {} found in no source folder — {hint}",
+                settings.root.display(),
+                job.flags.display()
+            ));
+        }
         eprintln!(
             "compiling {} script(s) for {} with {name} into {}",
             scripts.len(),

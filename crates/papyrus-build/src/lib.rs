@@ -151,6 +151,12 @@ impl Job {
         seen.join(";")
     }
 
+    /// True if the flags file is nowhere: neither at its path nor, when
+    /// only named, in a root or an import.
+    pub fn flags_missing(&self) -> bool {
+        !self.flags_path().is_file()
+    }
+
     /// The flags file, found in the imports when only named.
     fn flags_path(&self) -> PathBuf {
         if self.flags.components().count() > 1 || self.flags.is_absolute() {

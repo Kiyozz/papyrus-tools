@@ -43,14 +43,22 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-- **v0.9 — The VSCode extension, polished.** To define: `papyrus build` as a
-  task with its problems, settings for the lint levels, snippets, the
-  grammar's highlighting without the server.
+- **v0.9 — The VSCode extension, polished.** `papyrus.toml` stays the source
+  of truth: quick fixes setting a lint's level or SKSE there, created if
+  missing; "Create papyrus.toml"; its JSON schema for TOML editors.
+  `papyrus build` and `check` as tasks with their problems
+  (`--message-format short`), snippets, a TextMate grammar highlighting
+  without the server.
 
 ## Later
 
 - **Publication**: the extension on the Marketplace and Open VSX (tokens),
   CI on the release PR.
+- **Tests of the VSCode extension**: the grammar against annotated `.psc`
+  files with `vscode-tmgrammar-test`, in CI; a few integration tests in a
+  real VSCode with `@vscode/test-cli` — activation, "Create papyrus.toml",
+  the `build` and `check` tasks, a diagnostic from the server —, on Linux
+  under `xvfb-run`.
 - **A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the binary
   embedded, settings, `papyrus build` as a run configuration. Parked until
   the VSCode extension is polished.

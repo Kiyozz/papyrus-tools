@@ -1,10 +1,11 @@
-//! Dead code: statements after `Return`, locals and parameters never read.
+//! Locals: declared twice, never read; statements after `Return`;
+//! parameters never read.
 
 use std::collections::HashMap;
 
 use papyrus_syntax::{SyntaxKind, SyntaxNode, TextRange};
 
-use super::{Diagnostic, Problem, child, decl_name, stmt_returns};
+use super::{Diagnostic, Fix, Problem, Replacement, child, decl_name, stmt_returns};
 use crate::SourceFile;
 use crate::items::{ItemKind, compact, trimmed};
 use crate::semantics::{Def, ScriptRef, Semantics};
@@ -55,6 +56,128 @@ pub(super) fn check_unreachable(body: &SyntaxNode, out: &mut Vec<Diagnostic>) {
     }
 }
 
+/// Locals the compiler refuses: declared twice in a block, named like a
+/// parameter or a variable of the script, or shadowing one of an enclosing
+/// block. Sibling blocks may reuse a name.
+pub(super) fn check_duplicates(
+    root: &SyntaxNode,
+    decl: &SyntaxNode,
+    body: &SyntaxNode,
+    out: &mut Vec<Diagnostic>,
+) -> Vec<String> {
+    let lower = |n: &SyntaxNode| compact(n).to_ascii_lowercase();
+    let script: Vec<String> = root
+        .children()
+        .filter(|n| n.kind() == SyntaxKind::VARIABLE_DECL)
+        .filter_map(|n| child(&n, SyntaxKind::NAME))
+        .map(|n| lower(&n))
+        .collect();
+    let params: Vec<String> = child(decl, SyntaxKind::PARAM_LIST)
+        .into_iter()
+        .flat_map(|list| list.children().filter(|p| p.kind() == SyntaxKind::PARAM))
+        .filter_map(|p| child(&p, SyntaxKind::NAME))
+        .map(|n| lower(&n))
+        .collect();
+    let mut scopes = Scopes {
+        script,
+        params,
+        blocks: Vec::new(),
+        duplicated: Vec::new(),
+        out,
+    };
+    scopes.block(body);
+    scopes.duplicated
+}
+
+/// The names declared so far, block by block.
+struct Scopes<'a> {
+    script: Vec<String>,
+    /// The parameters, in the body's own block.
+    params: Vec<String>,
+    blocks: Vec<Vec<String>>,
+    /// The names reported, lowercase.
+    duplicated: Vec<String>,
+    out: &'a mut Vec<Diagnostic>,
+}
+
+impl Scopes<'_> {
+    fn block(&mut self, list: &SyntaxNode) {
+        self.blocks.push(Vec::new());
+        for stmt in list.children() {
+            if stmt.kind() == SyntaxKind::VARIABLE_DECL {
+                self.declare(&stmt);
+            } else {
+                self.nested(&stmt);
+            }
+        }
+        self.blocks.pop();
+    }
+
+    /// The blocks of a statement: `If`, `ElseIf`, `Else`, `While`…
+    fn nested(&mut self, node: &SyntaxNode) {
+        for inner in node.children() {
+            if inner.kind() == SyntaxKind::STMT_LIST {
+                self.block(&inner);
+            } else {
+                self.nested(&inner);
+            }
+        }
+    }
+
+    fn declare(&mut self, stmt: &SyntaxNode) {
+        let Some(name) = child(stmt, SyntaxKind::NAME) else {
+            return;
+        };
+        let key = compact(&name).to_ascii_lowercase();
+        let outermost = self.blocks.len() == 1;
+        let current = self.blocks.last().is_some_and(|b| b.contains(&key));
+        let param = self.params.contains(&key);
+        let why = if current || (outermost && param) {
+            Some(if param {
+                "is already a parameter of this function"
+            } else {
+                "is already declared in this block"
+            })
+        } else if param || self.blocks.iter().any(|b| b.contains(&key)) {
+            Some("is already declared in an enclosing block, which Papyrus forbids hiding")
+        } else if self.script.contains(&key) {
+            Some("is already a variable of the script")
+        } else {
+            None
+        };
+        if let Some(why) = why {
+            // Redeclared with a value in the same block: assigning was
+            // likely meant.
+            let fixes = match (child(stmt, SyntaxKind::TYPE_REF), current) {
+                (Some(ty), true)
+                    if stmt
+                        .children_with_tokens()
+                        .any(|e| e.kind() == SyntaxKind::EQ) =>
+                {
+                    vec![Fix {
+                        title: format!("Assign `{}` instead", compact(&name)),
+                        edits: vec![Replacement {
+                            range: TextRange::new(trimmed(&ty).start(), trimmed(&name).start()),
+                            text: String::new(),
+                        }],
+                    }]
+                }
+                _ => Vec::new(),
+            };
+            self.duplicated.push(key.clone());
+            self.out.push(Diagnostic {
+                problem: Problem::DuplicateLocal,
+                range: trimmed(&name),
+                message: format!("the variable `{}` {why}", compact(&name)),
+                fixes,
+            });
+        }
+        if let Some(block) = self.blocks.last_mut() {
+            block.push(key);
+        }
+    }
+}
+
 /// Whether a local or a parameter is read, written, or neither.
 #[derive(Default, Clone, Copy)]
 struct Use {
@@ -69,8 +192,11 @@ impl Semantics<'_> {
         file: SourceFile,
         decl: &SyntaxNode,
         body: &SyntaxNode,
+        duplicated: &[String],
         out: &mut Vec<Diagnostic>,
     ) {
+        // A name `locals/duplicate` reports: one problem is enough.
+        let reported = |n: &SyntaxNode| duplicated.contains(&compact(n).to_ascii_lowercase());
         let Some(name) = decl_name(decl) else {
             return;
         };
@@ -127,7 +253,7 @@ impl Semantics<'_> {
 
         for local in &locals {
             let found = use_of(local);
-            if found.read {
+            if found.read || reported(local) {
                 continue;
             }
             let what = if found.written {
@@ -156,7 +282,7 @@ impl Semantics<'_> {
         {
             return;
         }
-        for param in &params[first_unused..] {
+        for param in params[first_unused..].iter().filter(|p| !reported(p)) {
             out.push(Diagnostic {
                 problem: Problem::UnusedParam,
                 range: trimmed(param),

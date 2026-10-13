@@ -15,7 +15,7 @@
 
 #![forbid(unsafe_code)]
 
-mod case;
+use papyrus_hir::case;
 mod rules;
 mod suppress;
 mod workspace;
@@ -188,6 +188,22 @@ pub static SCRIPTS_UNKNOWN: Lint = Lint {
     description: "script that does not exist, once the game's sources are in the project or its imports",
 };
 
+/// `PAP019`: local the compiler refuses, its name already taken.
+pub static LOCALS_DUPLICATE: Lint = Lint {
+    code: "PAP019",
+    name: "locals/duplicate",
+    default: Level::Error,
+    description: "local declared twice in a block, named like a parameter or a script variable, or hiding one of an enclosing block",
+};
+
+/// `PAP020`: name written with another case than its declaration.
+pub static NAMES_CASE: Lint = Lint {
+    code: "PAP020",
+    name: "names/case",
+    default: Level::Warn,
+    description: "name written with another case than its declaration, which the compiler ignores",
+};
+
 /// `PAP101`: locals and parameters in lowerCamelCase.
 pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
@@ -232,6 +248,8 @@ pub static LINTS: &[&Lint] = &[
     &PARAMS_UNUSED,
     &MEMBERS_SKSE,
     &SCRIPTS_UNKNOWN,
+    &LOCALS_DUPLICATE,
+    &NAMES_CASE,
     &NAMING_LOCALS,
     &NAMING_VARIABLES,
     &NAMING_FUNCTIONS,

@@ -313,6 +313,64 @@ fn general_completion_lists_locals_members_and_types() {
     assert_eq!(kind("Actor"), Some(CompletionKind::Script));
 }
 
+/// Papyrus ignores case: a member written `test` still reaches `Test`.
+#[test]
+fn navigation_and_completion_ignore_case() {
+    const LIB: &str = "ScriptName TestScript Hidden\nFunction Test() global\nEndFunction\n";
+    let main =
+        |body: &str| format!("ScriptName A extends Quest\nFunction Run()\n\t{body}\nEndFunction\n");
+    let call = main("testScript.te$0st()");
+    let f = Fixture::new(GameId::Skyrim, &[("A.psc", &call), ("TestScript.psc", LIB)]);
+    assert_eq!(f.definition().as_deref(), Some("TestScript.psc:Test"));
+    let receiver = main("testsc$0ript.test()");
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[("A.psc", &receiver), ("TestScript.psc", LIB)],
+    );
+    assert_eq!(f.definition().as_deref(), Some("TestScript.psc:TestScript"));
+    let members = main("testscript.$0");
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[("A.psc", &members), ("TestScript.psc", LIB)],
+    );
+    assert!(f.labels().iter().any(|l| l == "Test"), "{:?}", f.labels());
+}
+
+#[test]
+fn parameters_complete_as_named_arguments() {
+    let lib = "ScriptName Test Hidden\n\
+               int Function WithParam(int value) global native\n\
+               Function Take(int aiCount, float afScale = 1.0, Actor akWho = None) global\nEndFunction\n";
+    let named = |body: &str| {
+        let main = format!(
+            "ScriptName A extends Quest\nFunction Run()\n\tint value = 1\n\t{body}\nEndFunction\n"
+        );
+        let f = Fixture::new(GameId::Skyrim, &[("A.psc", &main), ("Test.psc", lib)]);
+        let (file, offset) = f.cursor();
+        let completions = f.sema().completions(file, offset);
+        // The local of the same name stays proposed.
+        assert!(
+            completions
+                .iter()
+                .any(|c| c.label == "value" && c.kind == CompletionKind::Local),
+            "{completions:?}"
+        );
+        completions
+            .into_iter()
+            .filter(|c| c.kind == CompletionKind::NamedArg)
+            .map(|c| (c.label, c.detail.unwrap_or_default()))
+            .collect::<Vec<_>>()
+    };
+    let pair = |label: &str, detail: &str| (label.to_owned(), detail.to_owned());
+    assert_eq!(named("Test.WithParam(val$0)"), [pair("value =", "int")]);
+    assert_eq!(
+        named("Test.Take(1, akWho = None, $0)"),
+        [pair("afScale =", "float = 1.0")]
+    );
+    // Within a value, no name.
+    assert_eq!(named("Test.Take(1 + val$0)"), []);
+}
+
 #[test]
 fn type_completion_after_extends() {
     let f = Fixture::new(

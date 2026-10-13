@@ -2,6 +2,7 @@
 
 use papyrus_dialect::GameId;
 use papyrus_hir::{Database, Problem, Project, Semantics, SourceFile};
+use papyrus_syntax::TextSize;
 use salsa::Setter;
 
 /// True for dead code, which the examples are full of: checked apart.
@@ -913,6 +914,224 @@ EndFunction
     ] {
         assert_eq!(dead(GameId::Skyrim, &files), []);
     }
+}
+
+#[test]
+fn locals_the_compiler_refuses_are_reported() {
+    // What PapyrusCompiler refuses, Skyrim's and Fallout 4's alike.
+    let source = "ScriptName A extends Quest
+int field = 0
+int Property P Auto
+Function Run(int a)
+\tint test = 32
+\tint TEST = 33
+\tint a = 1
+\tint d = 1
+\tIf a
+\t\tint d = 2
+\t\tint e = 1
+\tElse
+\t\tint e = 2
+\tEndIf
+\tint e = 3
+\tWhile a
+\t\tint a = 4
+\tEndWhile
+\tint field = 5
+\tint P = 6
+EndFunction
+Function Other()
+\tint test = 1
+\tDebug.Trace(test)
+EndFunction
+";
+    let found = check_all_in(Some(GameId::Skyrim), &[("A.psc", source)]);
+    // One problem per name: never unused on top of duplicate.
+    let unused: Vec<String> = found
+        .iter()
+        .filter(|(p, ..)| matches!(p, Problem::UnusedLocal | Problem::UnusedParam))
+        .map(|(_, t, _)| t.to_ascii_lowercase())
+        .collect();
+    for name in ["test", "a", "d", "field"] {
+        assert!(!unused.iter().any(|u| u == name), "{name}: {unused:?}");
+    }
+    assert!(unused.iter().any(|u| u == "e"), "{unused:?}");
+    let duplicates: Vec<(String, String)> = found
+        .into_iter()
+        .filter(|(p, ..)| *p == Problem::DuplicateLocal)
+        .map(|(_, t, m)| (t, m))
+        .collect();
+    let message = |name: &str, why: &str| (name.to_owned(), format!("the variable `{name}` {why}"));
+    assert_eq!(
+        duplicates,
+        [
+            message("TEST", "is already declared in this block"),
+            message("a", "is already a parameter of this function"),
+            message(
+                "d",
+                "is already declared in an enclosing block, which Papyrus forbids hiding"
+            ),
+            message(
+                "a",
+                "is already declared in an enclosing block, which Papyrus forbids hiding"
+            ),
+            message("field", "is already a variable of the script"),
+        ]
+    );
+
+    let fixed = fixes(GameId::Skyrim, source, Problem::DuplicateLocal);
+    assert_eq!(fixed.len(), 1, "{fixed:?}");
+    assert_eq!(fixed[0].0, "Assign `TEST` instead");
+    assert!(fixed[0].1.contains("\n\tTEST = 33\n"), "{}", fixed[0].1);
+}
+
+#[test]
+fn a_function_named_without_parentheses_is_reported() {
+    let lib = "ScriptName MyScript Hidden\nint Function Count() global\nReturn 1\nEndFunction\n";
+    let main = "ScriptName A extends Quest
+int Function Run()
+\tReturn 2
+EndFunction
+Function Go()
+\tint a = MyScript.count
+\tint b = Run
+\tint c = self.RUN
+\tint d = MyScript.Count()
+EndFunction
+";
+    let found = check_in(
+        Some(GameId::Skyrim),
+        &[("A.psc", main), ("MyScript.psc", lib)],
+    );
+    let messages: Vec<(String, String)> = found
+        .into_iter()
+        .filter(|(p, ..)| *p == Problem::UnknownMember)
+        .map(|(_, t, m)| (t, m))
+        .collect();
+    // The message and the fix name the function as declared.
+    let call = |written: &str, name: &str, of: &str| {
+        (
+            written.to_owned(),
+            format!(
+                "`{name}` is a function{of}, not a variable: call it with parentheses, `{name}()`"
+            ),
+        )
+    };
+    assert_eq!(
+        messages,
+        [
+            call("count", "Count", " of `MyScript`"),
+            call("Run", "Run", ""),
+            call("RUN", "Run", " of `A`"),
+        ]
+    );
+    // `MyScript` is not part of this one-file project.
+    let fixed = fixes(GameId::Skyrim, main, Problem::UnknownMember);
+    let titles: Vec<&str> = fixed.iter().map(|(t, _)| t.as_str()).collect();
+    assert_eq!(titles, ["Call `Run()`", "Call `Run()`"]);
+    assert!(
+        fixed[1].1.contains("\tint c = self.Run()\n"),
+        "{}",
+        fixed[1].1
+    );
+}
+
+#[test]
+fn names_follow_the_case_of_their_declaration() {
+    let source = "ScriptName A extends Quest
+Struct Point
+\tint x
+EndStruct
+event OnInit()
+\tInitialize()
+endevent
+function initialize()
+\tdebug.trace(\"x\")
+\tint count = 1
+\tDebug.Trace(COUNT)
+\tobjectReference ref = None
+\tpoint[] points
+\tTake(akWho = None)
+endfunction
+Function Take(Actor AKWHO)
+EndFunction
+";
+    let found = check_all_in(Some(GameId::Fallout4), &[("A.psc", source)]);
+    assert_eq!(
+        only(found, &[Problem::NameCase]),
+        [
+            (Problem::NameCase, "Initialize".to_owned()),
+            (Problem::NameCase, "debug".to_owned()),
+            (Problem::NameCase, "trace".to_owned()),
+            (Problem::NameCase, "COUNT".to_owned()),
+            (Problem::NameCase, "objectReference".to_owned()),
+            (Problem::NameCase, "point".to_owned()),
+        ]
+    );
+    // Across files: a member and its script.
+    let main = "ScriptName A extends Quest
+Function Run()
+\tTestScript.test()
+\ttestScript.Test()
+\tTestScript.Test()
+EndFunction
+";
+    let lib = "ScriptName TestScript Hidden\nFunction Test() global\nEndFunction\n";
+    let found = check_all_in(
+        Some(GameId::Skyrim),
+        &[("A.psc", main), ("TestScript.psc", lib)],
+    );
+    assert_eq!(
+        only(found, &[Problem::NameCase]),
+        [
+            (Problem::NameCase, "test".to_owned()),
+            (Problem::NameCase, "testScript".to_owned()),
+        ]
+    );
+
+    // `Initialize()` follows the convention `initialize` breaks: the
+    // declaration is the one to rename, the use keeps its case.
+    let fixed = fixes(GameId::Fallout4, source, Problem::NameCase);
+    assert!(
+        fixed.iter().all(|(t, _)| t != "Write `initialize`"),
+        "{fixed:?}"
+    );
+    assert_eq!(fixed[0].0, "Write `Debug`");
+    assert!(
+        fixed[0].1.contains("\n\tDebug.trace(\"x\")\n"),
+        "{}",
+        fixed[0].1
+    );
+    let db = Database::default();
+    let file = SourceFile::new(&db, "A.psc".into(), source.to_owned());
+    let project = Project::new(&db, vec![file], Vec::new(), Some(GameId::Fallout4));
+    let sema = Semantics::new(&db, project);
+    let at = |needle: &str| TextSize::new(source.find(needle).unwrap() as u32 + 1);
+    assert_eq!(
+        sema.case_rename(file, at("Initialize()")).as_deref(),
+        Some("Initialize")
+    );
+    // `COUNT` breaks the convention too: the use is the one to fix.
+    assert_eq!(sema.case_rename(file, at("COUNT")), None);
+
+    // An imported declaration stays as it is: the use follows it.
+    let lib = "ScriptName Lib Hidden\nFunction helper() global\nEndFunction\n";
+    let main = "ScriptName A extends Quest\nFunction Run()\n\tLib.Helper()\nEndFunction\n";
+    let db = Database::default();
+    let file = SourceFile::new(&db, "A.psc".into(), main.to_owned());
+    let imported = SourceFile::new(&db, "lib/Lib.psc".into(), lib.to_owned());
+    let project = Project::new(&db, vec![file], vec![imported], Some(GameId::Skyrim));
+    let sema = Semantics::new(&db, project);
+    let offset = TextSize::new(main.find("Helper").unwrap() as u32 + 1);
+    assert_eq!(sema.case_rename(file, offset), None);
+    let found: Vec<_> = sema
+        .check(file)
+        .into_iter()
+        .filter(|d| d.problem == Problem::NameCase)
+        .flat_map(|d| d.fixes)
+        .map(|f| f.title)
+        .collect();
+    assert_eq!(found, ["Write `helper`"]);
 }
 
 // ── Fixes ─────────────────────────────────────────────────────────────────

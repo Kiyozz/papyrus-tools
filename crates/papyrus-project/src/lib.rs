@@ -8,6 +8,7 @@
 pub mod config;
 pub mod detect;
 pub mod discover;
+pub mod edit;
 pub mod encoding;
 pub mod flags;
 pub mod project;

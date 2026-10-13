@@ -63,6 +63,9 @@ pub enum CompletionKind {
     Type,
     /// A keyword: `self`, `None`.
     Keyword,
+    /// A parameter of the call around the cursor, to pass by name:
+    /// `value =`.
+    NamedArg,
 }
 
 /// One proposal.
@@ -372,7 +375,7 @@ impl Semantics<'_> {
         let mut proposals = Proposals::default();
 
         // `a.|`: the members of `a`.
-        if let Some(dot) = before.filter(|t| t.kind() == SyntaxKind::DOT) {
+        if let Some(dot) = before.clone().filter(|t| t.kind() == SyntaxKind::DOT) {
             if let Some(receiver) = dot
                 .parent()
                 .filter(|p| p.kind() == SyntaxKind::FIELD_EXPR)
@@ -398,6 +401,14 @@ impl Semantics<'_> {
         if in_type {
             self.complete_types(file, &mut proposals);
             return proposals.out;
+        }
+
+        // `Foo(|` or `Foo(1, |`: the parameters not given yet, by name.
+        if before
+            .as_ref()
+            .is_some_and(|t| matches!(t.kind(), SyntaxKind::L_PAREN | SyntaxKind::COMMA))
+        {
+            self.complete_named_args(file, offset, &mut proposals);
         }
 
         for def in locals_in_scope(file, &anchor, offset, false) {
@@ -428,6 +439,38 @@ impl Semantics<'_> {
         }
         self.complete_types(file, &mut proposals);
         proposals.out
+    }
+
+    /// The parameters of the call around `offset` that no argument gives
+    /// yet: those after the positional arguments, not already named.
+    fn complete_named_args(&self, file: SourceFile, offset: TextSize, proposals: &mut Proposals) {
+        let Some((list, signature)) = self.call_at(file, offset) else {
+            return;
+        };
+        let index = crate::hints::arg_index(&list, offset);
+        let given: Vec<usize> = crate::calls::args(&list)
+            .iter()
+            .enumerate()
+            .filter_map(|(i, arg)| match &arg.name {
+                Some(name) => signature.param(&compact(name)),
+                None => (i < index).then_some(i),
+            })
+            .collect();
+        for (i, param) in signature.params.iter().enumerate() {
+            if given.contains(&i) {
+                continue;
+            }
+            let detail = match &param.default {
+                Some(default) => format!("{} = {default}", param.written),
+                None => param.written.clone(),
+            };
+            // Apart from the names: a local may share the parameter's.
+            proposals.out.push(Completion {
+                label: format!("{} =", param.name),
+                kind: CompletionKind::NamedArg,
+                detail: Some(detail),
+            });
+        }
     }
 
     /// The members of one script.
@@ -664,7 +707,7 @@ impl Semantics<'_> {
 
     /// Checks that `def` can be renamed; a warning when it compiles but may
     /// break what binds it by name.
-    fn renamable(&self, def: &Def) -> Result<Option<String>, RenameError> {
+    pub(crate) fn renamable(&self, def: &Def) -> Result<Option<String>, RenameError> {
         let name = self.def_name(def).to_owned();
         match self.canonical(def) {
             Def::NativeScript(_) | Def::NativeFunction { .. } | Def::NativeProperty { .. } => Err(

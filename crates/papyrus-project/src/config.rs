@@ -43,6 +43,17 @@ pub enum Level {
     Error,
 }
 
+impl Level {
+    /// As written in `papyrus.toml`.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Level::Allow => "allow",
+            Level::Warn => "warn",
+            Level::Error => "error",
+        }
+    }
+}
+
 impl FromStr for Level {
     type Err = String;
 
