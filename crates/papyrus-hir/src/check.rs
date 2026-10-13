@@ -863,6 +863,37 @@ impl Semantics<'_> {
         out
     }
 
+    /// A function of `script` named as a value, `MyScript.Run` for
+    /// `MyScript.Run()`: what it is, and the parentheses to call it.
+    fn not_called(
+        &self,
+        script: ScriptRef,
+        node: &SyntaxNode,
+        owner: Option<&str>,
+    ) -> Option<Diagnostic> {
+        let name = compact(node);
+        let declared = self
+            .callables(script)
+            .into_iter()
+            .find(|c| c.eq_ignore_ascii_case(&name))?;
+        let of = owner.map(|o| format!(" of `{o}`")).unwrap_or_default();
+        let range = trimmed(node);
+        Some(Diagnostic {
+            problem: Problem::UnknownMember,
+            range,
+            message: format!(
+                "`{name}` is a function{of}, not a variable: call it with parentheses, `{name}()`"
+            ),
+            fixes: vec![Fix {
+                title: format!("Call `{declared}()`"),
+                edits: vec![Replacement {
+                    range: TextRange::empty(range.end()),
+                    text: "()".to_owned(),
+                }],
+            }],
+        })
+    }
+
     fn unknown(
         &self,
         node: &SyntaxNode,
@@ -1114,6 +1145,17 @@ impl Semantics<'_> {
             let Some(receiver) = receiver else {
                 return;
             };
+            // `MyScript.Run`: a script names only its global functions.
+            let script = match self.resolve_name_ref(file, &receiver) {
+                Some(Def::Script { file }) => Some(ScriptRef::Source(file)),
+                Some(Def::NativeScript(script)) => Some(ScriptRef::Native(script)),
+                _ => None,
+            };
+            if let Some(script) = script.filter(|_| receiver.kind() == SyntaxKind::NAME_REF) {
+                let owner = self.script_name(script);
+                out.extend(self.not_called(script, name_ref, Some(owner)));
+                return;
+            }
             match self.type_of(file, &receiver) {
                 Ty::Array(_) => self.unknown(
                     name_ref,
@@ -1123,10 +1165,13 @@ impl Semantics<'_> {
                 ),
                 Ty::Object(object) => match self.object(&object) {
                     Some(Object::Script(script)) if self.chain_complete(script) => {
-                        let message = format!(
-                            "`{}` and its parents have no property `{name}`",
-                            self.script_name(script)
-                        );
+                        let owner = self.script_name(script);
+                        if let Some(d) = self.not_called(script, name_ref, Some(owner)) {
+                            out.push(d);
+                            return;
+                        }
+                        let message =
+                            format!("`{owner}` and its parents have no property `{name}`");
                         self.unknown(name_ref, message, self.values(script), out);
                     }
                     Some(Object::Struct(file, index)) => {
@@ -1171,16 +1216,16 @@ impl Semantics<'_> {
         if !self.chain_complete(this) {
             return;
         }
-        // A function, a state or a struct used as a value: another error,
-        // which the compiler words better.
-        let elsewhere = self
-            .callables(this)
-            .iter()
-            .any(|c| c.eq_ignore_ascii_case(&name))
-            || self.chain(this).any(|script| match script {
-                ScriptRef::Source(f) => self.items(f).named(&name).next().is_some(),
-                ScriptRef::Native(_) => false,
-            });
+        if let Some(d) = self.not_called(this, name_ref, None) {
+            out.push(d);
+            return;
+        }
+        // A state or a struct used as a value: another error, which the
+        // compiler words better.
+        let elsewhere = self.chain(this).any(|script| match script {
+            ScriptRef::Source(f) => self.items(f).named(&name).next().is_some(),
+            ScriptRef::Native(_) => false,
+        });
         if elsewhere {
             return;
         }

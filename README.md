@@ -171,6 +171,8 @@ certain:
   embedded tables only know the native scripts. Another script extender's
   (F4SE…) are known once its sources are in `imports`, as they are for the
   compiler.
+- a function named as a value, `MyScript.Run` or `x = Run`, is said to be
+  one, with the parentheses to call it as a fix.
 
 Without a known target, each file is checked against the native scripts of
 every game, and only what all of them reject is reported: `Debug.Trace()`

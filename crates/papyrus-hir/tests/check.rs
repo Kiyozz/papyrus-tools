@@ -986,6 +986,50 @@ EndFunction
 }
 
 #[test]
+fn a_function_named_without_parentheses_is_reported() {
+    let lib = "ScriptName MyScript Hidden\nint Function Count() global\nReturn 1\nEndFunction\n";
+    let main = "ScriptName A extends Quest
+int Function Run()
+\tReturn 2
+EndFunction
+Function Go()
+\tint a = MyScript.count
+\tint b = Run
+\tint c = self.Run
+\tint d = MyScript.Count()
+EndFunction
+";
+    let found = check_in(
+        Some(GameId::Skyrim),
+        &[("A.psc", main), ("MyScript.psc", lib)],
+    );
+    let messages: Vec<(String, String)> = found
+        .into_iter()
+        .filter(|(p, ..)| *p == Problem::UnknownMember)
+        .map(|(_, t, m)| (t, m))
+        .collect();
+    let call = |name: &str, of: &str| {
+        (
+            name.to_owned(),
+            format!(
+                "`{name}` is a function{of}, not a variable: call it with parentheses, `{name}()`"
+            ),
+        )
+    };
+    assert_eq!(
+        messages,
+        [
+            call("count", " of `MyScript`"),
+            call("Run", ""),
+            call("Run", " of `A`"),
+        ]
+    );
+    let fixed = fixes(GameId::Skyrim, main, Problem::UnknownMember);
+    assert_eq!(fixed[0].0, "Call `Run()`");
+    assert!(fixed[0].1.contains("\tint b = Run()\n"), "{}", fixed[0].1);
+}
+
+#[test]
 fn names_follow_the_case_of_their_declaration() {
     let source = "ScriptName A extends Quest
 Struct Point
