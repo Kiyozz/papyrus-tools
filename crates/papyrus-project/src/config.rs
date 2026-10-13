@@ -98,6 +98,25 @@ impl fmt::Display for ConfigError {
 
 impl std::error::Error for ConfigError {}
 
+/// `path` without its `.` and `..` components, resolved lexically:
+/// `mod/../lib` becomes `lib`.
+fn normalize(path: &Path) -> PathBuf {
+    use std::path::Component;
+    let mut out = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir
+                if matches!(out.components().next_back(), Some(Component::Normal(_))) =>
+            {
+                out.pop();
+            }
+            other => out.push(other),
+        }
+    }
+    out
+}
+
 /// The file as written, before validation.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -163,7 +182,7 @@ impl Config {
 
         // A relative path is relative to the configuration file.
         let relative = |f: PathBuf| match path.parent() {
-            Some(dir) if f.is_relative() => dir.join(f),
+            Some(dir) if f.is_relative() => normalize(&dir.join(f)),
             _ => f,
         };
         let flags = raw.flags.map(relative);
