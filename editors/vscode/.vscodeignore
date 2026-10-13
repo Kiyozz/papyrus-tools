@@ -1,3 +1,7 @@
-node_modules/@vscode/**
+# Only the bundle ships: dist/extension.js holds the client and its
+# dependencies.
+node_modules/**
+extension.js
+package-lock.json
 **/*.vsix
 .gitignore
