@@ -79,9 +79,10 @@ impl Semantics<'_> {
             Some(Def::NativeFunction {
                 script, function, ..
             }) => (script.name, function.name),
-            Some(Def::Item { file, index }) if self.item(file, index).native => {
-                (self.items(file).name.as_str(), self.item(file, index).name.as_str())
-            }
+            Some(Def::Item { file, index }) if self.item(file, index).native => (
+                self.items(file).name.as_str(),
+                self.item(file, index).name.as_str(),
+            ),
             _ => return,
         };
         let single = if name.eq_ignore_ascii_case("RegisterForUpdate") {

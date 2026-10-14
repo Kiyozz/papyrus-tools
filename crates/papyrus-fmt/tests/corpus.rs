@@ -12,7 +12,7 @@
 use std::path::PathBuf;
 
 use papyrus_dialect::{Dialect, GameId};
-use papyrus_fmt::{FormatOptions, format};
+use papyrus_fmt::{FormatOptions, KeywordCase, format};
 use papyrus_project::{DiscoverOptions, decode, discover};
 
 fn corpus_var(game: GameId) -> &'static str {
@@ -39,22 +39,30 @@ fn run(game: GameId) {
 
     let dialect = Dialect::new(game);
     let options = FormatOptions::default();
+    let pascal = FormatOptions {
+        keywords: KeywordCase::Pascal,
+        ..options
+    };
     let mut failures = Vec::new();
     let mut changed = 0;
     for path in &scripts {
         let decoded = decode(&std::fs::read(path).expect("read"));
-        let once = match format(&decoded.text, dialect, &options) {
-            Ok(out) => out,
-            Err(e) => {
-                failures.push(format!("{} : {e}", path.display()));
-                continue;
+        for options in [options, pascal] {
+            let once = match format(&decoded.text, dialect, &options) {
+                Ok(out) => out,
+                Err(e) => {
+                    failures.push(format!("{} : {e}", path.display()));
+                    continue;
+                }
+            };
+            let twice = format(&once, dialect, &options).expect("the result formats again");
+            if twice != once {
+                failures.push(format!("{}: not idempotent", path.display()));
             }
-        };
-        let twice = format(&once, dialect, &options).expect("the result formats again");
-        if twice != once {
-            failures.push(format!("{}: not idempotent", path.display()));
+            if options == FormatOptions::default() {
+                changed += usize::from(once != decoded.text);
+            }
         }
-        changed += usize::from(once != decoded.text);
     }
 
     println!(

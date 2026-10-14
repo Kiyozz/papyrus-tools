@@ -71,6 +71,7 @@ imports = ["../SkyUI/Scripts/Source"]  # read, never checked
 
 [fmt]
 indent = 2                   # or "tab"
+keywords = "lower"           # or "pascal": EndFunction
 
 [lints]
 "naming/variables" = "allow" # allow, warn or error; by name or by code
@@ -369,8 +370,11 @@ VSCode's: the command line and every editor read the same.
 
 ### The formatter
 
-Lowercase keywords, two-space indent (configurable), at most one blank line, LF
-line endings. It never touches identifiers, strings or comments, nor `True`,
+Lowercase keywords — or PascalCase, `EndFunction`, with `keywords = "pascal"`
+—, two-space indent (configurable), at most one blank line, one around each
+function, event, state, struct, group and full property, no parentheses around
+a whole `If` or `While` condition, LF line endings. It never touches
+identifiers, strings or comments, nor `True`,
 `False` and `None` as a parameter's default — the compiler compares it as text
 with the overridden function's, so `False` against `false` fails. It does not
 change the encoding, and refuses a file that does not parse. Before writing, it

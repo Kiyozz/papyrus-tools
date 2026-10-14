@@ -107,12 +107,13 @@ fn the_indent_is_configurable() {
         Dialect::default(),
         &FormatOptions {
             indent: Indent::Tabs,
+            ..FormatOptions::default()
         },
     )
     .unwrap();
     assert_eq!(
         tabs,
-        "scriptname T\nfunction F()\n\tif x\n\t\treturn\n\tendif\nendfunction\n"
+        "scriptname T\n\nfunction F()\n\tif x\n\t\treturn\n\tendif\nendfunction\n"
     );
 }
 
@@ -130,6 +131,47 @@ fn default_values_keep_their_case() {
         fmt(
             "ScriptName T\nFunction F(Bool a = False, Form f = None, Bool b = TRUE)\nBool x = False\nEndFunction\n"
         ),
-        "scriptname T\nfunction F(bool a = False, Form f = None, bool b = TRUE)\n  bool x = false\nendfunction\n"
+        "scriptname T\n\nfunction F(bool a = False, Form f = None, bool b = TRUE)\n  bool x = false\nendfunction\n"
+    );
+}
+
+#[test]
+fn blocks_are_set_apart() {
+    let source = "ScriptName T\nint count\nFunction A()\nEndFunction\n; about B\nFunction B()\nEndFunction\n\
+                  Function N() Native\nFunction M() Native\nState S\nFunction A()\nEndFunction\n\
+                  Function B()\nEndFunction\nEndState\nint last\n";
+    assert_eq!(
+        fmt(source),
+        "scriptname T\nint count\n\nfunction A()\nendfunction\n\n; about B\nfunction B()\nendfunction\n\n\
+         function N() native\nfunction M() native\n\nstate S\n  function A()\n  endfunction\n\n\
+         \x20 function B()\n  endfunction\nendstate\n\nint last\n"
+    );
+}
+
+#[test]
+fn conditions_lose_their_outer_parentheses() {
+    assert_eq!(
+        fmt(
+            "ScriptName T\nFunction F()\nIf ((x))\nElseIf (x) && (y)\nEndIf\nWhile (!x)\nEndWhile\nEndFunction\n"
+        ),
+        "scriptname T\n\nfunction F()\n  if x\n  elseif (x) && (y)\n  endif\n  while !x\n  endwhile\nendfunction\n"
+    );
+}
+
+#[test]
+fn keywords_can_be_written_in_pascal_case() {
+    let source = "scriptname T extends quest\nauto state s\nevent oninit()\nif self == none\nreturn\nendif\nendevent\nendstate\n";
+    let pascal = format(
+        source,
+        Dialect::new(GameId::Skyrim),
+        &FormatOptions {
+            keywords: papyrus_fmt::KeywordCase::Pascal,
+            ..FormatOptions::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        pascal,
+        "ScriptName T Extends quest\n\nAuto State s\n  Event oninit()\n    If Self == None\n      Return\n    EndIf\n  EndEvent\nEndState\n"
     );
 }

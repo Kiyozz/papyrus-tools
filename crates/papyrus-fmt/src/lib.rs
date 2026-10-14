@@ -9,11 +9,16 @@
 //!
 //! - reindents according to nesting;
 //! - normalizes spaces within the line;
-//! - writes keywords in lowercase, except when they serve as names
-//!   (`Auto State Default`, `.Length`), and `True`, `False`, `None` as a
-//!   parameter's default value, which the compiler compares as text with the
-//!   one of the function overridden;
-//! - keeps at most one blank line, none before a word that closes a block;
+//! - writes keywords in lowercase, or in PascalCase with
+//!   [`KeywordCase::Pascal`], except when they serve as names (`Auto State
+//!   Default`, `.Length`), and `True`, `False`, `None` as a parameter's
+//!   default value, which the compiler compares as text with the one of the
+//!   function overridden;
+//! - drops the parentheses around a whole `If`, `ElseIf` or `While`
+//!   condition;
+//! - keeps at most one blank line, none before a word that closes a block,
+//!   and sets functions, events, states, structs, groups and full properties
+//!   apart with one;
 //! - strips trailing spaces, writes LF line endings and ends the file with
 //!   exactly one.
 //!
@@ -28,16 +33,18 @@
 //! # Safeguard
 //!
 //! Before returning its result, the formatter checks that the sequence of
-//! significant tokens is unchanged, up to keyword case. At the slightest
+//! significant tokens is unchanged, up to keyword case and the parentheses of
+//! conditions. At the slightest
 //! difference it refuses: better not to format than to corrupt a script.
 
 #![forbid(unsafe_code)]
 
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::fmt;
 
 use papyrus_dialect::Dialect;
-use papyrus_syntax::{ParseError, SyntaxKind, SyntaxNode, SyntaxToken, lex_with_dialect, parse};
+use papyrus_syntax::{ParseError, SyntaxKind, SyntaxNode, SyntaxToken, parse};
 
 use SyntaxKind::*;
 
@@ -56,11 +63,100 @@ impl Default for Indent {
     }
 }
 
+/// How keywords are written.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum KeywordCase {
+    /// `endfunction`, the default.
+    #[default]
+    Lower,
+    /// `EndFunction`, as the Creation Kit writes them.
+    Pascal,
+}
+
 /// The formatter settings.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct FormatOptions {
     /// The indentation, two spaces by default.
     pub indent: Indent,
+    /// The case of keywords, lowercase by default.
+    pub keywords: KeywordCase,
+}
+
+/// Keywords in PascalCase, as the Creation Kit writes them.
+const PASCAL: &[&str] = &[
+    "As",
+    "Auto",
+    "AutoReadOnly",
+    "BetaOnly",
+    "Bool",
+    "Collapsed",
+    "CollapsedOnBase",
+    "CollapsedOnRef",
+    "Conditional",
+    "Const",
+    "CustomEvent",
+    "CustomEventName",
+    "DebugOnly",
+    "Default",
+    "Else",
+    "ElseIf",
+    "ElseTryLockGuard",
+    "EndEvent",
+    "EndFunction",
+    "EndGroup",
+    "EndIf",
+    "EndLockGuard",
+    "EndProperty",
+    "EndState",
+    "EndStruct",
+    "EndTryLockGuard",
+    "EndWhile",
+    "Event",
+    "Extends",
+    "False",
+    "Float",
+    "Function",
+    "Global",
+    "Group",
+    "Guard",
+    "Hidden",
+    "If",
+    "Import",
+    "Int",
+    "Is",
+    "Length",
+    "LockGuard",
+    "Mandatory",
+    "Native",
+    "New",
+    "None",
+    "Parent",
+    "Private",
+    "Property",
+    "Protected",
+    "ProtectsFunctionLogic",
+    "RequiresGuard",
+    "Return",
+    "ScriptEventName",
+    "ScriptName",
+    "Self",
+    "SelfOnly",
+    "State",
+    "String",
+    "Struct",
+    "StructVarName",
+    "True",
+    "TryLockGuard",
+    "Var",
+    "While",
+];
+
+/// The PascalCase spelling of a keyword.
+fn pascal(keyword: &str) -> Option<&'static str> {
+    PASCAL
+        .iter()
+        .find(|p| p.eq_ignore_ascii_case(keyword))
+        .copied()
 }
 
 /// Why a file was not formatted.
@@ -109,10 +205,11 @@ pub fn format(
     if source.starts_with('\u{feff}') {
         out.push('\u{feff}');
     }
-    print(&parse.syntax(), options, &mut out);
+    let root = parse.syntax();
+    print(&root, options, &mut out);
 
-    let before = fingerprint(source, dialect);
-    let after = fingerprint(&out, dialect);
+    let before = fingerprint(&root);
+    let after = fingerprint(&papyrus_syntax::parse(&out, dialect).syntax());
     if before != after {
         let at = before
             .iter()
@@ -147,13 +244,43 @@ impl Line {
     }
 }
 
+/// The parentheses around a whole `If`, `ElseIf` or `While` condition, every
+/// layer: `If (x)` is `If x`.
+fn redundant_parens(root: &SyntaxNode) -> HashSet<SyntaxToken> {
+    let mut out = HashSet::new();
+    for node in root.descendants() {
+        if !matches!(node.kind(), IF_STMT | ELSEIF_CLAUSE | WHILE_STMT) {
+            continue;
+        }
+        let mut condition = node.children().next();
+        while let Some(paren) = condition.filter(|c| c.kind() == PAREN_EXPR) {
+            let tokens: Vec<SyntaxToken> = paren
+                .children_with_tokens()
+                .filter_map(|e| e.into_token())
+                .filter(|t| matches!(t.kind(), L_PAREN | R_PAREN))
+                .collect();
+            // An unclosed one is left to the parser's judgment.
+            if tokens.len() != 2 {
+                break;
+            }
+            out.extend(tokens);
+            condition = paren.children().next();
+        }
+    }
+    out
+}
+
 fn lines(root: &SyntaxNode) -> Vec<Line> {
+    let parens = redundant_parens(root);
     let mut lines = Vec::new();
     let mut current = Line::default();
     for element in root.descendants_with_tokens() {
         let Some(token) = element.into_token() else {
             continue;
         };
+        if parens.contains(&token) {
+            continue;
+        }
         match token.kind() {
             WHITESPACE => {}
             NEWLINE => lines.push(std::mem::take(&mut current)),
@@ -257,11 +384,79 @@ fn levels(lines: &[Line]) -> Vec<usize> {
     levels
 }
 
+// ── Blocks ────────────────────────────────────────────────────────────────
+
+/// A declaration over several lines — function, event, state, struct,
+/// group, full property — of the script, a state or a group: set apart by
+/// blank lines.
+fn is_block(node: &SyntaxNode) -> bool {
+    matches!(
+        node.kind(),
+        FUNCTION_DECL | EVENT_DECL | STATE_DECL | STRUCT_DECL | GROUP_DECL | PROPERTY_DECL
+    ) && node
+        .parent()
+        .is_some_and(|p| matches!(p.kind(), SOURCE_FILE | STATE_DECL | GROUP_DECL))
+        && node.children_with_tokens().any(|e| {
+            matches!(
+                e.kind(),
+                ENDFUNCTION_KW
+                    | ENDEVENT_KW
+                    | ENDSTATE_KW
+                    | ENDSTRUCT_KW
+                    | ENDGROUP_KW
+                    | ENDPROPERTY_KW
+            )
+        })
+}
+
+/// The first token of a node that is neither trivia nor a line break.
+fn first_significant(node: &SyntaxNode) -> Option<SyntaxToken> {
+    node.descendants_with_tokens()
+        .filter_map(|e| e.into_token())
+        .find(|t| !t.kind().is_trivia() && t.kind() != NEWLINE)
+}
+
+/// The lines that must follow a blank line: the start of a block, with the
+/// comments right above it, and what follows its end.
+fn set_apart(lines: &[Line], levels: &[usize]) -> Vec<bool> {
+    let mut apart = vec![false; lines.len()];
+    let code = |i: usize| !lines[i].tokens.is_empty() && !lines[i].continuation;
+    for (i, line) in lines.iter().enumerate() {
+        let Some(first) = line.tokens.first().filter(|_| code(i)) else {
+            continue;
+        };
+        let block = first.parent_ancestors().find(is_block);
+        let starts = block
+            .as_ref()
+            .and_then(first_significant)
+            .is_some_and(|t| &t == first);
+        if starts {
+            let mut start = i;
+            while start > 0 && code(start - 1) && lines[start - 1].is_comment_only() {
+                start -= 1;
+            }
+            // Not the first member of its state or group.
+            let previous = (0..start).rev().find(|&j| code(j));
+            if previous.is_some_and(|j| levels[j] >= levels[start]) {
+                apart[start] = true;
+            }
+        }
+        let ends = first.parent().is_some_and(|p| is_block(&p)) && is_closer(first.kind());
+        if ends {
+            if let Some(next) = (i + 1..lines.len()).find(|&j| code(j)) {
+                apart[next] = true;
+            }
+        }
+    }
+    apart
+}
+
 // ── Writing ───────────────────────────────────────────────────────────────
 
 fn print(root: &SyntaxNode, options: &FormatOptions, out: &mut String) {
     let lines = lines(root);
     let levels = levels(&lines);
+    let apart = set_apart(&lines, &levels);
     let unit = match options.indent {
         Indent::Spaces(n) => " ".repeat(usize::from(n)),
         Indent::Tabs => "\t".to_owned(),
@@ -269,7 +464,7 @@ fn print(root: &SyntaxNode, options: &FormatOptions, out: &mut String) {
 
     let mut started = false;
     let mut blank = false;
-    for (line, level) in lines.iter().zip(levels) {
+    for ((line, level), apart) in lines.iter().zip(levels).zip(apart) {
         if line.tokens.is_empty() {
             // At most one blank line, never at the start or end of the file.
             blank = started;
@@ -281,7 +476,7 @@ fn print(root: &SyntaxNode, options: &FormatOptions, out: &mut String) {
             .tokens
             .first()
             .is_some_and(|t| is_closer(t.kind()) && !line.continuation);
-        if blank && !closes {
+        if (blank || (apart && started)) && !closes {
             out.push('\n');
         }
         blank = false;
@@ -295,7 +490,7 @@ fn print(root: &SyntaxNode, options: &FormatOptions, out: &mut String) {
                     out.push(' ');
                 }
             }
-            out.push_str(&text(token));
+            out.push_str(&text(token, options.keywords));
             prev = Some(token);
         }
         out.push('\n');
@@ -304,13 +499,16 @@ fn print(root: &SyntaxNode, options: &FormatOptions, out: &mut String) {
 }
 
 /// The text of a token, as the formatter writes it.
-fn text(token: &SyntaxToken) -> Cow<'_, str> {
+fn text(token: &SyntaxToken, case: KeywordCase) -> Cow<'_, str> {
     let raw = token.text();
     match token.kind() {
         LINE_COMMENT => Cow::Borrowed(raw.trim_end()),
         BLOCK_COMMENT | DOC_COMMENT => Cow::Owned(raw.replace("\r\n", "\n")),
         LINE_CONTINUATION => Cow::Borrowed("\\"),
-        kind if kind.is_keyword() && !keeps_case(token) => Cow::Owned(raw.to_ascii_lowercase()),
+        kind if kind.is_keyword() && !keeps_case(token) => match case {
+            KeywordCase::Lower => Cow::Owned(raw.to_ascii_lowercase()),
+            KeywordCase::Pascal => Cow::Borrowed(pascal(raw).unwrap_or(raw)),
+        },
         _ => Cow::Borrowed(raw),
     }
 }
@@ -371,14 +569,20 @@ fn space_between(prev: &SyntaxToken, next: &SyntaxToken) -> bool {
 
 // ── Safeguard ─────────────────────────────────────────────────────────────
 
-/// What formatting must not change: significant tokens, comments, and the
-/// line breaks that separate code.
-fn fingerprint(source: &str, dialect: Dialect) -> Vec<(SyntaxKind, String)> {
+/// What formatting must not change: significant tokens — the parentheses
+/// around a whole condition aside —, comments, the line breaks that
+/// separate code, and the case of the keywords that keep it.
+fn fingerprint(root: &SyntaxNode) -> Vec<(SyntaxKind, String)> {
+    let parens = redundant_parens(root);
     let mut out: Vec<(SyntaxKind, String)> = Vec::new();
     let mut after_newline = true;
-    for token in lex_with_dialect(source, dialect) {
-        let raw = token.text(source);
-        let text = match token.kind {
+    for token in root
+        .descendants_with_tokens()
+        .filter_map(|e| e.into_token())
+        .filter(|t| !parens.contains(t))
+    {
+        let raw = token.text();
+        let text = match token.kind() {
             WHITESPACE => continue,
             NEWLINE => {
                 if !after_newline {
@@ -390,10 +594,10 @@ fn fingerprint(source: &str, dialect: Dialect) -> Vec<(SyntaxKind, String)> {
             LINE_CONTINUATION => "\\".to_owned(),
             LINE_COMMENT => raw.trim_end().to_owned(),
             BLOCK_COMMENT | DOC_COMMENT => raw.replace("\r\n", "\n"),
-            kind if kind.is_keyword() => raw.to_ascii_lowercase(),
+            kind if kind.is_keyword() && !keeps_case(&token) => raw.to_ascii_lowercase(),
             _ => raw.to_owned(),
         };
-        out.push((token.kind, text));
+        out.push((token.kind(), text));
         after_newline = false;
     }
     if out.last().is_some_and(|(k, _)| *k == NEWLINE) {

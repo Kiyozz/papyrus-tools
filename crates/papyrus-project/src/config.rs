@@ -10,6 +10,7 @@
 //!
 //! [fmt]
 //! indent = 2          # or "tab"
+//! keywords = "lower"  # or "pascal"
 //!
 //! [lints]
 //! "naming/locals" = "error"
@@ -104,6 +105,9 @@ pub struct Config {
     pub skse: bool,
     /// The formatter indentation.
     pub indent: Option<IndentSetting>,
+    /// The formatter writes keywords in PascalCase, `EndFunction`, rather
+    /// than lowercase.
+    pub pascal_keywords: bool,
     /// A `.flg` file replacing the game's vanilla flags.
     pub flags: Option<PathBuf>,
     /// Folders of scripts the project builds on — a library, another mod —
@@ -189,6 +193,7 @@ struct RawBuild {
 #[serde(deny_unknown_fields)]
 struct RawFmt {
     indent: Option<RawIndent>,
+    keywords: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -218,6 +223,16 @@ impl Config {
             Some(other) => {
                 return Err(error(format!(
                     "fmt.indent: expected 1 to 8 spaces or \"tab\", found {other:?}"
+                )));
+            }
+        };
+        let pascal_keywords = match raw.fmt.keywords.as_deref() {
+            None => false,
+            Some(s) if s.eq_ignore_ascii_case("lower") => false,
+            Some(s) if s.eq_ignore_ascii_case("pascal") => true,
+            Some(other) => {
+                return Err(error(format!(
+                    "fmt.keywords: expected \"lower\" or \"pascal\", found {other:?}"
                 )));
             }
         };
@@ -253,6 +268,7 @@ impl Config {
             include_fragments: raw.include_fragments,
             skse: raw.skse,
             indent,
+            pascal_keywords,
             flags,
             imports,
             lints,
@@ -308,6 +324,7 @@ mod tests {
              flags = \"TESV_Papyrus_Flags.flg\"\n\
              [fmt]\n\
              indent = \"tab\"\n\
+             keywords = \"Pascal\"\n\
              [lints]\n\
              \"naming/locals\" = \"error\"\n\
              PAP001 = \"allow\"\n",
@@ -317,6 +334,7 @@ mod tests {
         assert!(config.include_fragments);
         assert!(config.skse);
         assert_eq!(config.indent, Some(IndentSetting::Tab));
+        assert!(config.pascal_keywords);
         assert_eq!(
             config.flags.as_deref(),
             Some(
@@ -335,6 +353,7 @@ mod tests {
         assert!(parse("gmae = \"skyrim\"").is_err());
         assert!(parse("game = \"morrowind\"").is_err());
         assert!(parse("[fmt]\nindent = 0").is_err());
+        assert!(parse("[fmt]\nkeywords = \"upper\"").is_err());
         assert!(parse("[lints]\nPAP001 = \"loud\"").is_err());
         assert!(parse("[build]\ncompile = \"x\"").is_err());
     }
