@@ -575,7 +575,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "papyrus-build"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "papyrus-dialect",
  "papyrus-syntax",
@@ -583,7 +583,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-cli"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "ariadne",
  "clap",
@@ -600,11 +600,11 @@ dependencies = [
 
 [[package]]
 name = "papyrus-dialect"
-version = "0.10.0"
+version = "0.11.0"
 
 [[package]]
 name = "papyrus-fmt"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "insta",
  "papyrus-dialect",
@@ -614,7 +614,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-hir"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "papyrus-dialect",
  "papyrus-project",
@@ -626,7 +626,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-lint"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "insta",
  "papyrus-dialect",
@@ -638,7 +638,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-lsp"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "line-index",
  "papyrus-dialect",
@@ -655,7 +655,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-project"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "encoding_rs",
  "papyrus-dialect",
@@ -668,14 +668,14 @@ dependencies = [
 
 [[package]]
 name = "papyrus-stdlib"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "papyrus-dialect",
 ]
 
 [[package]]
 name = "papyrus-syntax"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "insta",
  "logos",
@@ -1252,7 +1252,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "clap",
  "papyrus-dialect",
