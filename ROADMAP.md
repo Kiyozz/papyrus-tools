@@ -61,8 +61,12 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-- **v0.12 — More lints and formatting rules.** To define: a survey of what
-  is missing, against the compiler's errors and the habits of modders.
+- **v0.12 — More lints and formatting rules.** What the compilers refuse,
+  each case checked against the three official ones: `PAP021` to `PAP033`,
+  overrides with defaults compared as written, casts and operands in
+  `PAP007`. Modders' habits, `PAP034` to `PAP040`. The formatter sets blocks
+  apart, drops the parentheses of conditions, writes keywords in PascalCase
+  on demand.
 - **v0.13 — A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the
   binary embedded, settings, `papyrus build` as a run configuration. Starts
   with a discovery of the best way to match the VSCode extension — Kotlin,
