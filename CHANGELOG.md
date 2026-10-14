@@ -1,5 +1,13 @@
 # papyrus-tools
 
+## 0.12.0
+
+### Minor Changes
+
+- 885fbd1: `PAP021` to `PAP033`, what the compilers of Skyrim, Fallout 4 and Starfield refuse, each case checked against the official compilers: `ScriptName` other than the file's name, an `extends` cycle, members declared twice, `Return` with or without a value against the declaration, overrides whose parameters, defaults or return type differ — defaults compared as written, `False` is not `false`, with the parent's as a fix —, functions only a state declares, the shape of property accessors, array sizes, assignments to a call or `.Length`, initial values that are not literals, and the Fallout 4 and Starfield rules (default order, `Native` functions, integer range, native overrides in Starfield). `PAP007` also reports casts, comparisons and arithmetic between unrelated types, and the value of a call that returns nothing. `Import MyNs:Helper` now lets `Helper` name the script.
+- 885fbd1: `PAP034` to `PAP040`, modders' habits, as warnings: `RegisterForUpdate` and `RegisterForUpdateGameTime` (with their `Single` version as a fix), `Game.GetPlayer()` in a loop, a boolean compared with `True` or `False` (with the simpler form), a value assigned or compared to itself, script variables never read, unused `Import`s.
+- 885fbd1: `papyrus fmt` sets functions, events, states, structs, groups and full properties apart with a blank line, drops the parentheses around a whole `If`, `ElseIf` or `While` condition, and writes keywords in PascalCase (`EndFunction`) with `keywords = "pascal"` in the `[fmt]` section of `papyrus.toml`.
+
 ## 0.11.1
 
 ### Patch Changes
