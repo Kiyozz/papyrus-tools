@@ -323,7 +323,9 @@ VSCode's: the command line and every editor read the same.
 ### The formatter
 
 Lowercase keywords, two-space indent (configurable), at most one blank line, LF
-line endings. It never touches identifiers, strings or comments, does not
+line endings. It never touches identifiers, strings or comments, nor `True`,
+`False` and `None` as a parameter's default — the compiler compares it as text
+with the overridden function's, so `False` against `false` fails. It does not
 change the encoding, and refuses a file that does not parse. Before writing, it
 checks that the tokens have not changed.
 
