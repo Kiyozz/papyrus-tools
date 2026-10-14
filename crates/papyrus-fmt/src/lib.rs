@@ -10,7 +10,9 @@
 //! - reindents according to nesting;
 //! - normalizes spaces within the line;
 //! - writes keywords in lowercase, except when they serve as names
-//!   (`Auto State Default`, `.Length`);
+//!   (`Auto State Default`, `.Length`), and `True`, `False`, `None` as a
+//!   parameter's default value, which the compiler compares as text with the
+//!   one of the function overridden;
 //! - keeps at most one blank line, none before a word that closes a block;
 //! - strips trailing spaces, writes LF line endings and ends the file with
 //!   exactly one.
@@ -329,6 +331,12 @@ fn keeps_case(token: &SyntaxToken) -> bool {
             token.kind(),
             CUSTOMEVENTNAME_KW | SCRIPTEVENTNAME_KW | STRUCTVARNAME_KW
         ),
+        // A parameter's default value: compilers compare it with the parent's,
+        // or the empty state's, as text — `False` against `false` is an error.
+        LITERAL => {
+            matches!(token.kind(), TRUE_KW | FALSE_KW | NONE_KW)
+                && parent.parent().is_some_and(|p| p.kind() == PARAM)
+        }
         _ => false,
     }
 }

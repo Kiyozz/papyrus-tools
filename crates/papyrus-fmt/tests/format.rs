@@ -121,3 +121,15 @@ fn the_file_ends_with_a_single_line_end() {
     assert_eq!(fmt("ScriptName T"), "scriptname T\n");
     assert_eq!(fmt("\n\nScriptName T\n\n\n"), "scriptname T\n");
 }
+
+#[test]
+fn default_values_keep_their_case() {
+    // Compilers compare a default with the overridden function's as text:
+    // `False` against the parent's `false` does not compile.
+    assert_eq!(
+        fmt(
+            "ScriptName T\nFunction F(Bool a = False, Form f = None, Bool b = TRUE)\nBool x = False\nEndFunction\n"
+        ),
+        "scriptname T\nfunction F(bool a = False, Form f = None, bool b = TRUE)\n  bool x = false\nendfunction\n"
+    );
+}
