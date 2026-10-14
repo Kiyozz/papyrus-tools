@@ -17,6 +17,8 @@ use crate::ty::Ty;
 use crate::types::Object;
 
 mod case;
+mod decls;
+mod exprs;
 mod misuse;
 mod usage;
 
@@ -59,6 +61,51 @@ pub enum Problem {
     DuplicateLocal,
     /// A name written with another case than its declaration.
     NameCase,
+    /// A `ScriptName` other than the file's name.
+    ScriptName,
+    /// A script among its own ancestors.
+    ExtendsCycle,
+    /// A member declared twice: a function or event in the same state, a
+    /// variable, a property, a second `Auto` state.
+    DuplicateMember,
+    /// `Return value` in a function without a return type or in an event,
+    /// `Return` alone in a typed function.
+    ReturnValue,
+    /// A function or event whose signature differs from the one it
+    /// overrides: the parent's, or the empty state's.
+    OverrideSignature,
+    /// A function in a state but in no empty state.
+    StateFunction,
+    /// A property's `Get` or `Set` of the wrong shape, another function in
+    /// it, an initial value where none is allowed or missing.
+    PropertyAccessor,
+    /// `new T[n]` of a size the compiler refuses.
+    ArraySize,
+    /// An assignment to something that cannot be assigned: a call,
+    /// `.Length`.
+    NotAssignable,
+    /// An initial or default value that is not a literal.
+    NotLiteral,
+    /// A parameter without default after one with a default.
+    DefaultOrder,
+    /// A `Native` function in a script that is not `Native`.
+    NativeFunction,
+    /// An integer literal that does not fit 32 bits.
+    IntRange,
+    /// `RegisterForUpdate`, which keeps running after the mod is removed.
+    RepeatingUpdate,
+    /// `Game.GetPlayer()` called on each iteration of a loop.
+    GetPlayerInLoop,
+    /// A comparison with `True` or `False`.
+    BoolComparison,
+    /// `x = x`.
+    SelfAssign,
+    /// `x == x`, `x < x`: always the same answer.
+    SelfCompare,
+    /// A script variable never read.
+    UnusedVariable,
+    /// An `Import` nothing uses.
+    UnusedImport,
 }
 
 /// A text replacement.
@@ -490,6 +537,8 @@ impl Semantics<'_> {
         };
 
         let mut out = Vec::new();
+        self.check_decls(file, &root, &broken, &mut out);
+        self.check_values(&root, &broken, &mut out);
         for node in root.descendants() {
             match node.kind() {
                 SyntaxKind::FUNCTION_DECL | SyntaxKind::EVENT_DECL => {
@@ -508,6 +557,7 @@ impl Semantics<'_> {
                     let duplicated = usage::check_duplicates(&root, &node, &body, &mut out);
                     self.check_unused(file, &node, &body, &duplicated, &mut out);
                     for inner in body.descendants() {
+                        self.check_expr(file, &inner, &mut out);
                         match inner.kind() {
                             SyntaxKind::CALL_EXPR => {
                                 self.check_call(file, &inner, &mut out);
@@ -579,7 +629,8 @@ impl Semantics<'_> {
         });
     }
 
-    /// `Return value`: of the declared type, and only in a typed function.
+    /// `Return value`: of the declared type, and only in a typed function;
+    /// `Return` alone only in a function without return type or an event.
     fn check_return_value(
         &self,
         file: SourceFile,
@@ -587,21 +638,81 @@ impl Semantics<'_> {
         ret: &SyntaxNode,
         out: &mut Vec<Diagnostic>,
     ) {
-        let Some(value) = ret.children().next() else {
-            return;
-        };
-        // Without a return type, the compiler accepts `Return Foo()` when
-        // `Foo` returns nothing either: left alone.
-        let Some(returns) =
-            child(decl, SyntaxKind::TYPE_REF).filter(|_| decl.kind() == SyntaxKind::FUNCTION_DECL)
-        else {
-            return;
-        };
+        let returns =
+            child(decl, SyntaxKind::TYPE_REF).filter(|_| decl.kind() == SyntaxKind::FUNCTION_DECL);
         let name = decl_name(decl).map(|n| compact(&n)).unwrap_or_default();
+        let report = |message: String| Diagnostic {
+            problem: Problem::ReturnValue,
+            range: trimmed(ret),
+            message,
+            fixes: Vec::new(),
+        };
+        let (value, returns) = match (ret.children().next(), returns) {
+            (None, None) => return,
+            (None, Some(returns)) => {
+                out.push(report(format!(
+                    "`{name}` returns `{}`: `Return` needs a value",
+                    compact(&returns)
+                )));
+                return;
+            }
+            (Some(value), None) => {
+                // `Return None` is accepted: vanilla Starfield writes it.
+                if self.type_of(file, &value) == Ty::None {
+                    return;
+                }
+                // Skyrim's compiler accepts `Return Foo()` when `Foo`
+                // returns nothing either; later ones do not.
+                let maybe_void = value.kind() == SyntaxKind::CALL_EXPR
+                    && self.returns_nothing(file, &value) != Some(false);
+                if !maybe_void || self.game().is_some_and(|g| g.rank() >= 1) {
+                    let what = if decl.kind() == SyntaxKind::EVENT_DECL {
+                        "an event"
+                    } else {
+                        "a function without return type"
+                    };
+                    out.push(report(format!(
+                        "`{name}` is {what}: it cannot return a value"
+                    )));
+                }
+                return;
+            }
+            (Some(value), Some(returns)) => (value, returns),
+        };
         let expected = self.qualify(file, Ty::parse(&compact(&returns)));
         self.mismatch(file, &value, &expected, out, |found, to| {
             format!("`{name}` returns `{to}`, found `{found}`")
         });
+    }
+
+    /// Whether a call returns nothing: `Some(true)` for a function without
+    /// return type or an event, `None` for an unresolved callee or anything
+    /// but a call.
+    fn returns_nothing(&self, file: SourceFile, expr: &SyntaxNode) -> Option<bool> {
+        if expr.kind() != SyntaxKind::CALL_EXPR {
+            return None;
+        }
+        let callee = match expr.children().next()? {
+            c if c.kind() == SyntaxKind::FIELD_EXPR => crate::semantics::member_name_ref(&c)?,
+            c => c,
+        };
+        if callee.kind() != SyntaxKind::NAME_REF {
+            return None;
+        }
+        match self.resolve_name_ref(file, &callee)? {
+            Def::Item { file, index } => {
+                let item = self.item(file, index);
+                match item.kind {
+                    ItemKind::Function => Some(item.ty.is_none()),
+                    ItemKind::Event => Some(true),
+                    _ => None,
+                }
+            }
+            Def::NativeFunction {
+                function, event, ..
+            } => Some(event || function.returns.is_none()),
+            _ => None,
+        }
     }
 
     // ── Types ─────────────────────────────────────────────────────────────
@@ -615,6 +726,14 @@ impl Semantics<'_> {
         out: &mut Vec<Diagnostic>,
         message: impl FnOnce(&Ty, &Ty) -> String,
     ) {
+        // Nothing passes for `None`: vanilla Skyrim assigns such calls to
+        // objects and passes them as booleans; never as numbers.
+        if self.returns_nothing(file, value) == Some(true) {
+            if self.coerces(&Ty::None, expected) == Some(false) {
+                self.check_void(file, value, &format!("used as a `{expected}`"), out);
+            }
+            return;
+        }
         let found = self.type_of(file, value);
         if self.coerces(&found, expected) == Some(false) {
             let castable = self.castable(&found, expected);

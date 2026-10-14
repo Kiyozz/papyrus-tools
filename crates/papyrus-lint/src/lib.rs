@@ -97,7 +97,7 @@ pub static TYPES_MISMATCH: Lint = Lint {
     code: "PAP007",
     name: "types/mismatch",
     default: Level::Error,
-    description: "argument, assignment or return value of a type the compiler does not cast implicitly",
+    description: "argument, assignment or return value of a type the compiler does not cast implicitly; cast, comparison or arithmetic between unrelated types; the value of a call that returns nothing",
 };
 
 /// `PAP008`: member that does not exist.
@@ -204,6 +204,166 @@ pub static NAMES_CASE: Lint = Lint {
     description: "name written with another case than its declaration, which the compiler ignores",
 };
 
+/// `PAP021`: `ScriptName` other than the file's name.
+pub static SCRIPTS_NAME: Lint = Lint {
+    code: "PAP021",
+    name: "scripts/name",
+    default: Level::Error,
+    description: "`ScriptName` other than the name of the file, which the compiler refuses",
+};
+
+/// `PAP022`: script among its own ancestors.
+pub static SCRIPTS_CYCLE: Lint = Lint {
+    code: "PAP022",
+    name: "scripts/cycle",
+    default: Level::Error,
+    description: "script that extends itself, directly or through its ancestors",
+};
+
+/// `PAP023`: member declared twice.
+pub static MEMBERS_DUPLICATE: Lint = Lint {
+    code: "PAP023",
+    name: "members/duplicate",
+    default: Level::Error,
+    description: "function or event declared twice in a state, variable or property declared twice, a second `Auto` state; from Fallout 4, a property named like a variable",
+};
+
+/// `PAP024`: `Return` with or without a value, against the declaration.
+pub static RETURNS_VALUE: Lint = Lint {
+    code: "PAP024",
+    name: "returns/value",
+    default: Level::Error,
+    description: "`Return value` in a function without return type or in an event, `Return` alone in a typed function",
+};
+
+/// `PAP025`: override whose signature differs from the overridden one.
+pub static OVERRIDES_SIGNATURE: Lint = Lint {
+    code: "PAP025",
+    name: "overrides/signature",
+    default: Level::Error,
+    description: "function whose parameters, defaults or return type differ from the parent's or the empty state's; a `Global` function redefined; from Fallout 4, a function named like an event; in Starfield, a native function overridden",
+};
+
+/// `PAP026`: function in a state only.
+pub static STATES_FUNCTION: Lint = Lint {
+    code: "PAP026",
+    name: "states/function",
+    default: Level::Error,
+    description: "function in a state that neither the empty state nor an ancestor declares, a `Global` function in a state",
+};
+
+/// `PAP027`: property functions and initial values.
+pub static PROPERTIES_ACCESSORS: Lint = Lint {
+    code: "PAP027",
+    name: "properties/accessors",
+    default: Level::Error,
+    description: "`Get` or `Set` of the wrong shape, another function in a property, an initial value on a full property, `AutoReadOnly` without one",
+};
+
+/// `PAP028`: array size the compiler refuses.
+pub static ARRAYS_SIZE: Lint = Lint {
+    code: "PAP028",
+    name: "arrays/size",
+    default: Level::Error,
+    description: "`new T[n]` beyond 128 elements; in Skyrim, of a size that is not a literal from 1 to 128",
+};
+
+/// `PAP029`: assignment to what cannot be assigned.
+pub static CODE_NOT_ASSIGNABLE: Lint = Lint {
+    code: "PAP029",
+    name: "code/not-assignable",
+    default: Level::Error,
+    description: "assignment to a call, to `.Length` or to anything but a variable, a property or an array element",
+};
+
+/// `PAP030`: initial or default value that is not a literal.
+pub static VALUES_NOT_LITERAL: Lint = Lint {
+    code: "PAP030",
+    name: "values/not-literal",
+    default: Level::Error,
+    description: "initial value of a script variable or a property, or default of a parameter, that is not a literal",
+};
+
+/// `PAP031`: parameter without default after one with a default.
+pub static PARAMS_DEFAULT_ORDER: Lint = Lint {
+    code: "PAP031",
+    name: "params/default-order",
+    default: Level::Error,
+    description: "from Fallout 4, a parameter without default after one with a default",
+};
+
+/// `PAP032`: `Native` function in a script that is not.
+pub static FUNCTIONS_NATIVE: Lint = Lint {
+    code: "PAP032",
+    name: "functions/native",
+    default: Level::Error,
+    description: "from Fallout 4, a `Native` function in a script that is not `Native`",
+};
+
+/// `PAP033`: integer literal beyond 32 bits.
+pub static LITERALS_INT_RANGE: Lint = Lint {
+    code: "PAP033",
+    name: "literals/int-range",
+    default: Level::Error,
+    description: "integer literal that does not fit 32 bits; from Fallout 4, a decimal one above 2147483647",
+};
+
+/// `PAP034`: `RegisterForUpdate`, which outlives the mod.
+pub static UPDATES_REPEATING: Lint = Lint {
+    code: "PAP034",
+    name: "updates/repeating",
+    default: Level::Warn,
+    description: "`RegisterForUpdate` or `RegisterForUpdateGameTime`, which keep firing in saves after the mod is removed: prefer their `Single` versions",
+};
+
+/// `PAP035`: `Game.GetPlayer()` in a loop.
+pub static CALLS_GET_PLAYER: Lint = Lint {
+    code: "PAP035",
+    name: "calls/get-player",
+    default: Level::Warn,
+    description: "`Game.GetPlayer()` called on each iteration of a loop",
+};
+
+/// `PAP036`: comparison with `True` or `False`.
+pub static BOOLS_COMPARISON: Lint = Lint {
+    code: "PAP036",
+    name: "bools/comparison",
+    default: Level::Warn,
+    description: "boolean compared with `True` or `False`",
+};
+
+/// `PAP037`: variable assigned to itself.
+pub static CODE_SELF_ASSIGN: Lint = Lint {
+    code: "PAP037",
+    name: "code/self-assign",
+    default: Level::Warn,
+    description: "variable, property or element assigned to itself",
+};
+
+/// `PAP038`: value compared with itself.
+pub static CODE_SELF_COMPARE: Lint = Lint {
+    code: "PAP038",
+    name: "code/self-compare",
+    default: Level::Warn,
+    description: "value compared with itself, always the same answer",
+};
+
+/// `PAP039`: script variable never read.
+pub static VARIABLES_UNUSED: Lint = Lint {
+    code: "PAP039",
+    name: "variables/unused",
+    default: Level::Warn,
+    description: "script variable never read; `Conditional` ones excepted, which the game's conditions read",
+};
+
+/// `PAP040`: `Import` nothing uses.
+pub static IMPORTS_UNUSED: Lint = Lint {
+    code: "PAP040",
+    name: "imports/unused",
+    default: Level::Warn,
+    description: "`Import` of a script none of whose global functions or types the script uses",
+};
+
 /// `PAP101`: locals and parameters in lowerCamelCase.
 pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
@@ -250,6 +410,26 @@ pub static LINTS: &[&Lint] = &[
     &SCRIPTS_UNKNOWN,
     &LOCALS_DUPLICATE,
     &NAMES_CASE,
+    &SCRIPTS_NAME,
+    &SCRIPTS_CYCLE,
+    &MEMBERS_DUPLICATE,
+    &RETURNS_VALUE,
+    &OVERRIDES_SIGNATURE,
+    &STATES_FUNCTION,
+    &PROPERTIES_ACCESSORS,
+    &ARRAYS_SIZE,
+    &CODE_NOT_ASSIGNABLE,
+    &VALUES_NOT_LITERAL,
+    &PARAMS_DEFAULT_ORDER,
+    &FUNCTIONS_NATIVE,
+    &LITERALS_INT_RANGE,
+    &UPDATES_REPEATING,
+    &CALLS_GET_PLAYER,
+    &BOOLS_COMPARISON,
+    &CODE_SELF_ASSIGN,
+    &CODE_SELF_COMPARE,
+    &VARIABLES_UNUSED,
+    &IMPORTS_UNUSED,
     &NAMING_LOCALS,
     &NAMING_VARIABLES,
     &NAMING_FUNCTIONS,
