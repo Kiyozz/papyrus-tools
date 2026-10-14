@@ -54,11 +54,13 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
   declared with a primitive type, the scopes of `End*` keywords, the
   punctuation of strings and comments.
 
+- **v0.11 — The extension, tested in VSCode.** Integration tests with
+  `@vscode/test-cli` on a fixture folder: activation, a diagnostic from the
+  server, the `build` and `check` tasks and their problems, "Create
+  papyrus.toml"; in CI under `xvfb-run`, against `target/debug/papyrus`.
+
 ## Next
 
-- **v0.11 — The extension, tested in VSCode.** A few integration tests with
-  `@vscode/test-cli`: activation, "Create papyrus.toml", the `build` and
-  `check` tasks, a diagnostic from the server; on Linux, under `xvfb-run`.
 - **v0.12 — More lints and formatting rules.** To define: a survey of what
   is missing, against the compiler's errors and the habits of modders.
 - **v0.13 — A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the
