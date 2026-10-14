@@ -19,6 +19,7 @@ use crate::types::Object;
 mod case;
 mod decls;
 mod exprs;
+mod habits;
 mod misuse;
 mod usage;
 
@@ -539,6 +540,7 @@ impl Semantics<'_> {
         let mut out = Vec::new();
         self.check_decls(file, &root, &broken, &mut out);
         self.check_values(&root, &broken, &mut out);
+        self.check_unused_script_level(file, &root, &mut out);
         for node in root.descendants() {
             match node.kind() {
                 SyntaxKind::FUNCTION_DECL | SyntaxKind::EVENT_DECL => {
@@ -558,6 +560,7 @@ impl Semantics<'_> {
                     self.check_unused(file, &node, &body, &duplicated, &mut out);
                     for inner in body.descendants() {
                         self.check_expr(file, &inner, &mut out);
+                        self.check_habits(file, &inner, &mut out);
                         match inner.kind() {
                             SyntaxKind::CALL_EXPR => {
                                 self.check_call(file, &inner, &mut out);
