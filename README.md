@@ -373,6 +373,16 @@ scope it must carry.
 npm run test:grammar --prefix editors/vscode
 ```
 
+The extension is tested in a real VSCode, downloaded into
+`editors/vscode/.vscode-test`, on `editors/vscode/tests/fixture`. The server
+is `target/debug/papyrus`, or the one in `PAPYRUS_BIN_DIR`; on Linux without a
+display, under `xvfb-run -a`.
+
+```sh
+cargo build -p papyrus-cli
+npm run test:integration --prefix editors/vscode
+```
+
 The `papyrus-stdlib` tables are regenerated from an installed game's sources.
 They only hold signatures, never bodies or docstrings.
 

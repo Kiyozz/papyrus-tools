@@ -6,3 +6,5 @@ package-lock.json
 tests/**
 **/*.vsix
 .gitignore
+.vscode-test/**
+.vscode-test.mjs
