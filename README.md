@@ -365,6 +365,14 @@ PAPYRUS_CORPUS_STARFIELD=".../Starfield/Data/Scripts/Source" \
     -- --nocapture
 ```
 
+The TextMate grammar is tested on annotated `.psc` files,
+`editors/vscode/tests/grammar`: under each line, `^` marks a token and the
+scope it must carry.
+
+```sh
+npm run test:grammar --prefix editors/vscode
+```
+
 The `papyrus-stdlib` tables are regenerated from an installed game's sources.
 They only hold signatures, never bodies or docstrings.
 
