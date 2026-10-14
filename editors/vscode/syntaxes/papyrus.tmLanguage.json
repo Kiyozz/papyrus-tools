@@ -7,8 +7,8 @@
     { "include": "#strings" },
     { "include": "#header" },
     { "include": "#declarations" },
-    { "include": "#keywords" },
     { "include": "#variables" },
+    { "include": "#keywords" },
     { "include": "#calls" },
     { "include": "#numbers" },
     { "include": "#operators" }
@@ -16,9 +16,23 @@
   "repository": {
     "comments": {
       "patterns": [
-        { "name": "comment.block.papyrus", "begin": ";/", "end": "/;" },
-        { "name": "comment.line.semicolon.papyrus", "match": ";.*$" },
-        { "name": "comment.block.documentation.papyrus", "begin": "\\{", "end": "\\}" }
+        {
+          "name": "comment.block.papyrus",
+          "begin": ";/",
+          "end": "/;",
+          "captures": { "0": { "name": "punctuation.definition.comment.papyrus" } }
+        },
+        {
+          "name": "comment.line.semicolon.papyrus",
+          "match": "(;).*$",
+          "captures": { "1": { "name": "punctuation.definition.comment.papyrus" } }
+        },
+        {
+          "name": "comment.block.documentation.papyrus",
+          "begin": "\\{",
+          "end": "\\}",
+          "captures": { "0": { "name": "punctuation.definition.comment.papyrus" } }
+        }
       ]
     },
     "strings": {
@@ -27,6 +41,8 @@
           "name": "string.quoted.double.papyrus",
           "begin": "\"",
           "end": "\"|$",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.papyrus" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.papyrus" } },
           "patterns": [{ "name": "constant.character.escape.papyrus", "match": "\\\\." }]
         }
       ]
@@ -121,10 +137,12 @@
           "name": "keyword.control.papyrus",
           "match": "(?i)\\b(if|elseif|else|endif|while|endwhile|return|lockguard|endlockguard|trylockguard|elsetrylockguard|endtrylockguard)\\b"
         },
-        {
-          "name": "storage.type.function.papyrus",
-          "match": "(?i)\\b(endfunction|endevent|endproperty|endstate|endstruct|endgroup|endguard)\\b"
-        },
+        { "name": "storage.type.function.papyrus", "match": "(?i)\\b(endfunction|endevent)\\b" },
+        { "name": "storage.type.property.papyrus", "match": "(?i)\\bendproperty\\b" },
+        { "name": "storage.type.state.papyrus", "match": "(?i)\\bendstate\\b" },
+        { "name": "storage.type.struct.papyrus", "match": "(?i)\\bendstruct\\b" },
+        { "name": "storage.type.group.papyrus", "match": "(?i)\\bendgroup\\b" },
+        { "name": "storage.type.guard.papyrus", "match": "(?i)\\bendguard\\b" },
         {
           "name": "storage.type.primitive.papyrus",
           "match": "(?i)\\b(bool|float|int|string|var)\\b(\\[\\])?"
@@ -150,8 +168,8 @@
     "variables": {
       "patterns": [
         {
-          "comment": "A variable or parameter declared with its type: `Actor akTarget`, `Int[] counts = new Int[5]`.",
-          "match": "(?i)\\b(?!(?:if|elseif|else|while|return|as|is|new|not|auto|state|import|scriptname|extends|function|event|property|struct|group|customevent|global|native)\\b)([A-Za-z_][\\w:]*(?:\\[\\])?)\\s+(?!(?:function|event|property|as|is)\\b)([A-Za-z_]\\w*)(?=\\s*(?:[,)=]|$|;))",
+          "comment": "A variable or parameter declared with its type: `Actor akTarget`, `Int[] counts = new Int[5]`. Before #keywords, which would take a primitive type alone; the lookahead keeps keywords and flags (`Auto Const Mandatory`) out.",
+          "match": "(?i)\\b(?!(?:if|elseif|else|while|return|as|is|new|not|state|import|scriptname|extends|function|event|property|struct|group|customevent|auto|autoreadonly|betaonly|collapsed|collapsedonbase|collapsedonref|conditional|const|debugonly|default|global|hidden|mandatory|native|private|protected|protectsfunctionlogic|requiresguard|selfonly)\\b)([A-Za-z_][\\w:]*(?:\\[\\])?)\\s+(?!(?:function|event|property|as|is)\\b)([A-Za-z_]\\w*)(?=\\s*(?:[,)=]|$|;))",
           "captures": {
             "1": { "patterns": [{ "include": "#types" }] },
             "2": { "name": "variable.other.declaration.papyrus" }

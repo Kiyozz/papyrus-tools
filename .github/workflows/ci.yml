@@ -48,6 +48,9 @@ jobs:
         working-directory: editors/vscode
       - name: Syntax
         run: for file in editors/vscode/extension.js scripts/*.mjs; do node --check "$file"; done
+      - name: Grammar
+        run: npx vscode-tmgrammar-test --compact "tests/grammar/*.psc"
+        working-directory: editors/vscode
       - name: Package
         run: npx vsce package --out papyrus-tools.vsix
         working-directory: editors/vscode
