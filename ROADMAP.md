@@ -49,10 +49,13 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
   without the server, named arguments completed. `PAP019` duplicate locals,
   `PAP020` the case of names, a function named without parentheses.
 
+- **v0.10 — The grammar, tested.** `vscode-tmgrammar-test` in CI: annotated
+  `.psc` files, the scope expected on each token. Fixed on the way: names
+  declared with a primitive type, the scopes of `End*` keywords, the
+  punctuation of strings and comments.
+
 ## Next
 
-- **v0.10 — The grammar, tested.** `vscode-tmgrammar-test` in CI: annotated
-  `.psc` files, the scope expected on each token.
 - **v0.11 — The extension, tested in VSCode.** A few integration tests with
   `@vscode/test-cli`: activation, "Create papyrus.toml", the `build` and
   `check` tasks, a diagnostic from the server; on Linux, under `xvfb-run`.
