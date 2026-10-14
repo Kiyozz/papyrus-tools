@@ -1,5 +1,11 @@
 # papyrus-tools
 
+## 0.11.0
+
+### Minor Changes
+
+- c7e4ee2: Integration tests of the VSCode extension with `@vscode/test-cli`, run in CI under `xvfb-run`: activation on a `.psc`, a diagnostic from the server, the `build` and `check` tasks with their problems, and "Create papyrus.toml".
+
 ## 0.10.0
 
 ### Minor Changes
