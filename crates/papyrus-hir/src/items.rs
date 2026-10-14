@@ -235,7 +235,7 @@ pub(crate) fn doc(node: &SyntaxNode) -> Option<String> {
     (!text.is_empty()).then_some(text)
 }
 
-fn has_flag(node: &SyntaxNode, flag: SyntaxKind) -> bool {
+pub(crate) fn has_flag(node: &SyntaxNode, flag: SyntaxKind) -> bool {
     child(node, SyntaxKind::FLAG_LIST).is_some_and(|list| {
         list.children()
             .filter_map(|f| f.first_token())

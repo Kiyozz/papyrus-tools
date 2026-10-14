@@ -94,6 +94,11 @@ pub(crate) fn schema() -> String {
                             { "type": "string", "enum": ["tab"] },
                         ],
                     },
+                    "keywords": {
+                        "description": "The case of keywords: \"lower\", `endfunction`, by default, or \"pascal\", `EndFunction`, as the Creation Kit writes them.",
+                        "type": "string",
+                        "enum": ["lower", "pascal"],
+                    },
                 },
             },
             "lints": {

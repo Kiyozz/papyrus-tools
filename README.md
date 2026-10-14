@@ -71,6 +71,7 @@ imports = ["../SkyUI/Scripts/Source"]  # read, never checked
 
 [fmt]
 indent = 2                   # or "tab"
+keywords = "lower"           # or "pascal": EndFunction
 
 [lints]
 "naming/variables" = "allow" # allow, warn or error; by name or by code
@@ -105,7 +106,7 @@ imported one of the same name.
 | `PAP004` | `events/unknown` | warn | Event the engine will never call: `OnActivatee`, or `OnCombatStateChanged` on a quest |
 | `PAP005` | `calls/arity` | error | Call with too few or too many arguments |
 | `PAP006` | `calls/named-arg` | warn | Named argument the callee does not declare, or already given |
-| `PAP007` | `types/mismatch` | error | Argument, assignment, initial or return value the compiler does not cast implicitly |
+| `PAP007` | `types/mismatch` | error | Argument, assignment, initial or return value the compiler does not cast implicitly; cast, comparison or arithmetic between unrelated types; the value of a call that returns nothing |
 | `PAP008` | `members/unknown` | error | Function, variable, property or field that does not exist — with the closest name |
 | `PAP009` | `returns/missing` | warn | Typed function that can end without `Return`, and return the default value |
 | `PAP010` | `states/unknown` | error | `GotoState` to a state the script does not declare — with the closest name |
@@ -119,6 +120,26 @@ imported one of the same name.
 | `PAP018` | `scripts/unknown` | error | Script that does not exist, once the game's sources are in the project or its `imports` |
 | `PAP019` | `locals/duplicate` | error | Local declared twice in a block, named like a parameter or a script variable, or hiding one of an enclosing block |
 | `PAP020` | `names/case` | warn | Name written with another case than its declaration, which the compiler ignores (fixable) |
+| `PAP021` | `scripts/name` | error | `ScriptName` other than the file's name |
+| `PAP022` | `scripts/cycle` | error | Script that extends itself, directly or through its ancestors |
+| `PAP023` | `members/duplicate` | error | Function or event twice in a state, variable or property twice, a second `Auto` state; from Fallout 4, a property named like a variable |
+| `PAP024` | `returns/value` | error | `Return value` in a function without return type or an event, `Return` alone in a typed function |
+| `PAP025` | `overrides/signature` | error | Override whose parameters, defaults or return type differ; a `Global` function redefined; from Fallout 4, a function named like an event; in Starfield, a native function overridden |
+| `PAP026` | `states/function` | error | Function in a state that neither the empty state nor an ancestor declares, `Global` function in a state |
+| `PAP027` | `properties/accessors` | error | `Get` or `Set` of the wrong shape, another function in a property, initial value on a full property, `AutoReadOnly` without one |
+| `PAP028` | `arrays/size` | error | `new T[n]` beyond 128; in Skyrim, a size that is not a literal from 1 to 128 |
+| `PAP029` | `code/not-assignable` | error | Assignment to a call or to `.Length` |
+| `PAP030` | `values/not-literal` | error | Initial value of a script variable or a property, or default of a parameter, that is not a literal |
+| `PAP031` | `params/default-order` | error | From Fallout 4, a parameter without default after one with a default |
+| `PAP032` | `functions/native` | error | From Fallout 4, a `Native` function in a script that is not `Native` |
+| `PAP033` | `literals/int-range` | error | Integer literal beyond 32 bits; from Fallout 4, a decimal one above 2147483647 |
+| `PAP034` | `updates/repeating` | warn | `RegisterForUpdate` or `RegisterForUpdateGameTime`, which keep firing in saves after the mod is removed — with the `Single` version |
+| `PAP035` | `calls/get-player` | warn | `Game.GetPlayer()` called on each iteration of a loop |
+| `PAP036` | `bools/comparison` | warn | Boolean compared with `True` or `False` — with the simpler form |
+| `PAP037` | `code/self-assign` | warn | Variable, property or element assigned to itself |
+| `PAP038` | `code/self-compare` | warn | Value compared with itself |
+| `PAP039` | `variables/unused` | warn | Script variable never read, `Conditional` ones excepted |
+| `PAP040` | `imports/unused` | warn | `Import` of a script none of whose global functions or types is used unqualified |
 | `PAP101` | `naming/locals` | warn | Locals and parameters not in lowerCamelCase — fixable |
 | `PAP102` | `naming/variables` | warn | Script variables, properties, fields not in lowerCamelCase |
 | `PAP103` | `naming/functions` | warn | Functions, events, states, structs not in PascalCase |
@@ -216,6 +237,33 @@ editor offers instead to rename the declaration, across the project; only
 for the project's own functions, script variables and locals, never an
 imported or native one, a property or an event. The vanilla scripts mix cases freely: 40,000 such names
 in Skyrim's.
+
+### What the compiler refuses
+
+`PAP021` to `PAP033`, and the cast, comparison and arithmetic checks of
+`PAP007`, report what the Creation Kit's compiler stops on, each case checked
+against the official compilers of Skyrim, Fallout 4 and Starfield — they
+differ, and each rule follows the target. Some are surprising:
+
+- an override's default values are compared **as written** for `True`,
+  `False`, `None` and strings: `Bool a = false` overriding `Bool a = False`
+  does not compile, while `1.0` and `1.00`, `16` and `0x10` match. The fix
+  writes the parent's;
+- Starfield refuses any override of a native function in a script that is not
+  `Native`, even with the same signature;
+- a call that returns nothing passes for `None`: Skyrim accepts it where an
+  object or a `bool` is expected, never a number; from Fallout 4, not as a
+  condition either.
+
+Without a target, only what every game refuses is reported. None of these
+rules reports anything on the vanilla scripts of the three games.
+
+`PAP034` to `PAP040` are habits rather than errors, and the vanilla scripts
+are full of them: Skyrim's call `RegisterForUpdate` 169 times and
+`Game.GetPlayer()` in a loop 114 times, compare a `bool` with `True` 1,420
+times, keep 380 script variables never read and 670 useless `Import`s. A
+`Conditional` variable is read by the game's conditions, never reported; an
+`Import MyNs:Helper` is used by naming `Helper`.
 
 Fragments generated by the Creation Kit (`TIF__…`, `QF_…`, `Fragments`
 folders) are skipped by default; `--include-fragments` includes them.
@@ -322,8 +370,11 @@ VSCode's: the command line and every editor read the same.
 
 ### The formatter
 
-Lowercase keywords, two-space indent (configurable), at most one blank line, LF
-line endings. It never touches identifiers, strings or comments, nor `True`,
+Lowercase keywords — or PascalCase, `EndFunction`, with `keywords = "pascal"`
+—, two-space indent (configurable), at most one blank line, one around each
+function, event, state, struct, group and full property, no parentheses around
+a whole `If` or `While` condition, LF line endings. It never touches
+identifiers, strings or comments, nor `True`,
 `False` and `None` as a parameter's default — the compiler compares it as text
 with the overridden function's, so `False` against `false` fails. It does not
 change the encoding, and refuses a file that does not parse. Before writing, it

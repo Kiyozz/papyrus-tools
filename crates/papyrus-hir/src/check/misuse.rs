@@ -32,7 +32,7 @@ fn string_literal(node: &SyntaxNode) -> Option<(String, TextRange)> {
 
 /// The written type `ty` of `file`, as a comparable key: lowercase, scripts
 /// by their full name.
-fn type_key(sema: &Semantics<'_>, file: Option<SourceFile>, ty: &str) -> String {
+pub(super) fn type_key(sema: &Semantics<'_>, file: Option<SourceFile>, ty: &str) -> String {
     let ty = Ty::parse(ty);
     let ty = match file {
         Some(file) => sema.qualify(file, ty),

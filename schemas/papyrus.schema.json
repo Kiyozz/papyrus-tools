@@ -57,6 +57,14 @@
               "type": "string"
             }
           ]
+        },
+        "keywords": {
+          "description": "The case of keywords: \"lower\", `endfunction`, by default, or \"pascal\", `EndFunction`, as the Creation Kit writes them.",
+          "enum": [
+            "lower",
+            "pascal"
+          ],
+          "type": "string"
         }
       },
       "type": "object"
@@ -216,7 +224,7 @@
           "type": "string"
         },
         "PAP007": {
-          "description": "argument, assignment or return value of a type the compiler does not cast implicitly (PAP007, error by default)",
+          "description": "argument, assignment or return value of a type the compiler does not cast implicitly; cast, comparison or arithmetic between unrelated types; the value of a call that returns nothing (PAP007, error by default)",
           "enum": [
             "allow",
             "warn",
@@ -495,6 +503,406 @@
           ],
           "type": "string"
         },
+        "PAP021": {
+          "description": "`ScriptName` other than the name of the file, which the compiler refuses (PAP021, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP022": {
+          "description": "script that extends itself, directly or through its ancestors (PAP022, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP023": {
+          "description": "function or event declared twice in a state, variable or property declared twice, a second `Auto` state; from Fallout 4, a property named like a variable (PAP023, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP024": {
+          "description": "`Return value` in a function without return type or in an event, `Return` alone in a typed function (PAP024, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP025": {
+          "description": "function whose parameters, defaults or return type differ from the parent's or the empty state's; a `Global` function redefined; from Fallout 4, a function named like an event; in Starfield, a native function overridden (PAP025, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP026": {
+          "description": "function in a state that neither the empty state nor an ancestor declares, a `Global` function in a state (PAP026, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP027": {
+          "description": "`Get` or `Set` of the wrong shape, another function in a property, an initial value on a full property, `AutoReadOnly` without one (PAP027, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP028": {
+          "description": "`new T[n]` beyond 128 elements; in Skyrim, of a size that is not a literal from 1 to 128 (PAP028, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP029": {
+          "description": "assignment to a call, to `.Length` or to anything but a variable, a property or an array element (PAP029, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP030": {
+          "description": "initial value of a script variable or a property, or default of a parameter, that is not a literal (PAP030, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP031": {
+          "description": "from Fallout 4, a parameter without default after one with a default (PAP031, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP032": {
+          "description": "from Fallout 4, a `Native` function in a script that is not `Native` (PAP032, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP033": {
+          "description": "integer literal that does not fit 32 bits; from Fallout 4, a decimal one above 2147483647 (PAP033, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP034": {
+          "description": "`RegisterForUpdate` or `RegisterForUpdateGameTime`, which keep firing in saves after the mod is removed: prefer their `Single` versions (PAP034, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP035": {
+          "description": "`Game.GetPlayer()` called on each iteration of a loop (PAP035, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP036": {
+          "description": "boolean compared with `True` or `False` (PAP036, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP037": {
+          "description": "variable, property or element assigned to itself (PAP037, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP038": {
+          "description": "value compared with itself, always the same answer (PAP038, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP039": {
+          "description": "script variable never read; `Conditional` ones excepted, which the game's conditions read (PAP039, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "PAP040": {
+          "description": "`Import` of a script none of whose global functions or types the script uses (PAP040, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
         "PAP101": {
           "description": "locals and parameters in lowerCamelCase (PAP101, warn by default)",
           "enum": [
@@ -575,8 +983,68 @@
           ],
           "type": "string"
         },
+        "arrays/size": {
+          "description": "`new T[n]` beyond 128 elements; in Skyrim, of a size that is not a literal from 1 to 128 (PAP028, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "bools/comparison": {
+          "description": "boolean compared with `True` or `False` (PAP036, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
         "calls/arity": {
           "description": "call with too few or too many arguments (PAP005, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "calls/get-player": {
+          "description": "`Game.GetPlayer()` called on each iteration of a loop (PAP035, warn by default)",
           "enum": [
             "allow",
             "warn",
@@ -617,6 +1085,66 @@
         },
         "calls/not-global": {
           "description": "non-`Global` function called on its script, or `self` and members used in a `Global` function (PAP013, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "code/not-assignable": {
+          "description": "assignment to a call, to `.Length` or to anything but a variable, a property or an array element (PAP029, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "code/self-assign": {
+          "description": "variable, property or element assigned to itself (PAP037, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "code/self-compare": {
+          "description": "value compared with itself, always the same answer (PAP038, warn by default)",
           "enum": [
             "allow",
             "warn",
@@ -735,6 +1263,66 @@
           ],
           "type": "string"
         },
+        "functions/native": {
+          "description": "from Fallout 4, a `Native` function in a script that is not `Native` (PAP032, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "imports/unused": {
+          "description": "`Import` of a script none of whose global functions or types the script uses (PAP040, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "literals/int-range": {
+          "description": "integer literal that does not fit 32 bits; from Fallout 4, a decimal one above 2147483647 (PAP033, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
         "locals/duplicate": {
           "description": "local declared twice in a block, named like a parameter or a script variable, or hiding one of an enclosing block (PAP019, error by default)",
           "enum": [
@@ -757,6 +1345,26 @@
         },
         "locals/unused": {
           "description": "local variable never read (PAP015, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "members/duplicate": {
+          "description": "function or event declared twice in a state, variable or property declared twice, a second `Auto` state; from Fallout 4, a property named like a variable (PAP023, error by default)",
           "enum": [
             "allow",
             "warn",
@@ -895,8 +1503,68 @@
           ],
           "type": "string"
         },
+        "overrides/signature": {
+          "description": "function whose parameters, defaults or return type differ from the parent's or the empty state's; a `Global` function redefined; from Fallout 4, a function named like an event; in Starfield, a native function overridden (PAP025, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "params/default-order": {
+          "description": "from Fallout 4, a parameter without default after one with a default (PAP031, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
         "params/unused": {
           "description": "parameter never read, after the last one read; events and overrides excepted (PAP016, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "properties/accessors": {
+          "description": "`Get` or `Set` of the wrong shape, another function in a property, an initial value on a full property, `AutoReadOnly` without one (PAP027, error by default)",
           "enum": [
             "allow",
             "warn",
@@ -955,8 +1623,88 @@
           ],
           "type": "string"
         },
+        "returns/value": {
+          "description": "`Return value` in a function without return type or in an event, `Return` alone in a typed function (PAP024, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "scripts/cycle": {
+          "description": "script that extends itself, directly or through its ancestors (PAP022, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "scripts/name": {
+          "description": "`ScriptName` other than the name of the file, which the compiler refuses (PAP021, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
         "scripts/unknown": {
           "description": "script that does not exist, once the game's sources are in the project or its imports (PAP018, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "states/function": {
+          "description": "function in a state that neither the empty state nor an ancestor declares, a `Global` function in a state (PAP026, error by default)",
           "enum": [
             "allow",
             "warn",
@@ -996,7 +1744,67 @@
           "type": "string"
         },
         "types/mismatch": {
-          "description": "argument, assignment or return value of a type the compiler does not cast implicitly (PAP007, error by default)",
+          "description": "argument, assignment or return value of a type the compiler does not cast implicitly; cast, comparison or arithmetic between unrelated types; the value of a call that returns nothing (PAP007, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "updates/repeating": {
+          "description": "`RegisterForUpdate` or `RegisterForUpdateGameTime`, which keep firing in saves after the mod is removed: prefer their `Single` versions (PAP034, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "values/not-literal": {
+          "description": "initial value of a script variable or a property, or default of a parameter, that is not a literal (PAP030, error by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "variables/unused": {
+          "description": "script variable never read; `Conditional` ones excepted, which the game's conditions read (PAP039, warn by default)",
           "enum": [
             "allow",
             "warn",

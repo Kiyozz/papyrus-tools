@@ -9,7 +9,11 @@ use salsa::Setter;
 fn dead_code(problem: Problem) -> bool {
     matches!(
         problem,
-        Problem::Unreachable | Problem::UnusedLocal | Problem::UnusedParam
+        Problem::Unreachable
+            | Problem::UnusedLocal
+            | Problem::UnusedParam
+            | Problem::UnusedVariable
+            | Problem::UnusedImport
     )
 }
 

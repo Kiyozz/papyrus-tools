@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use papyrus_dialect::{Dialect, GameId};
-use papyrus_fmt::{FormatError, FormatOptions, Indent};
+use papyrus_fmt::{FormatError, FormatOptions, Indent, KeywordCase};
 use papyrus_lint::{Levels, Model, Workspace, apply_fixes, vanilla_flags};
 use papyrus_project::edit::{self as config, Change};
 use papyrus_project::flags::{FlagDef, parse_flags};
@@ -32,6 +32,7 @@ pub(crate) struct Settings {
     pub(crate) flags: Option<Vec<FlagDef>>,
     pub(crate) levels: Levels,
     pub(crate) indent: Indent,
+    pub(crate) keywords: KeywordCase,
     /// Why papyrus.toml could not be read: the defaults apply, and the
     /// document says so.
     pub(crate) error: Option<String>,
@@ -76,6 +77,11 @@ impl Settings {
                 Some(IndentSetting::Spaces(n)) => Indent::Spaces(n),
                 Some(IndentSetting::Tab) => Indent::Tabs,
                 None => Indent::default(),
+            },
+            keywords: if config.pascal_keywords {
+                KeywordCase::Pascal
+            } else {
+                KeywordCase::Lower
             },
             error: None,
             config: config.path,
@@ -466,6 +472,7 @@ pub(crate) fn format(
     let dialect = analysis.game.map(Dialect::new).unwrap_or_default();
     let options = FormatOptions {
         indent: document.settings.indent,
+        keywords: document.settings.keywords,
     };
     match papyrus_fmt::format(text, dialect, &options) {
         Ok(formatted) if formatted == *text => Ok(None),

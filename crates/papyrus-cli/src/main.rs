@@ -21,7 +21,7 @@ use std::str::FromStr;
 
 use clap::{Args, Parser, Subcommand};
 use papyrus_dialect::{Dialect, GameId};
-use papyrus_fmt::{FormatError, FormatOptions, Indent};
+use papyrus_fmt::{FormatError, FormatOptions, Indent, KeywordCase};
 use papyrus_hir::{Database, Semantics, SourceFile};
 use papyrus_lint::{
     LINTS, Levels, Model, ScriptSummary, Workspace, apply_fixes_with, vanilla_flags,
@@ -524,6 +524,11 @@ fn fmt(projects: &[Settings], check_only: bool, reporter: &mut Reporter) -> bool
     for settings in projects {
         let options = FormatOptions {
             indent: settings.indent,
+            keywords: if settings.config.pascal_keywords {
+                KeywordCase::Pascal
+            } else {
+                KeywordCase::Lower
+            },
         };
         for path in &settings.scripts {
             changed += usize::from(fmt_file(

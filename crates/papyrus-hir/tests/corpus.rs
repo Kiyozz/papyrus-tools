@@ -200,6 +200,13 @@ fn check_project(db: &Database, files: &[SourceFile], game: GameId, target: Opti
         "Unreachable",
         "UnusedLocal",
         "UnusedParam",
+        // Habits, which vanilla has plenty of.
+        "RepeatingUpdate",
+        "GetPlayerInLoop",
+        "BoolComparison",
+        "SelfCompare",
+        "UnusedVariable",
+        "UnusedImport",
     ] {
         found.remove(allowed);
     }

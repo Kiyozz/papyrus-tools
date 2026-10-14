@@ -7,11 +7,13 @@ scriptname Foo:Bar extends Quest conditional
 import Utility
 
 int property Count = 3 auto const ; compteur
+
 Actor property Who hidden
   Actor function GET()
     return Game.GetPlayer()
   endfunction
 endproperty
+
 auto state Default
   event OnInit()
     ; avant la boucle
@@ -21,7 +23,7 @@ auto state Default
       if x == -1
         Debug.Trace("x" + \
             t[0], aiSeverity = 2)
-      elseif (x)
+      elseif x
         ; branche vide
       else
         return

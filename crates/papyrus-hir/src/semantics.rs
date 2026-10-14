@@ -68,7 +68,7 @@ pub enum ScriptRef {
 
 /// What a name may designate, depending on where it is used.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Namespace {
+pub(crate) enum Namespace {
     /// The callee of a call: functions and events.
     Callable,
     /// Anything else: variables, properties, fields.
@@ -233,7 +233,18 @@ impl<'db> Semantics<'db> {
             }
             namespace = outer;
         }
-        self.script(name)
+        self.script(name).or_else(|| {
+            // `Import MyNs:Helper` lets `Helper` name the script.
+            self.items(file)
+                .imports
+                .iter()
+                .filter(|import| {
+                    import
+                        .rsplit_once(':')
+                        .is_some_and(|(_, short)| short.eq_ignore_ascii_case(name))
+                })
+                .find_map(|import| self.script(import))
+        })
     }
 
     /// The name of a script.
@@ -288,7 +299,7 @@ impl<'db> Semantics<'db> {
     }
 
     /// The member `name` declared by `script` itself, not inherited.
-    fn own_member(&self, script: ScriptRef, name: &str, ns: Namespace) -> Option<Def> {
+    pub(crate) fn own_member(&self, script: ScriptRef, name: &str, ns: Namespace) -> Option<Def> {
         match script {
             ScriptRef::Source(file) => {
                 let mut found: Option<(usize, &Item)> = None;
@@ -341,7 +352,7 @@ impl<'db> Semantics<'db> {
     }
 
     /// The member `name` of `script`, inherited or not.
-    fn member(&self, script: ScriptRef, name: &str, ns: Namespace) -> Option<Def> {
+    pub(crate) fn member(&self, script: ScriptRef, name: &str, ns: Namespace) -> Option<Def> {
         self.chain(script)
             .find_map(|s| self.own_member(s, name, ns))
             .or_else(|| {
