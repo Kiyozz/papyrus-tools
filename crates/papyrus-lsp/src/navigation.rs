@@ -4,6 +4,7 @@
 //! files and byte ranges; this module turns them into LSP types.
 
 use std::collections::HashMap;
+use std::path::Path;
 
 use papyrus_hir::{
     CallItem, CompletionKind, Database, ItemKind, NavTarget, ParameterHints, Project, Reference,
@@ -254,8 +255,8 @@ impl Navigator<'_> {
             .rename(file, offset, new_name)
             .map_err(|e| e.0)?;
         let changes = self.changes(&edit.edits, new_name)?;
-        let workspace_edit = match edit.script {
-            Some(script) => self.with_file_renamed(script, new_name, changes)?,
+        let workspace_edit = match &edit.moved {
+            Some((script, path)) => self.with_file_moved(*script, path, changes)?,
             None => WorkspaceEdit {
                 changes: Some(changes),
                 ..WorkspaceEdit::default()
@@ -278,12 +279,12 @@ impl Navigator<'_> {
         Ok(changes)
     }
 
-    /// `changes`, then the file of `script` renamed: the edits name it by
-    /// its old URI.
-    fn with_file_renamed(
+    /// `changes`, then the file of `script` moved: the edits name it by its
+    /// old URI.
+    fn with_file_moved(
         &self,
         script: SourceFile,
-        new_name: &str,
+        new_path: &Path,
         changes: Changes,
     ) -> Result<WorkspaceEdit, String> {
         if !self.can_rename {
@@ -294,8 +295,7 @@ impl Navigator<'_> {
         }
         let path = script.path(self.db);
         let old_uri = (self.uri)(script).ok_or_else(|| format!("{} has no URI", path.display()))?;
-        let new_path = path.with_file_name(format!("{new_name}.psc"));
-        let new_uri = Uri::from_file_path(&new_path)
+        let new_uri = Uri::from_file_path(new_path)
             .ok_or_else(|| format!("{} has no URI", new_path.display()))?;
         let mut operations: Vec<DocumentChangeOperation> = changes
             .into_iter()
@@ -320,23 +320,22 @@ impl Navigator<'_> {
         })
     }
 
-    /// The script of a file about to be named `stem`, renamed with it: its
-    /// edits and the warning to show. Nothing for a script that was not
-    /// named after its file, which the rename may well be correcting.
-    pub(crate) fn file_renamed(
+    /// The script of a file about to go to `path`, renamed with it: its
+    /// edits and the warning to show.
+    pub(crate) fn file_moved(
         &self,
         project: Project,
         file: SourceFile,
-        stem: &str,
+        path: &Path,
     ) -> Option<(Changes, Option<String>)> {
         let sema = Semantics::new(self.db, project);
         let items = sema.items(file);
-        let old_stem = file.path(self.db).file_stem()?.to_str()?;
-        if !items.name.eq_ignore_ascii_case(old_stem) || items.name == stem {
+        let name = sema.script_name_at(file, path)?;
+        if items.name == name {
             return None;
         }
-        let edit = sema.rename(file, items.name_range.start(), stem).ok()?;
-        Some((self.changes(&edit.edits, stem).ok()?, edit.warning))
+        let edit = sema.rename(file, items.name_range.start(), &name).ok()?;
+        Some((self.changes(&edit.edits, &name).ok()?, edit.warning))
     }
 
     fn type_item(&self, project: Project, file: SourceFile) -> Option<TypeHierarchyItem> {

@@ -166,9 +166,9 @@ To adopt `papyrus` on a mod that already has many problems, `papyrus check
 `papyrus.toml`: commit it. `papyrus check` then only reports new problems, and
 says how many it hides and when some are gone.
 
-A problem is known by its file, its lint and the text of its line, not by its
-line number: moving code keeps it known, editing the line reports it again.
-Syntax errors are never recorded. `--no-baseline` shows everything,
+As in PHPStan, a problem is known by its file, its lint and its message, never
+by its line, and each is counted: editing around it keeps it known, one more in
+the file is reported. Syntax errors are never recorded. `--no-baseline` shows everything,
 `--write-baseline` again records what remains, and on a single file leaves the
 others alone. The editor ignores the baseline. `papyrus explain baseline` says
 all this in the terminal.
@@ -356,9 +356,11 @@ parameter) or to `none`.
 A rename covers the whole project, overrides included. It is refused on
 native and imported declarations, and on events, which the engine calls by
 name; on a property, it warns that plugins must be filled again in the Creation
-Kit. Renaming a script renames its file, and renaming a `.psc` in the editor
-renames its script and every use, with the same warning; namespaced scripts are
-left to you.
+Kit. Renaming a script moves its file, and moving or renaming a `.psc` in the
+editor renames its script and every use, with the same warning. From Fallout 4,
+namespaces are the folders: `MyMod:Base` lives in `MyMod/Base.psc`, and moving it
+to `Other/` makes it `Other:Base`. A script whose file is not where its name says
+is left alone.
 
 The type hierarchy follows `extends` through the scripts with a source: add the
 game's sources to `imports` to see the native ones. Formatting a selection only

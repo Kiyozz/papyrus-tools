@@ -792,7 +792,7 @@ fn check_bytes(
         }
     }));
     if let Some(baseline) = baseline {
-        diagnostics = baseline.pass(path, &decoded.text, diagnostics);
+        diagnostics = baseline.pass(path, diagnostics);
     }
     reporter.emit(path, &decoded.text, &diagnostics);
     fixed

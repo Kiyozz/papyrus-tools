@@ -5,6 +5,8 @@
 //! Everything is expressed in files and byte ranges; turning them into
 //! editor positions is the language server's job.
 
+use std::path::{Component, Path, PathBuf};
+
 use papyrus_dialect::GameId;
 use papyrus_stdlib::{Function, Script};
 use papyrus_syntax::{SyntaxKind, SyntaxNode, SyntaxToken, TextRange, TextSize};
@@ -99,8 +101,9 @@ pub struct RenameEdit {
     pub new_name: String,
     /// A rename that compiles but may break something outside the scripts.
     pub warning: Option<String>,
-    /// The script renamed: its file must take the new name too.
-    pub script: Option<SourceFile>,
+    /// The script renamed and where its file must go, its namespaces being
+    /// folders.
+    pub moved: Option<(SourceFile, PathBuf)>,
 }
 
 /// Why a name cannot be renamed.
@@ -718,9 +721,6 @@ impl Semantics<'_> {
             Def::Script { file } if self.index().is_imported(file) => Err(RenameError(format!(
                 "`{name}` is an imported script, which papyrus never changes"
             ))),
-            Def::Script { .. } if name.contains(':') => Err(RenameError(format!(
-                "`{name}` has a namespace: rename its file by hand"
-            ))),
             Def::Script { .. } => Ok(Some(format!(
                 "`{name}` is a script: plugins (.esp, .esm) attach scripts by name, attach it \
                  again in the Creation Kit"
@@ -755,8 +755,12 @@ impl Semantics<'_> {
         offset: TextSize,
         new_name: &str,
     ) -> Result<RenameEdit, RenameError> {
-        if !is_identifier(new_name, self.game()) {
-            return Err(RenameError(format!("`{new_name}` is not a valid name")));
+        let invalid = || RenameError(format!("`{new_name}` is not a valid name"));
+        let segments_valid = new_name
+            .split(':')
+            .all(|segment| is_identifier(segment, self.game()));
+        if !segments_valid {
+            return Err(invalid());
         }
         let (_, def) = self.prepare_rename(file, offset)?;
         let warning = self.renamable(&def)?;
@@ -765,14 +769,28 @@ impl Semantics<'_> {
             Def::Script { file } => Some(file),
             _ => None,
         };
-        if let Some(script) = script {
-            let taken = index.files().any(|other| {
-                other != script && self.items(other).name.eq_ignore_ascii_case(new_name)
-            });
-            if taken {
-                return Err(RenameError(format!("a script `{new_name}` already exists")));
-            }
+        // Only scripts have namespaces, since Fallout 4.
+        let namespaces = script.is_some() && self.game().is_none_or(|g| g.rank() >= 1);
+        if new_name.contains(':') && !namespaces {
+            return Err(invalid());
         }
+        let moved = script
+            .map(|script| {
+                let taken = index.files().any(|other| {
+                    other != script && self.items(other).name.eq_ignore_ascii_case(new_name)
+                });
+                if taken {
+                    return Err(RenameError(format!("a script `{new_name}` already exists")));
+                }
+                let path = self.path_of_script(script, new_name).ok_or_else(|| {
+                    RenameError(format!(
+                        "the file of `{}` is not where its name says: rename it by hand",
+                        self.items(script).name
+                    ))
+                })?;
+                Ok((script, path))
+            })
+            .transpose()?;
         let edits = self
             .references_of(&def)
             .into_iter()
@@ -782,8 +800,60 @@ impl Semantics<'_> {
             edits,
             new_name: new_name.to_owned(),
             warning,
-            script,
+            moved,
         })
+    }
+
+    /// The folder above the namespaces of a script: `Source` for `Ns:Foo` in
+    /// `Source/Ns/Foo.psc`; `None` if its file is not where its name says.
+    fn script_root(&self, file: SourceFile) -> Option<PathBuf> {
+        let mut dir = file.path(self.db()).with_extension("");
+        for segment in self.items(file).name.rsplit(':') {
+            if !dir.file_name()?.to_str()?.eq_ignore_ascii_case(segment) {
+                return None;
+            }
+            dir = dir.parent()?.to_owned();
+        }
+        Some(dir)
+    }
+
+    /// Where the script of `file` goes once named `name`.
+    fn path_of_script(&self, file: SourceFile, name: &str) -> Option<PathBuf> {
+        let mut path = self.script_root(file)?;
+        path.extend(name.split(':'));
+        path.set_extension("psc");
+        Some(path)
+    }
+
+    /// The name the script of `file` takes at `path`: its namespaces are the
+    /// folders under its root, from Fallout 4; in Skyrim, only the file name
+    /// counts. `None` outside its root, or if its file is not where its name
+    /// says, which the move may well be correcting.
+    pub fn script_name_at(&self, file: SourceFile, path: &Path) -> Option<String> {
+        let root = self.script_root(file)?;
+        let stem = path.file_stem()?.to_str()?;
+        let namespaced =
+            self.game().is_some_and(|g| g.rank() >= 1) || self.items(file).name.contains(':');
+        if !namespaced {
+            return Some(stem.to_owned());
+        }
+        let parent = path.parent()?;
+        let mut folders = parent.components();
+        for component in root.components() {
+            let same = |other: Component<'_>| {
+                let (a, b) = (other.as_os_str(), component.as_os_str());
+                a.eq_ignore_ascii_case(b)
+            };
+            if !folders.next().is_some_and(same) {
+                return None;
+            }
+        }
+        let mut segments = Vec::new();
+        for folder in folders {
+            segments.push(folder.as_os_str().to_str()?);
+        }
+        segments.push(stem);
+        Some(segments.join(":"))
     }
 }
 

@@ -253,7 +253,7 @@ fn the_baseline_only_lets_new_problems_through() {
     assert!(written.status.success(), "{}", text(&written.stderr));
     assert!(text(&written.stderr).contains("PAP015 locals/unused"));
 
-    // The problem moved two lines down: still known.
+    // The line moved and changed, the problem did not: still known.
     let moved = UNUSED.replace("Function F()", ";\n;\nFunction F()");
     std::fs::write(root.join("MyQuest.psc"), &moved).unwrap();
     let known = papyrus(&root, &["check"], "");
@@ -266,7 +266,7 @@ fn the_baseline_only_lets_new_problems_through() {
         Some(1)
     );
 
-    // A second copy of the same line is new.
+    // One more in the file is new.
     let twice = moved.replace("\tint unused = 1\n", "\tint unused = 1\n\tint unused = 1\n");
     std::fs::write(root.join("MyQuest.psc"), &twice).unwrap();
     assert_eq!(papyrus(&root, &["check"], "").status.code(), Some(1));

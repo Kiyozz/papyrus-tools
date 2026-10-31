@@ -1,14 +1,13 @@
 //! `papyrus-baseline.json`: the problems a project already had, so that
 //! adopting the linter on an older mod only reports the new ones.
 //!
-//! A problem is known by its file, its lint and the text of its line, never
-//! by its line number: moving code around does not bring it back. Identical
-//! lines are counted, so a new copy of a known problem is reported.
+//! As in PHPStan, a problem is known by its file, its lint and its message,
+//! never by its line: editing around it does not bring it back. Identical
+//! problems are counted, so one more in a file is reported.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use papyrus_syntax::TextRange;
 use serde::{Deserialize, Serialize};
 
 use crate::report::Diagnostic;
@@ -25,9 +24,9 @@ papyrus-baseline.json, next to papyrus.toml. From then on, `papyrus check` only
 reports new ones: the build stays green, and the mod gets no worse. Commit the
 file so that everyone shares it.
 
-A problem is known by its file, its lint and the text of its line, so moving
-code keeps it known, while editing the line reports it again: you see what you
-touch. Syntax errors are never recorded. The editor ignores the baseline and
+A problem is known by its file, its lint and its message, never by its line,
+and each is counted: editing around it keeps it known, one more in the file is
+reported. Syntax errors are never recorded. The editor ignores the baseline and
 shows everything.
 
 To pay the debt down:
@@ -45,7 +44,7 @@ const VERSION: u32 = 1;
 struct Entry {
     file: String,
     code: String,
-    line: String,
+    message: String,
     count: usize,
 }
 
@@ -55,7 +54,7 @@ struct Stored {
     problems: Vec<Entry>,
 }
 
-/// A file, a lint's code, the text of a line.
+/// A file, a lint's code, a message.
 type Key = (String, String, String);
 
 /// The baseline of one project.
@@ -96,7 +95,7 @@ impl Baseline {
                 }
                 for entry in stored.problems {
                     *known
-                        .entry((entry.file, entry.code, entry.line))
+                        .entry((entry.file, entry.code, entry.message))
                         .or_default() += entry.count;
                 }
             }
@@ -121,12 +120,7 @@ impl Baseline {
 
     /// The problems of a file left to report: the known ones are hidden, or
     /// recorded by `--write-baseline`. Syntax errors always go through.
-    pub(crate) fn pass(
-        &mut self,
-        path: &Path,
-        source: &str,
-        diagnostics: Vec<Diagnostic>,
-    ) -> Vec<Diagnostic> {
+    pub(crate) fn pass(&mut self, path: &Path, diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
         let file = self.relative(path);
         self.seen.insert(file.clone());
         let mut kept = Vec::new();
@@ -135,7 +129,7 @@ impl Baseline {
                 kept.push(diagnostic);
                 continue;
             };
-            let key = (file.clone(), code, line_of(source, diagnostic.range));
+            let key = (file.clone(), code, diagnostic.message.clone());
             if let Some(recording) = &mut self.recording {
                 *recording.entry(key).or_default() += 1;
                 continue;
@@ -186,10 +180,10 @@ impl Baseline {
             version: VERSION,
             problems: problems
                 .into_iter()
-                .map(|((file, code, line), count)| Entry {
+                .map(|((file, code, message), count)| Entry {
                     file,
                     code,
-                    line,
+                    message,
                     count,
                 })
                 .collect(),
@@ -206,14 +200,4 @@ impl Baseline {
 fn lint_code(code: &str) -> Option<String> {
     let code = code.split(' ').next()?;
     code.starts_with("PAP").then(|| code.to_owned())
-}
-
-/// The text of the line `range` starts on, trimmed.
-fn line_of(source: &str, range: TextRange) -> String {
-    let offset = usize::from(range.start()).min(source.len());
-    let start = source[..offset].rfind('\n').map_or(0, |i| i + 1);
-    let end = source[offset..]
-        .find('\n')
-        .map_or(source.len(), |i| offset + i);
-    source[start..end].trim().to_owned()
 }

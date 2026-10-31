@@ -1396,15 +1396,12 @@ impl LanguageServer for Backend {
             else {
                 continue;
             };
-            let Some(stem) = file_path(&new)
-                .filter(|path| is_script(path))
-                .and_then(|path| Some(path.file_stem()?.to_str()?.to_owned()))
-            else {
+            let Some(path) = file_path(&new).filter(|path| is_script(path)) else {
                 continue;
             };
             let renamed = self
                 .navigate_off(&old, Position::default(), move |nav, project, file, _| {
-                    nav.file_renamed(project, file, &stem)
+                    nav.file_moved(project, file, &path)
                 })
                 .await?
                 .flatten();
