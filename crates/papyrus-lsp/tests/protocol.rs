@@ -845,6 +845,137 @@ async fn scripts_are_renamed_with_their_files_and_form_a_hierarchy() {
 }
 
 #[tokio::test]
+async fn a_namespaced_script_is_renamed_from_where_it_is_extended() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-ns-{}", std::process::id()));
+    std::fs::create_dir_all(dir.join("Source/MyMod")).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"starfield\"\n").unwrap();
+    let manager = dir.join("Source/MyMod/Manager.psc");
+    let plain = dir.join("Source/Plain.psc");
+    std::fs::write(&manager, "ScriptName MyMod:Manager extends Quest\n").unwrap();
+    std::fs::write(&plain, "ScriptName Plain extends MyMod:Manager\n").unwrap();
+    let mut client = connect();
+    client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": { "workspace": { "workspaceEdit": {
+                    "documentChanges": true, "resourceOperations": ["rename"],
+                } } },
+                "workspaceFolders": [{ "uri": uri(&dir), "name": "project" }],
+            }),
+        )
+        .await;
+    client.notify("initialized", json!({})).await;
+    client
+        .wait(|m| {
+            m["method"] == "window/logMessage"
+                && m["params"]["message"]
+                    .as_str()
+                    .is_some_and(|s| s.contains("indexed"))
+        })
+        .await;
+
+    let position = json!({ "line": 0, "character": 33 });
+    let prepared = client
+        .request(
+            "textDocument/prepareRename",
+            json!({ "textDocument": { "uri": uri(&plain) }, "position": position }),
+        )
+        .await;
+    assert_eq!(prepared["placeholder"], "MyMod:Manager", "{prepared}");
+    let edit = client
+        .request(
+            "textDocument/rename",
+            json!({
+                "textDocument": { "uri": uri(&plain) },
+                "position": position,
+                "newName": "MyMod:Manage",
+            }),
+        )
+        .await;
+    let changes = edit["documentChanges"].as_array().unwrap();
+    assert_eq!(changes.len(), 3, "{edit}");
+    for change in &changes[..2] {
+        assert_eq!(change["edits"].as_array().unwrap().len(), 1, "{edit}");
+        assert_eq!(change["edits"][0]["newText"], "MyMod:Manage");
+    }
+    assert!(
+        changes[2]["newUri"]
+            .as_str()
+            .unwrap()
+            .ends_with("Source/MyMod/Manage.psc"),
+        "{edit}"
+    );
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn a_deleted_script_leaves_its_project() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-deleted-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let base = dir.join("Base.psc");
+    let gone = dir.join("Gone.psc");
+    std::fs::write(&base, "ScriptName Base extends Quest\n").unwrap();
+    std::fs::write(&gone, "ScriptName Gone extends Base\n").unwrap();
+    std::fs::write(dir.join("Kept.psc"), "ScriptName Kept extends Base\n").unwrap();
+    let mut client = connect();
+    client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": { "workspace": { "workspaceEdit": {
+                    "documentChanges": true, "resourceOperations": ["rename"],
+                } } },
+                "workspaceFolders": [{ "uri": uri(&dir), "name": "project" }],
+            }),
+        )
+        .await;
+    client.notify("initialized", json!({})).await;
+    client
+        .wait(|m| {
+            m["method"] == "window/logMessage"
+                && m["params"]["message"]
+                    .as_str()
+                    .is_some_and(|s| s.contains("indexed"))
+        })
+        .await;
+
+    // As after a rename: the script is gone, and the editor says so.
+    std::fs::remove_file(&gone).unwrap();
+    client
+        .notify(
+            "workspace/didChangeWatchedFiles",
+            json!({ "changes": [{ "uri": uri(&gone), "type": 3 }] }),
+        )
+        .await;
+    let edit = client
+        .request(
+            "textDocument/rename",
+            json!({
+                "textDocument": { "uri": uri(&base) },
+                "position": { "line": 0, "character": 12 },
+                "newName": "Root",
+            }),
+        )
+        .await;
+    let changes = edit["documentChanges"].as_array().unwrap();
+    let edited: Vec<&str> = changes
+        .iter()
+        .filter_map(|c| c["textDocument"]["uri"].as_str())
+        .collect();
+    assert_eq!(edited.len(), 2, "{edit}");
+    assert!(edited.iter().all(|u| !u.ends_with("Gone.psc")), "{edit}");
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
 async fn range_formatting_stays_on_the_selected_lines() {
     let dir = std::env::temp_dir().join(format!("papyrus-lsp-range-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();

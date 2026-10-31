@@ -186,6 +186,47 @@ impl State {
         }
     }
 
+    /// A script gone from the disk leaves its project: a rename must not
+    /// edit it, nor its name stay taken.
+    fn forget(&mut self, path: &Path) {
+        let Some(file) = self.sources.remove(path) else {
+            return;
+        };
+        let root = self.root_of(Some(path));
+        let summary = summary_of(file.text(&self.db));
+        let Some(project) = self.projects.get_mut(&root) else {
+            return;
+        };
+        let Some(model) = project.model else {
+            return;
+        };
+        let files: Vec<SourceFile> = model
+            .files(&self.db)
+            .iter()
+            .copied()
+            .filter(|&f| f != file)
+            .collect();
+        let imports: Vec<SourceFile> = model
+            .imports(&self.db)
+            .iter()
+            .copied()
+            .filter(|&f| f != file)
+            .collect();
+        model.set_files(&mut self.db).to(files);
+        model.set_imports(&mut self.db).to(imports);
+        // Moved rather than deleted, its new file may already be known.
+        if let Some(summary) = summary {
+            let sema = Semantics::new(&self.db, model);
+            let taken = model
+                .files(&self.db)
+                .iter()
+                .any(|&f| sema.items(f).name.eq_ignore_ascii_case(&summary.name));
+            if !taken {
+                project.workspace.remove(&summary.name);
+            }
+        }
+    }
+
     /// Feeds the text of document `uri` to the model.
     fn feed(&mut self, uri: &Uri) {
         let Some(document) = self.documents.get(uri) else {
@@ -997,9 +1038,14 @@ impl LanguageServer for Backend {
             // The file stays in the index, with its text on disk: it is still
             // part of its project.
             if let Some(document) = state.documents.remove(&uri) {
-                if let Some(text) = document.path.as_deref().and_then(read) {
-                    let path = key(&uri, &document);
-                    state.source(&path, text);
+                let path = key(&uri, &document);
+                match document.path.as_deref().map(|p| (p, read(p))) {
+                    Some((_, Some(text))) => {
+                        state.source(&path, text);
+                    }
+                    // Renamed or deleted.
+                    Some((_, None)) => state.forget(&path),
+                    None => {}
                 }
             }
         }
@@ -1024,8 +1070,12 @@ impl LanguageServer for Backend {
                 } else if extension.eq_ignore_ascii_case("psc")
                     && !state.documents.contains_key(&change.uri)
                 {
+                    let Some(text) = read(&path) else {
+                        state.forget(&path);
+                        continue;
+                    };
                     // A script modified outside the editor.
-                    if let Some(text) = read(&path) {
+                    {
                         let root = state.root_of(Some(&path));
                         if let Some(summary) = summary_of(&text) {
                             state
