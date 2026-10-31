@@ -16,6 +16,7 @@
 #![forbid(unsafe_code)]
 
 use papyrus_hir::case;
+mod explain;
 mod rules;
 mod suppress;
 mod workspace;
@@ -28,6 +29,7 @@ use papyrus_project::{Decoded, Level};
 use papyrus_syntax::{SyntaxNode, TextRange, lex};
 
 pub use case::{to_lower_camel, to_pascal};
+pub use explain::explanation;
 pub use rules::vanilla_flags;
 pub use workspace::{ScriptSummary, Workspace};
 
@@ -364,6 +366,14 @@ pub static IMPORTS_UNUSED: Lint = Lint {
     description: "`Import` of a script none of whose global functions or types the script uses",
 };
 
+/// `PAP041`: function that never returns.
+pub static CALLS_INFINITE_RECURSION: Lint = Lint {
+    code: "PAP041",
+    name: "calls/infinite-recursion",
+    default: Level::Warn,
+    description: "function that comes back to itself on every path, directly or through others, and never returns",
+};
+
 /// `PAP101`: locals and parameters in lowerCamelCase.
 pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
@@ -430,6 +440,7 @@ pub static LINTS: &[&Lint] = &[
     &CODE_SELF_COMPARE,
     &VARIABLES_UNUSED,
     &IMPORTS_UNUSED,
+    &CALLS_INFINITE_RECURSION,
     &NAMING_LOCALS,
     &NAMING_VARIABLES,
     &NAMING_FUNCTIONS,
@@ -472,7 +483,7 @@ pub fn closest(key: &str) -> Option<&'static str> {
 }
 
 /// "unknown lint `x`", with a suggestion when possible.
-fn unknown_message(key: &str) -> String {
+pub fn unknown_message(key: &str) -> String {
     match closest(key) {
         Some(name) => format!("unknown lint `{key}` — did you mean `{name}`?"),
         None => format!("unknown lint `{key}`; `papyrus lints` lists them"),
@@ -639,6 +650,70 @@ pub fn run(context: &Context<'_>, levels: &Levels) -> Vec<Diagnostic> {
 /// must then stay untouched.
 pub fn apply_fixes(source: &str, diagnostics: &[Diagnostic]) -> Option<String> {
     apply_fixes_with(source, diagnostics, false)
+}
+
+/// The edits removing what does nothing, certain unlike other suggestions:
+/// the program is the same without. Unused imports, variables, assignments
+/// to oneself, comparisons with `True` or `False`.
+fn cleanup(diagnostic: &Diagnostic) -> Option<&[Edit]> {
+    let certain = [
+        &LOCALS_UNUSED,
+        &VARIABLES_UNUSED,
+        &IMPORTS_UNUSED,
+        &CODE_SELF_ASSIGN,
+        &BOOLS_COMPARISON,
+    ];
+    certain
+        .iter()
+        .any(|lint| lint.code == diagnostic.lint.code)
+        .then(|| diagnostic.suggestions.first())
+        .flatten()
+        .map(|suggestion| suggestion.edits.as_slice())
+}
+
+/// True if `--fix` can clean this up.
+pub fn has_cleanup(diagnostic: &Diagnostic) -> bool {
+    cleanup(diagnostic).is_some()
+}
+
+/// `source` without what [`cleanup`] removes; `None` if nothing goes. Unlike
+/// [`apply_fixes`], tokens go: the caller checks that the result still parses.
+pub fn apply_cleanups(source: &str, diagnostics: &[Diagnostic]) -> Option<String> {
+    let mut edits: Vec<&Edit> = diagnostics.iter().filter_map(cleanup).flatten().collect();
+    if edits.is_empty() {
+        return None;
+    }
+    edits.sort_by_key(|edit| (edit.range.start(), edit.range.end()));
+    let mut out = String::with_capacity(source.len());
+    let mut cursor = 0;
+    for edit in edits {
+        let start = usize::from(edit.range.start());
+        // Two lines of the same statement: the first one wins.
+        if start < cursor {
+            continue;
+        }
+        out.push_str(&source[cursor..start]);
+        out.push_str(&edit.text);
+        cursor = usize::from(edit.range.end());
+    }
+    out.push_str(&source[cursor..]);
+    Some(out)
+}
+
+/// The name the naming convention wants for `name`, when `diagnostic` has
+/// no fix of its own: only a rename across the project can do it.
+pub fn conventional_name(diagnostic: &Diagnostic, name: &str) -> Option<String> {
+    if diagnostic.fix.is_some() || diagnostic.unsafe_fix.is_some() {
+        return None;
+    }
+    let code = diagnostic.lint.code;
+    if code == NAMING_FUNCTIONS.code {
+        Some(to_pascal(name))
+    } else if code == NAMING_LOCALS.code || code == NAMING_VARIABLES.code {
+        Some(to_lower_camel(name))
+    } else {
+        None
+    }
 }
 
 /// Applies the safe fixes of `diagnostics` to `source`, and the unsafe ones

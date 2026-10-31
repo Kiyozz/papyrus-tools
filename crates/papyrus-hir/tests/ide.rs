@@ -1,5 +1,7 @@
 //! Definitions, hovers, completions, references and renames across files.
 
+use std::path::Path;
+
 use papyrus_dialect::GameId;
 use papyrus_hir::{
     CompletionKind, Database, Def, ItemKind, ParameterHints, Project, Semantics, SourceFile,
@@ -540,13 +542,130 @@ fn some_renames_are_refused() {
     assert!(error("Shared", "Mine").contains("imported"));
     assert!(error("RegisterForUpdate", "Mine").contains("native"));
     assert!(error("OnInit", "Start").contains("event"));
-    assert!(error("A extends", "B").contains("file"));
+    assert!(error("Lib\n", "Mine").contains("imported"));
+    assert!(error("A extends", "Lib").contains("already exists"));
     assert!(
         sema.rename(file, at("Shared"), "1abc")
             .unwrap_err()
             .0
             .contains("valid")
     );
+}
+
+#[test]
+fn a_script_is_renamed_everywhere_with_its_file() {
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[
+            (
+                "Base.psc",
+                "ScriptName Base extends Quest\nFunction Greet() Global\nEndFunction\n",
+            ),
+            (
+                "Child.psc",
+                "ScriptName Child extends Base\nBase Property other Auto\nEvent OnInit()\n\tBase.Greet()\n\tQuest q = other as Base\nEndEvent\n",
+            ),
+        ],
+    );
+    let (base, child) = (f.file("Base.psc"), f.file("Child.psc"));
+    let edit = f.sema().rename(base, TextSize::new(12), "Root").unwrap();
+    assert_eq!(edit.moved, Some((base, "Root.psc".into())));
+    assert!(edit.warning.unwrap().contains("Creation Kit"));
+    let in_child = edit.edits.iter().filter(|e| e.file == child).count();
+    assert_eq!(in_child, 4);
+    assert_eq!(edit.edits.len(), 5);
+}
+
+#[test]
+fn namespaces_are_folders() {
+    let f = Fixture::new(
+        GameId::Starfield,
+        &[
+            (
+                "Source/MyMod/Base.psc",
+                "ScriptName MyMod:Base extends Quest\n",
+            ),
+            ("Source/Plain.psc", "ScriptName Plain extends MyMod:Base\n"),
+            ("Source/Stray.psc", "ScriptName MyMod:Stray\n"),
+        ],
+    );
+    let (base, plain) = (f.file("Source/MyMod/Base.psc"), f.file("Source/Plain.psc"));
+    let sema = f.sema();
+
+    // Renaming moves the file, across namespaces too.
+    let at = TextSize::new(12);
+    let edit = sema.rename(base, at, "Other:Deep:Root").unwrap();
+    let (_, path) = edit.moved.unwrap();
+    assert_eq!(path, Path::new("Source").join("Other/Deep/Root.psc"));
+    assert_eq!(edit.edits.len(), 2);
+    let edit = sema.rename(base, at, "MyMod:Root").unwrap();
+    assert_eq!(
+        edit.moved.unwrap().1,
+        Path::new("Source").join("MyMod/Root.psc")
+    );
+    assert!(sema.rename(base, at, "MyMod:1").is_err());
+
+    // Moving the file renames the script.
+    let name = |file, path: &str| sema.script_name_at(file, Path::new(path));
+    assert_eq!(
+        name(base, "Source/Other/Root.psc").as_deref(),
+        Some("Other:Root")
+    );
+    assert_eq!(name(base, "Source/Root.psc").as_deref(), Some("Root"));
+    assert_eq!(
+        name(plain, "Source/Sub/Plain.psc").as_deref(),
+        Some("Sub:Plain")
+    );
+    assert_eq!(name(base, "Elsewhere/Root.psc"), None);
+
+    // Not where its name says: left alone.
+    let stray = f.file("Source/Stray.psc");
+    assert!(sema.rename(stray, at, "MyMod:Lost").is_err());
+    assert_eq!(name(stray, "Source/MyMod/Stray.psc"), None);
+}
+
+#[test]
+fn skyrim_has_no_namespaces() {
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[("Source/Plain.psc", "ScriptName Plain\n")],
+    );
+    let plain = f.file("Source/Plain.psc");
+    let sema = f.sema();
+    assert!(sema.rename(plain, TextSize::new(12), "Ns:Plain").is_err());
+    assert_eq!(
+        sema.script_name_at(plain, Path::new("Source/Sub/Renamed.psc"))
+            .as_deref(),
+        Some("Renamed")
+    );
+}
+
+#[test]
+fn the_type_hierarchy_follows_extends() {
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[
+            ("Base.psc", "ScriptName Base extends Quest\n"),
+            ("Child.psc", "ScriptName Child extends Base\n"),
+            ("Grand.psc", "ScriptName Grand extends Child\n"),
+            ("Other.psc", "ScriptName Other extends Base\n"),
+        ],
+    );
+    let (base, child) = (f.file("Base.psc"), f.file("Child.psc"));
+    let sema = f.sema();
+    assert_eq!(sema.supertypes(child), [base]);
+    // Quest has no source.
+    assert!(sema.supertypes(base).is_empty());
+    let mut subtypes: Vec<_> = sema
+        .subtypes(base)
+        .iter()
+        .map(|&file| sema.items(file).name.clone())
+        .collect();
+    subtypes.sort();
+    assert_eq!(subtypes, ["Child", "Other"]);
+    // On the parent's name, the parent; anywhere else, the file's script.
+    assert_eq!(sema.script_at(child, TextSize::new(26)), Some(base));
+    assert_eq!(sema.script_at(child, TextSize::new(0)), Some(child));
 }
 
 #[test]

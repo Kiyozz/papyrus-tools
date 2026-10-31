@@ -1,0 +1,1 @@
+ScriptName Child extends Hello

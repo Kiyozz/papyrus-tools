@@ -15,12 +15,12 @@ const config = path.join(folder, "papyrus.toml");
  * Polls `check` until it returns something truthy, and returns it.
  * @template T
  * @param {string} what
- * @param {() => T | undefined} check
+ * @param {() => T | undefined | Promise<T | undefined>} check
  */
 async function until(what, check, ms = 30_000) {
   const end = Date.now() + ms;
   while (Date.now() < end) {
-    const found = check();
+    const found = await check();
     if (found) {
       return found;
     }
@@ -88,6 +88,74 @@ describe("the extension", () => {
     assert.equal(found.source, "papyrus");
     assert.equal(found.severity, vscode.DiagnosticSeverity.Error);
     assert.equal(found.range.start.line, 4);
+  });
+
+  it("shows the type hierarchy", async () => {
+    const items = await until("the type hierarchy", async () => {
+      /** @type {vscode.TypeHierarchyItem[]} */
+      const found = await vscode.commands.executeCommand(
+        "vscode.prepareTypeHierarchy",
+        script,
+        new vscode.Position(0, 12),
+      );
+      return found?.length ? found : undefined;
+    });
+    assert.equal(items[0].name, "Hello");
+  });
+
+  it("moves a renamed script for good, even saved and formatted", async () => {
+    const settings = vscode.workspace.getConfiguration("editor");
+    await settings.update("formatOnSave", true, vscode.ConfigurationTarget.Workspace);
+    const oldPath = path.join(folder, "RenameMe.psc");
+    const newPath = path.join(folder, "Renamed.psc");
+    const user = path.join(folder, "RenameUser.psc");
+    fs.writeFileSync(oldPath, "ScriptName RenameMe\n");
+    fs.writeFileSync(user, "ScriptName RenameUser extends RenameMe\n");
+    try {
+      // From where it is extended: the script itself is not open.
+      const document = await vscode.workspace.openTextDocument(user);
+      await vscode.window.showTextDocument(document);
+      const position = new vscode.Position(0, 33);
+      const found = await until("the server to know both scripts", async () => {
+        try {
+          /** @type {vscode.WorkspaceEdit | undefined} */
+          const edit = await vscode.commands.executeCommand(
+            "vscode.executeDocumentRenameProvider",
+            document.uri,
+            position,
+            "Renamed",
+          );
+          return edit?.size === 2 ? edit : undefined;
+        } catch {
+          return undefined;
+        }
+      });
+      // In the server's order: this command files them in another.
+      const edit = new vscode.WorkspaceEdit();
+      const oldUri = vscode.Uri.file(oldPath);
+      const newUri = vscode.Uri.file(newPath);
+      for (const [uri, edits] of found.entries()) {
+        for (const { range, newText } of edits) {
+          edit.replace(uri, range, newText);
+        }
+      }
+      edit.renameFile(oldUri, newUri);
+      assert.ok(await vscode.workspace.applyEdit(edit, { isRefactoring: true }));
+      await until("the new file", () => fs.existsSync(newPath));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // `files.autoSave: onWindowChange` saved the stale copy.
+      await vscode.workspace.saveAll(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      assert.ok(!fs.existsSync(oldPath), "the old file came back");
+      assert.match(fs.readFileSync(user, "utf8"), /extends Renamed/i);
+    } finally {
+      await vscode.commands.executeCommand("workbench.action.closeAllEditors");
+      await settings.update("formatOnSave", undefined, vscode.ConfigurationTarget.Workspace);
+      for (const file of [oldPath, newPath, user]) {
+        fs.rmSync(file, { force: true });
+      }
+      fs.rmSync(path.join(folder, ".vscode"), { recursive: true, force: true });
+    }
   });
 
   it("provides the build and check tasks", async () => {

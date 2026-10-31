@@ -8,7 +8,7 @@ use papyrus_syntax::{SyntaxKind, SyntaxNode, SyntaxToken};
 use super::{Diagnostic, Fix, Problem, Replacement, child};
 use crate::SourceFile;
 use crate::items::{ItemKind, compact, has_flag, trimmed};
-use crate::semantics::{Def, ScriptRef, Semantics, member_name_ref};
+use crate::semantics::{Def, Namespace, ScriptRef, Semantics, member_name_ref};
 use crate::ty::Ty;
 
 fn operator(node: &SyntaxNode) -> Option<SyntaxToken> {
@@ -61,7 +61,11 @@ impl Semantics<'_> {
                             "`{}` is assigned to itself: this does nothing",
                             compact(&target)
                         ),
-                        fixes: Vec::new(),
+                        fixes: vec![Fix::remove_lines(
+                            "Remove the assignment",
+                            file.text(self.db()),
+                            trimmed(node),
+                        )],
                     });
                 }
             }
@@ -254,11 +258,23 @@ impl Semantics<'_> {
             if !read {
                 let range =
                     child(&decl, SyntaxKind::NAME).map_or_else(|| trimmed(&decl), |n| trimmed(&n));
+                // Assigned somewhere, removing it alone would not compile.
+                let assigned = name_refs.iter().any(|r| {
+                    compact(r).eq_ignore_ascii_case(name)
+                        && self.resolve_name_ref(file, r) == Some(Def::Item { file, index })
+                });
+                let fixes = (!assigned)
+                    .then(|| {
+                        let title = "Remove the variable";
+                        Fix::remove_lines(title, file.text(self.db()), trimmed(&decl))
+                    })
+                    .into_iter()
+                    .collect();
                 out.push(Diagnostic {
                     problem: Problem::UnusedVariable,
                     range,
                     message: format!("the script variable `{name}` is never read"),
-                    fixes: Vec::new(),
+                    fixes,
                 });
             }
         }
@@ -278,7 +294,11 @@ impl Semantics<'_> {
                     message: format!(
                         "nothing of `{written}` is used unqualified: the `Import` can go"
                     ),
-                    fixes: Vec::new(),
+                    fixes: vec![Fix::remove_lines(
+                        "Remove the `Import`",
+                        file.text(self.db()),
+                        trimmed(&import),
+                    )],
                 });
             }
         }
@@ -344,6 +364,17 @@ impl Semantics<'_> {
                         .parent()
                         .is_some_and(|p| p.kind() == SyntaxKind::CALL_EXPR);
                     if !unqualified {
+                        // `Wait` for `Wait()`: a mistake, but the `Import`'s.
+                        let bare = node
+                            .parent()
+                            .is_some_and(|p| p.kind() != SyntaxKind::FIELD_EXPR);
+                        let name = compact(&node);
+                        let global = self
+                            .own_member(script, &name, Namespace::Callable)
+                            .is_some_and(|def| self.is_global(&def));
+                        if bare && global {
+                            return true;
+                        }
                         continue;
                     }
                     let from = match self.resolve_name_ref(file, &node) {

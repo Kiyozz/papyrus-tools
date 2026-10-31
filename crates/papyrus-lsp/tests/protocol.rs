@@ -67,6 +67,16 @@ impl Client {
         assert!(response.get("error").is_none(), "{response}");
         response["result"].clone()
     }
+
+    /// The message of the error a request must fail with.
+    async fn request_error(&mut self, method: &str, params: Value) -> String {
+        self.next_id += 1;
+        let id = self.next_id;
+        self.send(json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params }))
+            .await;
+        let response = self.wait(|m| m["id"] == id).await;
+        response["error"]["message"].as_str().unwrap().to_owned()
+    }
 }
 
 fn uri(path: &Path) -> String {
@@ -445,6 +455,8 @@ async fn navigation_across_files() {
     let log = log["params"]["message"].as_str().unwrap().to_owned();
     assert!(log.contains("1 scripts indexed, 1 imported"), "{log}");
 
+    // On disk too: a document without a file stays out of its project.
+    std::fs::write(root.join("Child.psc"), "").unwrap();
     let child = uri(&root.join("Child.psc"));
     let text = "ScriptName Child extends MyBase\nEvent OnInit()\n\tGreet()\n\tShared()\n\tCount += 1\n\tself.\nEndEvent\n";
     client
@@ -648,6 +660,7 @@ async fn calls_are_checked_helped_and_hinted() {
     client.wait(|m| m["method"] == "window/logMessage").await;
 
     // A call missing its argument, in another file than the callee.
+    std::fs::write(dir.join("Child.psc"), "").unwrap();
     let child = uri(&dir.join("Child.psc"));
     let text = "ScriptName Child extends Quest\nLib1 Property other Auto\nEvent OnInit()\n\tother.Start()\n\tother.Start(1, true)\nEndEvent\n";
     client
@@ -754,6 +767,429 @@ async fn calls_are_checked_helped_and_hinted() {
 }
 
 /// A session on `dir`, whose client creates files in its workspace edits.
+#[tokio::test]
+async fn scripts_are_renamed_with_their_files_and_form_a_hierarchy() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-types-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let base = dir.join("Base.psc");
+    let child = dir.join("Child.psc");
+    std::fs::write(&base, "ScriptName Base extends Quest\n").unwrap();
+    std::fs::write(&child, "ScriptName Child extends Base\n").unwrap();
+    let mut client = connect();
+    client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": { "workspace": { "workspaceEdit": {
+                    "documentChanges": true, "resourceOperations": ["rename"],
+                } } },
+                "workspaceFolders": [{ "uri": uri(&dir), "name": "project" }],
+            }),
+        )
+        .await;
+    client.notify("initialized", json!({})).await;
+    client
+        .wait(|m| {
+            m["method"] == "window/logMessage"
+                && m["params"]["message"]
+                    .as_str()
+                    .is_some_and(|s| s.contains("indexed"))
+        })
+        .await;
+
+    // The hierarchy, from the parent down and back up.
+    let prepared = client
+        .request(
+            "textDocument/prepareTypeHierarchy",
+            json!({
+                "textDocument": { "uri": uri(&base) },
+                "position": { "line": 0, "character": 12 },
+            }),
+        )
+        .await;
+    let item = prepared[0].clone();
+    assert_eq!(item["name"], "Base");
+    let subtypes = client
+        .request("typeHierarchy/subtypes", json!({ "item": item }))
+        .await;
+    assert_eq!(subtypes[0]["name"], "Child");
+    let supertypes = client
+        .request("typeHierarchy/supertypes", json!({ "item": subtypes[0] }))
+        .await;
+    assert_eq!(supertypes[0]["name"], "Base");
+
+    // Renaming the script moves the file, after the edits.
+    let edit = client
+        .request(
+            "textDocument/rename",
+            json!({
+                "textDocument": { "uri": uri(&base) },
+                "position": { "line": 0, "character": 12 },
+                "newName": "Root",
+            }),
+        )
+        .await;
+    let changes = edit["documentChanges"].as_array().unwrap();
+    assert_eq!(changes.len(), 3, "{edit}");
+    let rename = &changes[2];
+    assert_eq!(rename["kind"], "rename");
+    assert!(rename["newUri"].as_str().unwrap().ends_with("/Root.psc"));
+
+    // VSCode asks about that very move: its edits are already made.
+    let moved = json!({ "files": [{
+        "oldUri": uri(&base),
+        "newUri": uri(&dir.join("Root.psc")),
+    }] });
+    let edit = client
+        .request("workspace/willRenameFiles", moved.clone())
+        .await;
+    assert_eq!(edit, Value::Null);
+
+    // Renaming the file updates the script.
+    let edit = client.request("workspace/willRenameFiles", moved).await;
+    let changes = edit["changes"].as_object().unwrap();
+    assert_eq!(changes.len(), 2, "{edit}");
+    for edits in changes.values() {
+        assert_eq!(edits[0]["newText"], "Root");
+    }
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn a_namespaced_script_is_renamed_from_where_it_is_extended() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-ns-{}", std::process::id()));
+    std::fs::create_dir_all(dir.join("Source/MyMod")).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"starfield\"\n").unwrap();
+    let manager = dir.join("Source/MyMod/Manager.psc");
+    let plain = dir.join("Source/Plain.psc");
+    std::fs::write(&manager, "ScriptName MyMod:Manager extends Quest\n").unwrap();
+    std::fs::write(&plain, "ScriptName Plain extends MyMod:Manager\n").unwrap();
+    let mut client = connect();
+    client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": { "workspace": { "workspaceEdit": {
+                    "documentChanges": true, "resourceOperations": ["rename"],
+                } } },
+                "workspaceFolders": [{ "uri": uri(&dir), "name": "project" }],
+            }),
+        )
+        .await;
+    client.notify("initialized", json!({})).await;
+    client
+        .wait(|m| {
+            m["method"] == "window/logMessage"
+                && m["params"]["message"]
+                    .as_str()
+                    .is_some_and(|s| s.contains("indexed"))
+        })
+        .await;
+
+    let position = json!({ "line": 0, "character": 33 });
+    let prepared = client
+        .request(
+            "textDocument/prepareRename",
+            json!({ "textDocument": { "uri": uri(&plain) }, "position": position }),
+        )
+        .await;
+    assert_eq!(prepared["placeholder"], "MyMod:Manager", "{prepared}");
+    let edit = client
+        .request(
+            "textDocument/rename",
+            json!({
+                "textDocument": { "uri": uri(&plain) },
+                "position": position,
+                "newName": "MyMod:Manage",
+            }),
+        )
+        .await;
+    let changes = edit["documentChanges"].as_array().unwrap();
+    assert_eq!(changes.len(), 3, "{edit}");
+    for change in &changes[..2] {
+        assert_eq!(change["edits"].as_array().unwrap().len(), 1, "{edit}");
+        assert_eq!(change["edits"][0]["newText"], "MyMod:Manage");
+    }
+    assert!(
+        changes[2]["newUri"]
+            .as_str()
+            .unwrap()
+            .ends_with("Source/MyMod/Manage.psc"),
+        "{edit}"
+    );
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn a_name_against_the_convention_is_renamed_everywhere() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-naming-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let text = "ScriptName MyQuest extends Quest\nint Hit_Points\nint Taken_Name\nint takenName\nFunction F()\n    Hit_Points = Taken_Name + takenName\nEndFunction\n";
+    let script = dir.join("MyQuest.psc");
+    std::fs::write(&script, text).unwrap();
+    let mut client = editing_client(&dir).await;
+
+    let actions = actions_on(&mut client, &script, text, "PAP102").await;
+    let rename = titled(&actions, "Rename to `hitPoints`");
+    let changes = rename["edit"]["changes"].as_object().unwrap();
+    let edits = changes.values().next().unwrap().as_array().unwrap();
+    assert_eq!(edits.len(), 2, "{edits:?}");
+
+    // The script already has a `takenName`: renaming would merge them.
+    let position = at(text, "Taken_Name\n", 1);
+    let response = client
+        .request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": uri(&script) },
+                "range": { "start": position, "end": position },
+                "context": { "diagnostics": [] },
+            }),
+        )
+        .await;
+    assert!(
+        response
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|a| a["title"] != "Rename to `takenName`"),
+        "{response}"
+    );
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn recursion_shows_as_hints_and_lenses() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-rec-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let text = "ScriptName MyQuest extends Quest\nFunction F(int n)\n    if n > 0\n        F(n - 1)\n    endif\nEndFunction\n";
+    let script = dir.join("MyQuest.psc");
+    std::fs::write(&script, text).unwrap();
+    let mut client = editing_client(&dir).await;
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": uri(&script), "languageId": "papyrus", "version": 1, "text": text,
+            } }),
+        )
+        .await;
+    let hints = client
+        .request(
+            "textDocument/inlayHint",
+            json!({
+                "textDocument": { "uri": uri(&script) },
+                "range": {
+                    "start": { "line": 0, "character": 0 },
+                    "end": { "line": 6, "character": 0 },
+                },
+            }),
+        )
+        .await;
+    let hint = hints
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|h| h["label"] == "↻ recursive")
+        .unwrap_or_else(|| panic!("{hints}"));
+    assert_eq!(hint["position"], json!({ "line": 3, "character": 16 }));
+
+    let lenses = client
+        .request(
+            "textDocument/codeLens",
+            json!({ "textDocument": { "uri": uri(&script) } }),
+        )
+        .await;
+    let lens = lenses
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|l| l["command"]["title"] == "↻ recursive")
+        .unwrap_or_else(|| panic!("{lenses}"));
+    assert_eq!(lens["range"]["start"]["line"], 1);
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn a_deleted_script_leaves_its_project() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-deleted-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let base = dir.join("Base.psc");
+    let gone = dir.join("Gone.psc");
+    std::fs::write(&base, "ScriptName Base extends Quest\n").unwrap();
+    std::fs::write(&gone, "ScriptName Gone extends Base\n").unwrap();
+    std::fs::write(dir.join("Kept.psc"), "ScriptName Kept extends Base\n").unwrap();
+    let mut client = connect();
+    client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": { "workspace": { "workspaceEdit": {
+                    "documentChanges": true, "resourceOperations": ["rename"],
+                } } },
+                "workspaceFolders": [{ "uri": uri(&dir), "name": "project" }],
+            }),
+        )
+        .await;
+    client.notify("initialized", json!({})).await;
+    client
+        .wait(|m| {
+            m["method"] == "window/logMessage"
+                && m["params"]["message"]
+                    .as_str()
+                    .is_some_and(|s| s.contains("indexed"))
+        })
+        .await;
+
+    // A tab whose file was already gone, as the server restarts.
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": uri(&dir.join("Ghost.psc")), "languageId": "papyrus", "version": 1,
+                "text": "ScriptName Ghost extends Base\n",
+            } }),
+        )
+        .await;
+
+    // Open in a tab, which outlives the file.
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": uri(&gone), "languageId": "papyrus", "version": 1,
+                "text": "ScriptName Gone extends Base\n",
+            } }),
+        )
+        .await;
+
+    // As after a rename: the script is gone, and the editor says so.
+    std::fs::remove_file(&gone).unwrap();
+    client
+        .notify(
+            "workspace/didChangeWatchedFiles",
+            json!({ "changes": [{ "uri": uri(&gone), "type": 3 }] }),
+        )
+        .await;
+    let edit = client
+        .request(
+            "textDocument/rename",
+            json!({
+                "textDocument": { "uri": uri(&base) },
+                "position": { "line": 0, "character": 12 },
+                "newName": "Root",
+            }),
+        )
+        .await;
+    let changes = edit["documentChanges"].as_array().unwrap();
+    let edited: Vec<&str> = changes
+        .iter()
+        .filter_map(|c| c["textDocument"]["uri"].as_str())
+        .collect();
+    assert_eq!(edited.len(), 2, "{edit}");
+    assert!(
+        edited
+            .iter()
+            .all(|u| !u.ends_with("Gone.psc") && !u.ends_with("Ghost.psc")),
+        "{edit}"
+    );
+
+    // Neither holds its name any more.
+    for name in ["Gone", "Ghost"] {
+        client
+            .request(
+                "textDocument/rename",
+                json!({
+                    "textDocument": { "uri": uri(&dir.join("Kept.psc")) },
+                    "position": { "line": 0, "character": 12 },
+                    "newName": name,
+                }),
+            )
+            .await;
+    }
+
+    // Saved, a document joins its project.
+    std::fs::write(dir.join("Ghost.psc"), "ScriptName Ghost extends Base\n").unwrap();
+    client
+        .notify(
+            "textDocument/didSave",
+            json!({ "textDocument": { "uri": uri(&dir.join("Ghost.psc")) } }),
+        )
+        .await;
+    let error = client
+        .request_error(
+            "textDocument/rename",
+            json!({
+                "textDocument": { "uri": uri(&dir.join("Kept.psc")) },
+                "position": { "line": 0, "character": 12 },
+                "newName": "Ghost",
+            }),
+        )
+        .await;
+    assert!(error.contains("already exists"), "{error}");
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn range_formatting_stays_on_the_selected_lines() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-range-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let script = dir.join("MyQuest.psc");
+    let text = "scriptname MyQuest\n\nfunction F()\nint a = 1\nint b = 2\nendfunction\n";
+    std::fs::write(&script, text).unwrap();
+    let mut client = editing_client(&dir).await;
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": uri(&script), "languageId": "papyrus", "version": 1, "text": text,
+            } }),
+        )
+        .await;
+    let edits = client
+        .request(
+            "textDocument/rangeFormatting",
+            json!({
+                "textDocument": { "uri": uri(&script) },
+                "range": {
+                    "start": { "line": 4, "character": 0 },
+                    "end": { "line": 4, "character": 3 },
+                },
+                "options": { "tabSize": 4, "insertSpaces": true },
+            }),
+        )
+        .await;
+    let edits = edits.as_array().unwrap();
+    assert_eq!(edits.len(), 1, "{edits:?}");
+    assert_eq!(edits[0]["newText"], "  int b = 2\n");
+    assert_eq!(edits[0]["range"]["start"]["line"], 4);
+    assert_eq!(edits[0]["range"]["end"]["line"], 5);
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 async fn editing_client(dir: &Path) -> Client {
     let mut client = connect();
     client

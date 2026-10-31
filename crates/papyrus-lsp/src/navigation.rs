@@ -4,6 +4,7 @@
 //! files and byte ranges; this module turns them into LSP types.
 
 use std::collections::HashMap;
+use std::path::Path;
 
 use papyrus_hir::{
     CallItem, CompletionKind, Database, ItemKind, NavTarget, ParameterHints, Project, Reference,
@@ -12,13 +13,26 @@ use papyrus_hir::{
 use papyrus_syntax::{TextRange, TextSize};
 use tower_lsp_server::ls_types::{
     CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CodeLens, Command,
-    CompletionItem, CompletionItemKind, DocumentHighlight, DocumentHighlightKind, Documentation,
-    Hover, HoverContents, InlayHint, InlayHintKind, InlayHintLabel, Location, MarkupContent,
-    MarkupKind, ParameterInformation, ParameterLabel, Position, Range, SignatureHelp,
-    SignatureInformation, SymbolInformation, SymbolKind, TextEdit, Uri, WorkspaceEdit,
+    CompletionItem, CompletionItemKind, DocumentChangeOperation, DocumentChanges,
+    DocumentHighlight, DocumentHighlightKind, Documentation, Hover, HoverContents, InlayHint,
+    InlayHintKind, InlayHintLabel, Location, MarkupContent, MarkupKind, OneOf,
+    OptionalVersionedTextDocumentIdentifier, ParameterInformation, ParameterLabel, Position, Range,
+    RenameFile, ResourceOp, SignatureHelp, SignatureInformation, SymbolInformation, SymbolKind,
+    TextDocumentEdit, TextEdit, TypeHierarchyItem, Uri, WorkspaceEdit,
 };
 
 use crate::position::{Columns, LineMap};
+
+/// What marks a recursion, in a hint or a lens.
+fn recursive_label(through: Option<&str>) -> String {
+    match through {
+        Some(function) => format!("↻ recursive through {function}"),
+        None => "↻ recursive".to_owned(),
+    }
+}
+
+/// Text edits by document.
+pub(crate) type Changes = HashMap<Uri, Vec<TextEdit>>;
 
 /// The LSP kind of an item.
 fn symbol_kind(kind: ItemKind) -> SymbolKind {
@@ -38,6 +52,8 @@ fn symbol_kind(kind: ItemKind) -> SymbolKind {
 pub(crate) struct Navigator<'a> {
     pub(crate) db: &'a Database,
     pub(crate) columns: Columns,
+    /// The client renames files in a workspace edit.
+    pub(crate) can_rename: bool,
     /// The URI of a file, `None` if it cannot be named.
     pub(crate) uri: &'a dyn Fn(SourceFile) -> Option<Uri>,
 }
@@ -114,7 +130,8 @@ impl Navigator<'_> {
         mode: ParameterHints,
     ) -> Vec<InlayHint> {
         let map = self.map(file);
-        Semantics::new(self.db, project)
+        let sema = Semantics::new(self.db, project);
+        let parameters = sema
             .parameter_hints(file, range, mode)
             .into_iter()
             .map(|hint| InlayHint {
@@ -126,8 +143,22 @@ impl Navigator<'_> {
                 padding_left: None,
                 padding_right: Some(true),
                 data: None,
-            })
-            .collect()
+            });
+        let recursions = sema
+            .recursions(file)
+            .into_iter()
+            .filter(|r| r.call.intersect(range).is_some())
+            .map(|r| InlayHint {
+                position: map.position(r.call.end()),
+                label: InlayHintLabel::String(recursive_label(r.through.as_deref())),
+                kind: None,
+                text_edits: None,
+                tooltip: None,
+                padding_left: Some(true),
+                padding_right: None,
+                data: None,
+            });
+        parameters.chain(recursions).collect()
     }
 
     pub(crate) fn hover(
@@ -235,6 +266,35 @@ impl Navigator<'_> {
         Some((format!("Rename the declaration to `{new_name}`"), edit))
     }
 
+    /// The name at `offset` renamed to `new_name`, the convention's, across
+    /// the project: the action's title and its edits. Nothing if the file
+    /// already holds that name: the rename would merge the two.
+    pub(crate) fn rename_to_convention(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+        old_name: &str,
+        new_name: &str,
+    ) -> Option<(String, WorkspaceEdit)> {
+        let root = Semantics::new(self.db, project).root(file);
+        let taken = !old_name.eq_ignore_ascii_case(new_name)
+            && root
+                .descendants_with_tokens()
+                .filter_map(|element| element.into_token())
+                .any(|token| token.text().eq_ignore_ascii_case(new_name));
+        if taken {
+            return None;
+        }
+        let (edit, warning) = self.rename(project, file, offset, new_name).ok()?;
+        let note = if warning.is_some() {
+            " (plugins bind it by name)"
+        } else {
+            ""
+        };
+        Some((format!("Rename to `{new_name}`{note}"), edit))
+    }
+
     /// The edits of a rename, and the warning to show.
     pub(crate) fn rename(
         &self,
@@ -246,22 +306,129 @@ impl Navigator<'_> {
         let edit = Semantics::new(self.db, project)
             .rename(file, offset, new_name)
             .map_err(|e| e.0)?;
-        let mut changes: HashMap<Uri, Vec<TextEdit>> = HashMap::new();
-        for reference in edit.edits {
+        let changes = self.changes(&edit.edits, new_name)?;
+        let workspace_edit = match &edit.moved {
+            Some((script, path)) => self.with_file_moved(*script, path, changes)?,
+            None => WorkspaceEdit {
+                changes: Some(changes),
+                ..WorkspaceEdit::default()
+            },
+        };
+        Ok((workspace_edit, edit.warning))
+    }
+
+    /// `new_name` at every reference, by file.
+    fn changes(&self, references: &[Reference], new_name: &str) -> Result<Changes, String> {
+        let mut changes = Changes::new();
+        for reference in references {
             let uri = (self.uri)(reference.file)
                 .ok_or_else(|| format!("{} has no URI", reference.file.path(self.db).display()))?;
             changes.entry(uri).or_default().push(TextEdit::new(
                 self.range(reference.file, reference.range),
-                edit.new_name.clone(),
+                new_name.to_owned(),
             ));
         }
-        Ok((
-            WorkspaceEdit {
-                changes: Some(changes),
-                ..WorkspaceEdit::default()
+        Ok(changes)
+    }
+
+    /// `changes`, then the file of `script` moved: the edits name it by its
+    /// old URI.
+    fn with_file_moved(
+        &self,
+        script: SourceFile,
+        new_path: &Path,
+        changes: Changes,
+    ) -> Result<WorkspaceEdit, String> {
+        if !self.can_rename {
+            return Err(
+                "this editor cannot rename files from the server: rename the file instead"
+                    .to_owned(),
+            );
+        }
+        let path = script.path(self.db);
+        let old_uri = (self.uri)(script).ok_or_else(|| format!("{} has no URI", path.display()))?;
+        let new_uri = Uri::from_file_path(new_path)
+            .ok_or_else(|| format!("{} has no URI", new_path.display()))?;
+        let mut operations: Vec<DocumentChangeOperation> = changes
+            .into_iter()
+            .map(|(uri, edits)| {
+                DocumentChangeOperation::Edit(TextDocumentEdit {
+                    text_document: OptionalVersionedTextDocumentIdentifier { uri, version: None },
+                    edits: edits.into_iter().map(OneOf::Left).collect(),
+                })
+            })
+            .collect();
+        operations.push(DocumentChangeOperation::Op(ResourceOp::Rename(
+            RenameFile {
+                old_uri,
+                new_uri,
+                options: None,
+                annotation_id: None,
             },
-            edit.warning,
-        ))
+        )));
+        Ok(WorkspaceEdit {
+            document_changes: Some(DocumentChanges::Operations(operations)),
+            ..WorkspaceEdit::default()
+        })
+    }
+
+    /// The script of a file about to go to `path`, renamed with it: its
+    /// edits and the warning to show.
+    pub(crate) fn file_moved(
+        &self,
+        project: Project,
+        file: SourceFile,
+        path: &Path,
+    ) -> Option<(Changes, Option<String>)> {
+        let sema = Semantics::new(self.db, project);
+        let items = sema.items(file);
+        let name = sema.script_name_at(file, path)?;
+        if items.name == name {
+            return None;
+        }
+        let edit = sema.rename(file, items.name_range.start(), &name).ok()?;
+        Some((self.changes(&edit.edits, &name).ok()?, edit.warning))
+    }
+
+    fn type_item(&self, project: Project, file: SourceFile) -> Option<TypeHierarchyItem> {
+        let items = Semantics::new(self.db, project).items(file);
+        let whole = TextRange::up_to(TextSize::of(file.text(self.db)));
+        Some(TypeHierarchyItem {
+            name: items.name.clone(),
+            kind: SymbolKind::CLASS,
+            tags: None,
+            detail: items.parent.clone(),
+            uri: (self.uri)(file)?,
+            range: self.range(file, whole),
+            selection_range: self.range(file, items.name_range),
+            data: None,
+        })
+    }
+
+    pub(crate) fn prepare_type_hierarchy(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<Vec<TypeHierarchyItem>> {
+        let script = Semantics::new(self.db, project).script_at(file, offset)?;
+        Some(vec![self.type_item(project, script)?])
+    }
+
+    pub(crate) fn supertypes(&self, project: Project, file: SourceFile) -> Vec<TypeHierarchyItem> {
+        let found = Semantics::new(self.db, project).supertypes(file);
+        found
+            .into_iter()
+            .filter_map(|file| self.type_item(project, file))
+            .collect()
+    }
+
+    pub(crate) fn subtypes(&self, project: Project, file: SourceFile) -> Vec<TypeHierarchyItem> {
+        let found = Semantics::new(self.db, project).subtypes(file);
+        found
+            .into_iter()
+            .filter_map(|file| self.type_item(project, file))
+            .collect()
     }
 
     #[allow(deprecated)] // `SymbolInformation::deprecated`, required by the type.
@@ -403,7 +570,25 @@ impl Navigator<'_> {
     ) -> Vec<CodeLens> {
         let sema = Semantics::new(self.db, project);
         let map = self.map(file);
-        sema.items(file)
+        let mut recursive: Vec<CodeLens> = Vec::new();
+        let mut seen = Vec::new();
+        for recursion in sema.recursions(file) {
+            if !seen.contains(&recursion.function) {
+                seen.push(recursion.function);
+                recursive.push(CodeLens {
+                    range: map.range(recursion.function),
+                    // A label: nothing to run.
+                    command: Some(Command {
+                        title: recursive_label(recursion.through.as_deref()),
+                        command: String::new(),
+                        arguments: None,
+                    }),
+                    data: None,
+                });
+            }
+        }
+        let references = sema
+            .items(file)
             .items
             .iter()
             .filter(|i| {
@@ -420,8 +605,9 @@ impl Navigator<'_> {
                 range: map.range(i.name_range),
                 command: None,
                 data: Some(serde_json::json!({ "uri": uri.as_str() })),
-            })
-            .collect()
+            });
+        recursive.extend(references);
+        recursive
     }
 
     /// The references of the item named at `offset`, as a lens command.

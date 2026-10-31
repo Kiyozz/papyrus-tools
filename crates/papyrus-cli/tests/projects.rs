@@ -210,6 +210,288 @@ fn build_says_which_compiler_is_missing() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+const UNUSED: &str =
+    "ScriptName MyQuest extends Quest\nFunction F()\n\tint unused = 1\nEndFunction\n";
+
+fn papyrus(root: &Path, args: &[&str], stdin: &str) -> std::process::Output {
+    use std::io::Write;
+    use std::process::Stdio;
+    let mut child = Command::new(env!("CARGO_BIN_EXE_papyrus"))
+        .args(args)
+        .current_dir(root)
+        .env("NO_COLOR", "1")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("papyrus runs");
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(stdin.as_bytes())
+        .unwrap();
+    child.wait_with_output().unwrap()
+}
+
+fn text(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(bytes).into_owned()
+}
+
+#[test]
+fn the_baseline_only_lets_new_problems_through() {
+    let root = tree(
+        "baseline",
+        &[
+            ("papyrus.toml", "game = \"skyrim\"\n"),
+            ("MyQuest.psc", UNUSED),
+        ],
+    );
+    assert_eq!(papyrus(&root, &["check"], "").status.code(), Some(1));
+
+    let written = papyrus(&root, &["check", "--write-baseline"], "");
+    assert!(written.status.success(), "{}", text(&written.stderr));
+    assert!(text(&written.stderr).contains("PAP015 locals/unused"));
+
+    // The line moved and changed, the problem did not: still known.
+    let moved = UNUSED.replace("Function F()", ";\n;\nFunction F()");
+    std::fs::write(root.join("MyQuest.psc"), &moved).unwrap();
+    let known = papyrus(&root, &["check"], "");
+    assert!(known.status.success(), "{}", text(&known.stderr));
+    assert!(text(&known.stderr).contains("1 known problem(s) hidden"));
+    assert_eq!(
+        papyrus(&root, &["check", "--no-baseline"], "")
+            .status
+            .code(),
+        Some(1)
+    );
+
+    // One more in the file is new.
+    let twice = moved.replace("\tint unused = 1\n", "\tint unused = 1\n\tint unused = 1\n");
+    std::fs::write(root.join("MyQuest.psc"), &twice).unwrap();
+    assert_eq!(papyrus(&root, &["check"], "").status.code(), Some(1));
+
+    // Fixed: the baseline says so, and writing removes it.
+    let fixed = "ScriptName MyQuest extends Quest\n";
+    std::fs::write(root.join("MyQuest.psc"), fixed).unwrap();
+    let gone = papyrus(&root, &["check"], "");
+    assert!(gone.status.success(), "{}", text(&gone.stderr));
+    assert!(text(&gone.stderr).contains("1 problem(s) of the baseline are gone"));
+    assert!(
+        papyrus(&root, &["check", "--write-baseline"], "")
+            .status
+            .success()
+    );
+    assert!(!root.join("papyrus-baseline.json").exists());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn checking_one_file_keeps_the_baseline_of_the_others() {
+    let root = tree(
+        "baseline-one",
+        &[
+            ("papyrus.toml", "game = \"skyrim\"\n"),
+            ("MyQuest.psc", UNUSED),
+            ("Other.psc", &UNUSED.replace("MyQuest", "Other")),
+        ],
+    );
+    assert!(
+        papyrus(&root, &["check", "--write-baseline"], "")
+            .status
+            .success()
+    );
+    let args = ["check", "--write-baseline", "Other.psc"];
+    assert!(papyrus(&root, &args, "").status.success());
+    assert!(papyrus(&root, &["check"], "").status.success());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn fix_removes_what_does_nothing() {
+    let script = "ScriptName MyQuest extends Quest\nImport Utility\nint unread\nFunction F(bool flag)\n\tint a = 1\n\tint b = Compute()\n\tint c = 2\n\tc = c\n\tif flag == True\n\t\tDebug.Trace(\"x\")\n\tendif\nEndFunction\nint Function Compute()\n\treturn 1\nEndFunction\n";
+    let root = tree(
+        "cleanups",
+        &[
+            ("papyrus.toml", "game = \"skyrim\"\n"),
+            ("MyQuest.psc", script),
+        ],
+    );
+    papyrus(&root, &["check", "--fix"], "");
+    // `c` goes with its assignment; a call stays, for its effects.
+    assert_eq!(
+        std::fs::read_to_string(root.join("MyQuest.psc")).unwrap(),
+        "ScriptName MyQuest extends Quest\nFunction F(bool flag)\n\tint b = Compute()\n\tif flag\n\t\tDebug.Trace(\"x\")\n\tendif\nEndFunction\nint Function Compute()\n\treturn 1\nEndFunction\n"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn fix_unsafe_renames_across_files() {
+    let base = "ScriptName Base extends Quest\nFunction do_thing()\nEndFunction\nint Property Hit_Points Auto\nint Taken_Name\nint takenName\nFunction G()\n\tHit_Points = Taken_Name + takenName\nEndFunction\n";
+    let user =
+        "ScriptName User extends Base\nEvent OnInit()\n\tdo_thing()\n\tHit_Points = 1\nEndEvent\n";
+    let root = tree(
+        "renames",
+        &[
+            ("papyrus.toml", "game = \"skyrim\"\n"),
+            ("Base.psc", base),
+            ("User.psc", user),
+        ],
+    );
+    // `--fix` alone leaves names to `--unsafe`.
+    papyrus(&root, &["check", "--fix"], "");
+    assert_eq!(
+        std::fs::read_to_string(root.join("User.psc")).unwrap(),
+        user
+    );
+
+    papyrus(&root, &["check", "--fix", "--unsafe"], "");
+    let base = std::fs::read_to_string(root.join("Base.psc")).unwrap();
+    assert!(base.contains("Function DoThing()"), "{base}");
+    assert!(base.contains("Property hitPoints"), "{base}");
+    // Its new name is taken: renaming would merge the two.
+    assert!(base.contains("int Taken_Name"), "{base}");
+    assert_eq!(
+        std::fs::read_to_string(root.join("User.psc")).unwrap(),
+        user.replace("do_thing", "DoThing")
+            .replace("Hit_Points", "hitPoints")
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn reports_go_to_standard_output() {
+    let root = tree(
+        "reports",
+        &[
+            ("papyrus.toml", "game = \"skyrim\"\n"),
+            ("MyQuest.psc", UNUSED),
+        ],
+    );
+    let json = papyrus(&root, &["check", "--message-format", "json"], "");
+    assert_eq!(json.status.code(), Some(1));
+    let problems: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!(problems[0]["code"], "PAP015");
+    assert_eq!(problems[0]["name"], "locals/unused");
+    assert_eq!(problems[0]["line"], 3);
+    assert_eq!(problems[0]["column"], 6);
+
+    let sarif = papyrus(&root, &["check", "--message-format", "sarif"], "");
+    let log: serde_json::Value = serde_json::from_slice(&sarif.stdout).unwrap();
+    assert_eq!(log["version"], "2.1.0");
+    let result = &log["runs"][0]["results"][0];
+    assert_eq!(result["ruleId"], "PAP015");
+    assert_eq!(result["level"], "warning");
+    let location = &result["locations"][0]["physicalLocation"];
+    assert_eq!(location["artifactLocation"]["uri"], "MyQuest.psc");
+    assert_eq!(location["region"]["startLine"], 3);
+    // What code scanning requires of a rule.
+    for rule in log["runs"][0]["tool"]["driver"]["rules"]
+        .as_array()
+        .unwrap()
+    {
+        assert!(rule["fullDescription"]["text"].is_string(), "{rule}");
+    }
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn stdin_takes_the_place_of_the_file() {
+    let root = tree(
+        "stdin",
+        &[
+            (
+                "papyrus.toml",
+                "game = \"skyrim\"\n[fmt]\nindent = \"tab\"\n",
+            ),
+            (
+                "Base.psc",
+                "ScriptName Base extends Quest\nFunction Base1()\nEndFunction\n",
+            ),
+        ],
+    );
+    // Sees the project: the parent is on disk, what is checked is not.
+    let script = "ScriptName Child extends Base\nFunction F()\n\tBase2()\nEndFunction\n";
+    let args = ["check", "--stdin", "--stdin-filename", "Child.psc"];
+    let output = papyrus(&root, &args, script);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(
+        text(&output.stderr).contains("PAP008"),
+        "{}",
+        text(&output.stderr)
+    );
+    assert!(
+        papyrus(&root, &args, &script.replace("Base2", "Base1"))
+            .status
+            .success()
+    );
+
+    // Without a name, its `ScriptName` gives one.
+    assert!(
+        papyrus(
+            &root,
+            &["check", "--stdin"],
+            "ScriptName Child extends Base\n"
+        )
+        .status
+        .success()
+    );
+
+    let args = ["fmt", "--stdin", "--stdin-filename", "Child.psc"];
+    let output = papyrus(
+        &root,
+        &args,
+        "ScriptName Child\nFunction F()\nint a = 1\nEndFunction\n",
+    );
+    assert_eq!(
+        text(&output.stdout),
+        "scriptname Child\n\nfunction F()\n\tint a = 1\nendfunction\n"
+    );
+    // On a syntax error, nothing to replace the text with.
+    let output = papyrus(&root, &args, "Function\n");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn init_writes_a_configuration_once() {
+    let root = tree(
+        "init",
+        &[("MyQuest.psc", "ScriptName MyQuest\nGuard G\nEndGuard\n")],
+    );
+    let output = papyrus(&root, &["init"], "");
+    assert!(output.status.success(), "{}", text(&output.stderr));
+    let written = std::fs::read_to_string(root.join("papyrus.toml")).unwrap();
+    assert!(written.contains("game = \"starfield\""), "{written}");
+
+    let again = papyrus(&root, &["init"], "");
+    assert_eq!(again.status.code(), Some(2));
+    assert!(text(&again.stderr).contains("already exists"));
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn explain_finds_a_lint_by_code_or_name() {
+    let root = tree("explain", &[]);
+    std::fs::create_dir_all(&root).unwrap();
+    for key in ["PAP015", "locals/unused"] {
+        let output = papyrus(&root, &["explain", key], "");
+        assert!(output.status.success());
+        assert!(text(&output.stdout).starts_with("PAP015 locals/unused — warn by default"));
+    }
+    let output = papyrus(&root, &["explain", "locals/unuse"], "");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(text(&output.stderr).contains("did you mean `locals/unused`?"));
+    assert!(
+        papyrus(&root, &["explain", "baseline"], "")
+            .status
+            .success()
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 #[test]
 fn the_short_format_puts_each_problem_on_a_line() {
     let root = tree(
@@ -225,7 +507,7 @@ fn the_short_format_puts_each_problem_on_a_line() {
     let stderr = run(&root, &["--message-format", "short"]);
     let path = std::path::absolute(root.join("MyQuest.psc")).unwrap();
     let expected = format!(
-        "{}:3:6:3:12: warning[PAP015 locals/unused]: the variable `unused` is never used",
+        "{}:3:6:3:12: warning[PAP015 locals/unused]: the variable `unused` is never used. Fixable with `papyrus check --fix`.",
         path.display()
     );
     assert_eq!(stderr.lines().next(), Some(expected.as_str()), "{stderr}");

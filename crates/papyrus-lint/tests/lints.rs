@@ -200,7 +200,7 @@ fn a_rename_beyond_case_has_no_fix() {
     );
     assert_eq!(d.len(), 1);
     assert!(d[0].fix.is_none());
-    assert!(d[0].message.contains("by hand"));
+    assert!(d[0].message.contains("--fix --unsafe"));
 }
 
 // ── Suppression and levels ────────────────────────────────────────────────

@@ -22,7 +22,12 @@ papyrus check --fix --unsafe .                    # and the case of properties
 papyrus fmt .                                     # format in place
 papyrus fmt --check --indent tab .                # CI: fail if a file needs formatting
 papyrus build                                     # compile with PapyrusCompiler or Caprica
+papyrus init                                      # write a papyrus.toml, the game inferred
 papyrus lints                                     # list the lints
+papyrus explain PAP015                            # what a lint means, and what to do
+papyrus check --write-baseline                    # adopt on an old mod: only new problems from now on
+papyrus check --message-format sarif > out.sarif  # or json: a report on standard output
+papyrus fmt --stdin --stdin-filename My.psc       # for editors and hooks; check has --stdin too
 papyrus lsp                                       # language server, for an editor
 ```
 
@@ -140,6 +145,7 @@ imported one of the same name.
 | `PAP038` | `code/self-compare` | warn | Value compared with itself |
 | `PAP039` | `variables/unused` | warn | Script variable never read, `Conditional` ones excepted |
 | `PAP040` | `imports/unused` | warn | `Import` of a script none of whose global functions or types is used unqualified |
+| `PAP041` | `calls/infinite-recursion` | warn | Function that comes back to itself on every path, directly or through others |
 | `PAP101` | `naming/locals` | warn | Locals and parameters not in lowerCamelCase — fixable |
 | `PAP102` | `naming/variables` | warn | Script variables, properties, fields not in lowerCamelCase |
 | `PAP103` | `naming/functions` | warn | Functions, events, states, structs not in PascalCase |
@@ -147,9 +153,32 @@ imported one of the same name.
 To allow a case: `; papyrus: allow(naming/locals)` at the end of the line, or
 alone on the line before. `all` covers every lint.
 
-`--fix` only fixes case. Papyrus being case-insensitive, the rename changes
-nothing for the compiler and cannot collide with anything. Properties are only
-renamed with `--fix --unsafe`: plugins (`.esp`, `.esm`) bind them by name.
+`--fix` fixes case: Papyrus being case-insensitive, the rename changes nothing
+for the compiler and cannot collide with anything. It also removes what does
+nothing: an unused `Import`, an assignment to itself, a variable no code names,
+a local whose value is a literal, a comparison with `True` or `False`.
+
+`--fix --unsafe` adds what may break outside the scripts: properties, which
+plugins (`.esp`, `.esm`) bind by name, and the names of `naming/*` across the
+project, unless the new one is taken in the file. The editor offers the same
+fixes as quick fixes.
+
+`papyrus explain <code>` says why a lint matters, with an example and what to
+do about it.
+
+### Baseline
+
+To adopt `papyrus` on a mod that already has many problems, `papyrus check
+--write-baseline` records them in `papyrus-baseline.json`, next to
+`papyrus.toml`: commit it. `papyrus check` then only reports new problems, and
+says how many it hides and when some are gone.
+
+As in PHPStan, a problem is known by its file, its lint and its message, never
+by its line, and each is counted: editing around it keeps it known, one more in
+the file is reported. Syntax errors are never recorded. `--no-baseline` shows everything,
+`--write-baseline` again records what remains, and on a single file leaves the
+others alone. The editor ignores the baseline. `papyrus explain baseline` says
+all this in the terminal.
 
 ### Dead events
 
@@ -332,9 +361,21 @@ switches them to `all` arguments (except those already named like the
 parameter) or to `none`.
 
 A rename covers the whole project, overrides included. It is refused on
-native and imported declarations, on events, which the engine calls by name,
-and on script names, which are file names; on a property, it warns that
-plugins must be filled again in the Creation Kit.
+native and imported declarations, and on events, which the engine calls by
+name; on a property, it warns that plugins must be filled again in the Creation
+Kit. Renaming a script moves its file, and moving or renaming a `.psc` in the
+editor renames its script and every use, with the same warning. From Fallout 4,
+namespaces are the folders: `MyMod:Base` lives in `MyMod/Base.psc`, and moving it
+to `Other/` makes it `Other:Base`. A script whose file is not where its name says
+is left alone.
+
+A recursive function shows `↻ recursive` above it and after each call that comes
+back, directly or through other functions, across files. An override counts as
+the function it overrides, but `Parent.F()` does not recurse.
+
+The type hierarchy follows `extends` through the scripts with a source: add the
+game's sources to `imports` to see the native ones. Formatting a selection only
+changes the selected lines.
 
 **VSCode** — the extension, in `editors/vscode`, is published once per platform
 (Windows x64 and arm64, macOS arm64, Linux x64 and arm64), with the `papyrus`

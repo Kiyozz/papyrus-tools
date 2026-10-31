@@ -12,7 +12,7 @@ use papyrus_syntax::{SyntaxKind, SyntaxNode, TextRange, TextSize};
 use crate::SourceFile;
 use crate::calls::{Arg, SignatureParam, arg_list, args, callee};
 use crate::items::{ItemKind, compact, trimmed};
-use crate::semantics::{Def, ScriptRef, Semantics, is_callee, locals_in_scope};
+use crate::semantics::{Def, Namespace, ScriptRef, Semantics, is_callee, locals_in_scope};
 use crate::ty::Ty;
 use crate::types::Object;
 
@@ -103,6 +103,8 @@ pub enum Problem {
     SelfAssign,
     /// `x == x`, `x < x`: always the same answer.
     SelfCompare,
+    /// A function coming back to itself on every path.
+    InfiniteRecursion,
     /// A script variable never read.
     UnusedVariable,
     /// An `Import` nothing uses.
@@ -136,6 +138,20 @@ impl Fix {
             edits: vec![Replacement {
                 range,
                 text: name.to_owned(),
+            }],
+        }
+    }
+
+    /// Removes the lines of `range`, in `text`, their line end included.
+    fn remove_lines(title: &str, text: &str, range: TextRange) -> Fix {
+        let (start, end) = (usize::from(range.start()), usize::from(range.end()));
+        let start = text[..start].rfind('\n').map_or(0, |i| i + 1);
+        let end = text[end..].find('\n').map_or(text.len(), |i| end + i + 1);
+        Fix {
+            title: title.to_owned(),
+            edits: vec![Replacement {
+                range: TextRange::new(TextSize::new(start as u32), TextSize::new(end as u32)),
+                text: String::new(),
             }],
         }
     }
@@ -558,6 +574,9 @@ impl Semantics<'_> {
                     usage::check_unreachable(&body, &mut out);
                     let duplicated = usage::check_duplicates(&root, &node, &body, &mut out);
                     self.check_unused(file, &node, &body, &duplicated, &mut out);
+                    if node.kind() == SyntaxKind::FUNCTION_DECL {
+                        self.check_infinite_recursion(file, &node, &body, &mut out);
+                    }
                     for inner in body.descendants() {
                         self.check_expr(file, &inner, &mut out);
                         self.check_habits(file, &inner, &mut out);
@@ -1343,6 +1362,20 @@ impl Semantics<'_> {
         if let Some(d) = self.not_called(this, name_ref, None) {
             out.push(d);
             return;
+        }
+        // `Wait` after `Import Utility`: only its global functions come along.
+        for import in &self.items(file).imports {
+            let Some(script) = self.script(import) else {
+                continue;
+            };
+            let global = self
+                .own_member(script, &name, Namespace::Callable)
+                .is_some_and(|def| self.is_global(&def));
+            if global {
+                let owner = self.script_name(script);
+                out.extend(self.not_called(script, name_ref, Some(owner)));
+                return;
+            }
         }
         // A state or a struct used as a value: another error, which the
         // compiler words better.

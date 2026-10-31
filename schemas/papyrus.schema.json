@@ -903,6 +903,26 @@
           ],
           "type": "string"
         },
+        "PAP041": {
+          "description": "function that comes back to itself on every path, directly or through others, and never returns (PAP041, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
         "PAP101": {
           "description": "locals and parameters in lowerCamelCase (PAP101, warn by default)",
           "enum": [
@@ -1045,6 +1065,26 @@
         },
         "calls/get-player": {
           "description": "`Game.GetPlayer()` called on each iteration of a loop (PAP035, warn by default)",
+          "enum": [
+            "allow",
+            "warn",
+            "error",
+            "off",
+            "warning",
+            "deny"
+          ],
+          "enumDescriptions": [
+            "Disabled.",
+            "Reported as a warning.",
+            "Reported as an error.",
+            "Same as allow.",
+            "Same as warn.",
+            "Same as error."
+          ],
+          "type": "string"
+        },
+        "calls/infinite-recursion": {
+          "description": "function that comes back to itself on every path, directly or through others, and never returns (PAP041, warn by default)",
           "enum": [
             "allow",
             "warn",

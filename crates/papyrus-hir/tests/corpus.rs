@@ -238,6 +238,28 @@ fn starfield_checks() {
     check_game(GameId::Starfield);
 }
 
+/// Recursions come with each hint and lens: the longest script of a whole
+/// game, once cold, then within the budget of a keystroke.
+#[test]
+fn recursions_are_fast_enough() {
+    let db = Database::default();
+    let Some(files) = load(&db, GameId::Skyrim, usize::MAX) else {
+        return;
+    };
+    let project = Project::new(&db, files.clone(), Vec::new(), Some(GameId::Skyrim));
+    let file = *files.iter().max_by_key(|f| f.text(&db).len()).unwrap();
+    let sema = Semantics::new(&db, project);
+    let time = || {
+        let start = Instant::now();
+        let found = sema.recursions(file);
+        (start.elapsed(), found.len())
+    };
+    let (cold, count) = time();
+    let (warm, _) = time();
+    println!("· recursions: {count} calls, cold {cold:?}, warm {warm:?}");
+    assert!(warm < Duration::from_millis(200));
+}
+
 /// Completion on a 500-script project, cold, warm, and after an edit.
 #[test]
 fn completion_is_fast_enough() {

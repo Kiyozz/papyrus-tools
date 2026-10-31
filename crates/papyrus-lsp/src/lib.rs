@@ -34,10 +34,12 @@ mod symbols;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_hir::{Database, ParameterHints, Semantics, SourceFile};
 use papyrus_lint::{Model, ScriptSummary, Workspace};
+use papyrus_project::discover::is_script;
 use papyrus_project::{ConfigLocator, decode};
 use papyrus_syntax::{TextRange, TextSize};
 use salsa::Setter;
@@ -51,6 +53,9 @@ use tower_lsp_server::{
 use analysis::{Analysis, ConfigEdits, Document, Settings, analyze};
 use navigation::Navigator;
 use position::{Columns, LineMap};
+
+/// How long a rename's move is awaited: a later one is the user's.
+const OWN_MOVE_LIFETIME: Duration = Duration::from_secs(30);
 
 /// What the server knows about one project: the folder of a `papyrus.toml`,
 /// or a workspace folder without one.
@@ -87,6 +92,13 @@ struct State {
     can_progress: bool,
     /// The client creates files in a workspace edit.
     can_create: bool,
+    /// The client renames files in a workspace edit.
+    can_rename: bool,
+    /// The client takes the type hierarchy at the server's request.
+    can_register_types: bool,
+    /// The files a rename sent to move, and when: the client applies it
+    /// shortly after, unless the user declined.
+    own_moves: HashMap<String, Instant>,
     /// The semantic model.
     db: Database,
     /// The model's file of each script read, by path; a document without a
@@ -181,11 +193,58 @@ impl State {
         }
     }
 
+    /// A script gone from the disk leaves its project: a rename must not
+    /// edit it, nor its name stay taken.
+    fn forget(&mut self, path: &Path) {
+        let Some(file) = self.sources.remove(path) else {
+            return;
+        };
+        let root = self.root_of(Some(path));
+        let summary = summary_of(file.text(&self.db));
+        let Some(project) = self.projects.get_mut(&root) else {
+            return;
+        };
+        let Some(model) = project.model else {
+            return;
+        };
+        let files: Vec<SourceFile> = model
+            .files(&self.db)
+            .iter()
+            .copied()
+            .filter(|&f| f != file)
+            .collect();
+        let imports: Vec<SourceFile> = model
+            .imports(&self.db)
+            .iter()
+            .copied()
+            .filter(|&f| f != file)
+            .collect();
+        model.set_files(&mut self.db).to(files);
+        model.set_imports(&mut self.db).to(imports);
+        // Moved rather than deleted, its new file may already be known.
+        if let Some(summary) = summary {
+            let sema = Semantics::new(&self.db, model);
+            let taken = model
+                .files(&self.db)
+                .iter()
+                .any(|&f| sema.items(f).name.eq_ignore_ascii_case(&summary.name));
+            if !taken {
+                project.workspace.remove(&summary.name);
+            }
+        }
+    }
+
     /// Feeds the text of document `uri` to the model.
     fn feed(&mut self, uri: &Uri) {
         let Some(document) = self.documents.get(uri) else {
             return;
         };
+        // VSCode may keep a deleted file open, even without a tab: it is
+        // analyzed alone, and joins its project once saved. A rename editing
+        // it would bring the file back, and its name would stay taken.
+        if document.path.as_deref().is_some_and(|p| !p.exists()) {
+            return;
+        }
         let (path, root, text) = (
             key(uri, document),
             document.project.clone(),
@@ -240,6 +299,7 @@ impl State {
         let navigator = Navigator {
             db: &self.db,
             columns: self.columns,
+            can_rename: self.can_rename,
             uri: &uri_of,
         };
         Some(f(&navigator, model, file, offset))
@@ -250,6 +310,7 @@ impl State {
         Snapshot {
             db: self.db.clone(),
             columns: self.columns,
+            can_rename: self.can_rename,
             uris: self
                 .documents
                 .iter()
@@ -452,6 +513,7 @@ fn summary_of(text: &str) -> Option<ScriptSummary> {
 struct Snapshot {
     db: Database,
     columns: Columns,
+    can_rename: bool,
     uris: HashMap<PathBuf, Uri>,
 }
 
@@ -476,6 +538,7 @@ impl Snapshot {
                 let navigator = Navigator {
                     db: &self.db,
                     columns: self.columns,
+                    can_rename: self.can_rename,
                     uri: &uri_of,
                 };
                 f(&navigator)
@@ -694,6 +757,15 @@ impl Backend {
     }
 }
 
+/// What identifies a moved file: the spelling of a URI, and of a Windows drive,
+/// differs from one side to the other.
+fn move_key(uri: &Uri) -> String {
+    file_path(uri).map_or_else(
+        || uri.as_str().to_owned(),
+        |path| path.to_string_lossy().to_ascii_lowercase(),
+    )
+}
+
 fn file_path(uri: &Uri) -> Option<PathBuf> {
     (uri.scheme().as_str() == "file")
         .then(|| uri.to_file_path().map(|p| p.into_owned()))
@@ -747,6 +819,24 @@ impl LanguageServer for Backend {
                         .as_ref()
                         .is_some_and(|ops| ops.contains(&ResourceOperationKind::Create))
             });
+        let can_register_types = params
+            .capabilities
+            .text_document
+            .as_ref()
+            .and_then(|t| t.type_hierarchy.as_ref())
+            .and_then(|t| t.dynamic_registration)
+            .unwrap_or(false);
+        let can_rename = params
+            .capabilities
+            .workspace
+            .as_ref()
+            .and_then(|w| w.workspace_edit.as_ref())
+            .is_some_and(|e| {
+                e.document_changes == Some(true)
+                    && e.resource_operations
+                        .as_ref()
+                        .is_some_and(|ops| ops.contains(&ResourceOperationKind::Rename))
+            });
         {
             let mut state = self.state();
             if let Some(hints) = params
@@ -761,6 +851,8 @@ impl LanguageServer for Backend {
             state.can_watch = can_watch;
             state.can_progress = can_progress;
             state.can_create = can_create;
+            state.can_rename = can_rename;
+            state.can_register_types = can_register_types;
         }
 
         Ok(InitializeResult {
@@ -781,6 +873,7 @@ impl LanguageServer for Backend {
                 document_symbol_provider: Some(OneOf::Left(true)),
                 folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
                 document_formatting_provider: Some(OneOf::Left(true)),
+                document_range_formatting_provider: Some(OneOf::Left(true)),
                 definition_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 signature_help_provider: Some(SignatureHelpOptions {
@@ -797,6 +890,22 @@ impl LanguageServer for Backend {
                 document_highlight_provider: Some(OneOf::Left(true)),
                 implementation_provider: Some(ImplementationProviderCapability::Simple(true)),
                 call_hierarchy_provider: Some(CallHierarchyServerCapability::Simple(true)),
+                workspace: Some(WorkspaceServerCapabilities {
+                    workspace_folders: None,
+                    file_operations: Some(WorkspaceFileOperationsServerCapabilities {
+                        will_rename: Some(FileOperationRegistrationOptions {
+                            filters: vec![FileOperationFilter {
+                                scheme: Some("file".to_owned()),
+                                pattern: FileOperationPattern {
+                                    glob: "**/*.[pP][sS][cC]".to_owned(),
+                                    matches: Some(FileOperationPatternKind::File),
+                                    options: None,
+                                },
+                            }],
+                        }),
+                        ..WorkspaceFileOperationsServerCapabilities::default()
+                    }),
+                }),
                 code_lens_provider: Some(CodeLensOptions {
                     resolve_provider: Some(true),
                 }),
@@ -864,6 +973,32 @@ impl LanguageServer for Backend {
                     .await;
             }
         }
+        // `ServerCapabilities` has no field for it: the client is told here.
+        if self.state().can_register_types {
+            let options = TypeHierarchyRegistrationOptions {
+                text_document_registration_options: TextDocumentRegistrationOptions {
+                    document_selector: Some(vec![DocumentFilter {
+                        language: Some("papyrus".to_owned()),
+                        scheme: None,
+                        pattern: None,
+                    }]),
+                },
+                ..TypeHierarchyRegistrationOptions::default()
+            };
+            let registration = Registration {
+                id: "papyrus-types".to_owned(),
+                method: "textDocument/prepareTypeHierarchy".to_owned(),
+                register_options: serde_json::to_value(options).ok(),
+            };
+            if let Err(error) = self.client.register_capability(vec![registration]).await {
+                self.client
+                    .log_message(
+                        MessageType::WARNING,
+                        format!("papyrus: type hierarchy refused ({error})"),
+                    )
+                    .await;
+            }
+        }
         self.rescan();
     }
 
@@ -913,6 +1048,7 @@ impl LanguageServer for Backend {
             };
             // The editor may have changed the encoding when saving.
             document.reload_encoding();
+            state.feed(&uri);
             state.diagnostics(&uri).into_iter().collect()
         };
         self.publish(batch).await;
@@ -925,9 +1061,14 @@ impl LanguageServer for Backend {
             // The file stays in the index, with its text on disk: it is still
             // part of its project.
             if let Some(document) = state.documents.remove(&uri) {
-                if let Some(text) = document.path.as_deref().and_then(read) {
-                    let path = key(&uri, &document);
-                    state.source(&path, text);
+                let path = key(&uri, &document);
+                match document.path.as_deref().map(|p| (p, read(p))) {
+                    Some((_, Some(text))) => {
+                        state.source(&path, text);
+                    }
+                    // Renamed or deleted.
+                    Some((_, None)) => state.forget(&path),
+                    None => {}
                 }
             }
         }
@@ -935,6 +1076,7 @@ impl LanguageServer for Backend {
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
+        let mut cleared = Vec::new();
         let (settings_changed, batch) = {
             let mut state = self.state();
             let mut settings_changed = false;
@@ -949,11 +1091,18 @@ impl LanguageServer for Backend {
                     || extension.eq_ignore_ascii_case("flg")
                 {
                     settings_changed = true;
-                } else if extension.eq_ignore_ascii_case("psc")
-                    && !state.documents.contains_key(&change.uri)
-                {
+                } else if extension.eq_ignore_ascii_case("psc") {
+                    let Some(text) = read(&path) else {
+                        // Its tab may outlive it: a rename editing it would
+                        // bring the file back on the next save.
+                        state.documents.remove(&change.uri);
+                        state.declared.remove(&change.uri);
+                        state.forget(&path);
+                        cleared.push(change.uri.clone());
+                        continue;
+                    };
                     // A script modified outside the editor.
-                    if let Some(text) = read(&path) {
+                    if !state.documents.contains_key(&change.uri) {
                         let root = state.root_of(Some(&path));
                         if let Some(summary) = summary_of(&text) {
                             state
@@ -988,6 +1137,9 @@ impl LanguageServer for Backend {
             (settings_changed, state.all())
         };
         self.publish(batch).await;
+        for uri in cleared {
+            self.client.publish_diagnostics(uri, Vec::new(), None).await;
+        }
         if settings_changed {
             self.rescan();
         }
@@ -1044,18 +1196,30 @@ impl LanguageServer for Backend {
                 can_create: state.can_create,
             };
             let mut actions = analysis::code_actions(&uri, document, &analysis, map, range, config);
-            // A use following the naming convention its declaration breaks:
-            // the declaration takes its case, across the project.
+            // What only a rename across the project can fix.
             for lint in &analysis.lints {
-                if lint.lint.code != papyrus_lint::NAMES_CASE.code
-                    || lint.range.intersect(range).is_none()
-                {
+                if lint.range.intersect(range).is_none() {
                     continue;
                 }
+                let code = lint.lint.code;
+                let name = document
+                    .decoded
+                    .text
+                    .get(std::ops::Range::<usize>::from(lint.range));
+                let wanted = name
+                    .and_then(|name| Some((name, papyrus_lint::conventional_name(lint, name)?)));
                 let position = map.position(lint.range.start());
                 let renamed = state
-                    .navigate(&uri, position, |nav, project, file, offset| {
-                        nav.rename_declaration(project, file, offset)
+                    .navigate(&uri, position, |nav, project, file, offset| match &wanted {
+                        Some((old, new)) => {
+                            nav.rename_to_convention(project, file, offset, old, new)
+                        }
+                        // A use following the naming convention its
+                        // declaration breaks: the declaration takes its case.
+                        None if code == papyrus_lint::NAMES_CASE.code => {
+                            nav.rename_declaration(project, file, offset)
+                        }
+                        None => None,
                     })
                     .flatten();
                 if let Some((title, edit)) = renamed {
@@ -1130,6 +1294,7 @@ impl LanguageServer for Backend {
         let navigator = Navigator {
             db: &state.db,
             columns: state.columns,
+            can_rename: state.can_rename,
             uri: &uri_of,
         };
         Ok(Some(navigator.inlay_hints(model, file, range, state.hints)))
@@ -1275,6 +1440,87 @@ impl LanguageServer for Backend {
         Ok(CodeLens { command, ..lens })
     }
 
+    async fn prepare_type_hierarchy(
+        &self,
+        params: TypeHierarchyPrepareParams,
+    ) -> Result<Option<Vec<TypeHierarchyItem>>> {
+        let at = params.text_document_position_params;
+        Ok(self
+            .state()
+            .navigate(
+                &at.text_document.uri,
+                at.position,
+                |nav, project, file, offset| nav.prepare_type_hierarchy(project, file, offset),
+            )
+            .flatten())
+    }
+
+    async fn supertypes(
+        &self,
+        params: TypeHierarchySupertypesParams,
+    ) -> Result<Option<Vec<TypeHierarchyItem>>> {
+        let item = params.item;
+        self.navigate_off(
+            &item.uri,
+            item.selection_range.start,
+            |nav, project, file, _| nav.supertypes(project, file),
+        )
+        .await
+    }
+
+    async fn subtypes(
+        &self,
+        params: TypeHierarchySubtypesParams,
+    ) -> Result<Option<Vec<TypeHierarchyItem>>> {
+        let item = params.item;
+        self.navigate_off(
+            &item.uri,
+            item.selection_range.start,
+            |nav, project, file, _| nav.subtypes(project, file),
+        )
+        .await
+    }
+
+    async fn will_rename_files(&self, params: RenameFilesParams) -> Result<Option<WorkspaceEdit>> {
+        let mut changes: HashMap<Uri, Vec<TextEdit>> = HashMap::new();
+        for rename in params.files {
+            let (Ok(old), Ok(new)) = (rename.old_uri.parse::<Uri>(), rename.new_uri.parse::<Uri>())
+            else {
+                continue;
+            };
+            // VSCode asks about the moves of a rename too: its edits are
+            // already made, those it would get here would touch the old file.
+            let own = self.state().own_moves.remove(&move_key(&old));
+            if own.is_some_and(|sent| sent.elapsed() < OWN_MOVE_LIFETIME) {
+                continue;
+            }
+            let Some(path) = file_path(&new).filter(|path| is_script(path)) else {
+                continue;
+            };
+            let renamed = self
+                .navigate_off(&old, Position::default(), move |nav, project, file, _| {
+                    nav.file_moved(project, file, &path)
+                })
+                .await?
+                .flatten();
+            let Some((edits, warning)) = renamed else {
+                continue;
+            };
+            for (uri, edits) in edits {
+                changes.entry(uri).or_default().extend(edits);
+            }
+            if let Some(warning) = warning {
+                self.client
+                    .show_message(MessageType::WARNING, format!("papyrus: {warning}"))
+                    .await;
+            }
+        }
+        Ok((!changes.is_empty()).then(|| WorkspaceEdit {
+            changes: Some(changes),
+            ..WorkspaceEdit::default()
+        }))
+    }
+
     async fn prepare_rename(
         &self,
         params: TextDocumentPositionParams,
@@ -1309,6 +1555,16 @@ impl LanguageServer for Backend {
         match result {
             None => Ok(None),
             Some(Ok((edit, warning))) => {
+                if let Some(DocumentChanges::Operations(operations)) = &edit.document_changes {
+                    let mut state = self.state();
+                    for operation in operations {
+                        if let DocumentChangeOperation::Op(ResourceOp::Rename(rename)) = operation {
+                            state
+                                .own_moves
+                                .insert(move_key(&rename.old_uri), Instant::now());
+                        }
+                    }
+                }
                 if let Some(warning) = warning {
                     self.client
                         .show_message(MessageType::WARNING, format!("papyrus: {warning}"))
@@ -1341,6 +1597,26 @@ impl LanguageServer for Backend {
         let result = self.with_document(&params.text_document.uri, |state, document, map| {
             let analysis = state.analyze(document);
             analysis::format(document, &analysis, map)
+        });
+        match result {
+            None => Ok(None),
+            Some(Ok(edits)) => Ok(edits),
+            Some(Err(message)) => {
+                let mut error = Error::internal_error();
+                error.message = message.into();
+                Err(error)
+            }
+        }
+    }
+
+    async fn range_formatting(
+        &self,
+        params: DocumentRangeFormattingParams,
+    ) -> Result<Option<Vec<TextEdit>>> {
+        let range = params.range;
+        let result = self.with_document(&params.text_document.uri, |state, document, map| {
+            let analysis = state.analyze(document);
+            analysis::format_range(document, &analysis, map, range)
         });
         match result {
             None => Ok(None),

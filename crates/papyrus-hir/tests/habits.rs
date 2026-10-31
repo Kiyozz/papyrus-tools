@@ -168,3 +168,29 @@ fn unused_imports_are_reported() {
     // `Game.GetPlayer()` needs no `Import Game`.
     assert_eq!(found, ["Import Debug", "Import Game"]);
 }
+
+#[test]
+fn what_is_useless_can_be_removed() {
+    let text = "ScriptName MyQuest extends Quest\nImport Utility\nint unread\nint written\nFunction F()\n\tint a = 1\n\tint b = Compute()\n\twritten = 2\n\twritten = written\nEndFunction\nint Function Compute()\n\treturn 1\nEndFunction\n";
+    let db = Database::default();
+    let file = SourceFile::new(&db, "MyQuest.psc".into(), text.to_owned());
+    let project = Project::new(&db, vec![file], Vec::new(), Some(GameId::Skyrim));
+    let found = Semantics::new(&db, project).check(file);
+    let removed = |problem: Problem| -> Vec<String> {
+        found
+            .iter()
+            .filter(|d| d.problem == problem)
+            .flat_map(|d| d.fixes.clone())
+            .map(|fix| {
+                let edit = &fix.edits[0];
+                assert_eq!(edit.text, "");
+                text[usize::from(edit.range.start())..usize::from(edit.range.end())].to_owned()
+            })
+            .collect()
+    };
+    assert_eq!(removed(Problem::UnusedImport), ["Import Utility\n"]);
+    assert_eq!(removed(Problem::UnusedVariable), ["int unread\n"]);
+    assert_eq!(removed(Problem::SelfAssign), ["\twritten = written\n"]);
+    // `b` holds a call, which may matter.
+    assert_eq!(removed(Problem::UnusedLocal), ["\tint a = 1\n"]);
+}
