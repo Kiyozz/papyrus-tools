@@ -5,16 +5,19 @@
 //! papyrus check --fix .
 //! papyrus fmt --check .
 //! papyrus build
+//! papyrus init
+//! papyrus explain PAP015
 //! papyrus lsp
 //! ```
 
 #![forbid(unsafe_code)]
 
+mod baseline;
 mod build;
 mod report;
 
 use std::collections::HashMap;
-use std::io::IsTerminal;
+use std::io::{IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::str::FromStr;
@@ -27,10 +30,13 @@ use papyrus_lint::{
     LINTS, Levels, Model, ScriptSummary, Workspace, apply_fixes_with, vanilla_flags,
 };
 use papyrus_project::flags::{FlagDef, parse_flags};
-use papyrus_project::{Config, Decoded, IndentSetting, Level, Project, decode, encode};
+use papyrus_project::{
+    Config, ConfigLocator, Decoded, DiscoverOptions, IndentSetting, Level, Project, decode, encode,
+};
 use papyrus_syntax::Parse;
 use salsa::Setter;
 
+use baseline::Baseline;
 use report::{Diagnostic, MessageFormat, Reporter, Severity};
 
 #[derive(Debug, Parser)]
@@ -53,8 +59,16 @@ enum Command {
     /// Compile scripts with the Creation Kit's compiler or Caprica, and
     /// report their errors.
     Build(BuildArgs),
+    /// Create a papyrus.toml for the scripts of a folder.
+    Init(InitArgs),
     /// List the lints, their code and default level.
     Lints,
+    /// Say what a lint means and what to do about it, by code or by name;
+    /// `baseline` explains baselines.
+    Explain {
+        /// `PAP015`, `locals/unused` or `baseline`.
+        lint: String,
+    },
     /// Run the language server on standard input and output, for an
     /// editor.
     Lsp,
@@ -95,6 +109,24 @@ struct CheckArgs {
     /// How problems are printed.
     #[arg(long, value_enum, default_value_t)]
     message_format: MessageFormat,
+
+    /// Record today's problems in papyrus-baseline.json: `check` then only
+    /// reports new ones. `papyrus explain baseline` says more.
+    #[arg(long, conflicts_with = "no_baseline")]
+    write_baseline: bool,
+
+    /// Report the problems of papyrus-baseline.json too.
+    #[arg(long)]
+    no_baseline: bool,
+
+    /// Check the script on standard input, rather than files.
+    #[arg(long, conflicts_with_all = ["paths", "fix", "write_baseline"])]
+    stdin: bool,
+
+    /// With `--stdin`, where the script is: gives its project and its
+    /// expected `ScriptName`.
+    #[arg(long, requires = "stdin", value_name = "PATH")]
+    stdin_filename: Option<PathBuf>,
 }
 
 #[derive(Debug, Args)]
@@ -105,6 +137,14 @@ struct FmtArgs {
     /// Write nothing; list the files to reformat and fail if there are any.
     #[arg(long)]
     check: bool,
+
+    /// Format the script on standard input, on standard output.
+    #[arg(long, conflicts_with = "paths")]
+    stdin: bool,
+
+    /// With `--stdin`, where the script is: gives its papyrus.toml.
+    #[arg(long, requires = "stdin", value_name = "PATH")]
+    stdin_filename: Option<PathBuf>,
 
     /// Indentation: a number of spaces, or `tab`. Two spaces by default, or
     /// `fmt.indent` from papyrus.toml.
@@ -143,6 +183,16 @@ struct BuildArgs {
     /// How problems are printed.
     #[arg(long, value_enum, default_value_t)]
     message_format: MessageFormat,
+}
+
+#[derive(Debug, Args)]
+struct InitArgs {
+    /// The folder of the project. Defaults to the current folder.
+    path: Option<PathBuf>,
+
+    /// Target game. Inferred from the scripts by default.
+    #[arg(long, short)]
+    game: Option<GameId>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -230,12 +280,7 @@ impl Settings {
             None => vanilla_flags(game),
         };
         let levels = Levels::from_config(&config.lints).map_err(in_config)?;
-        let indent = match (indent, config.indent) {
-            (Some(IndentArg(indent)), _) => indent,
-            (None, Some(IndentSetting::Spaces(n))) => Indent::Spaces(n),
-            (None, Some(IndentSetting::Tab)) => Indent::Tabs,
-            (None, None) => Indent::default(),
-        };
+        let indent = indent_of(indent, config);
         Ok(Settings {
             root: project.root,
             config: project.config,
@@ -247,6 +292,80 @@ impl Settings {
             levels,
         })
     }
+
+    /// The settings of the project `path` belongs to, even if it does not
+    /// exist yet: a script from standard input.
+    fn around(path: &Path, common: &Common) -> Result<Settings, String> {
+        let config = Config::discover(path).map_err(|e| e.to_string())?;
+        let root = ConfigLocator::default()
+            .locate(path)
+            .as_deref()
+            .and_then(Path::parent)
+            .or_else(|| path.parent())
+            .unwrap_or(Path::new("."))
+            .to_owned();
+        let found = if root.is_dir() {
+            papyrus_project::projects(std::slice::from_ref(&root), common.include_fragments)
+                .map_err(|e| e.to_string())?
+        } else {
+            Vec::new()
+        };
+        let mut project = found
+            .into_iter()
+            .find(|p| p.root == root)
+            .unwrap_or(Project {
+                root,
+                config,
+                scripts: Vec::new(),
+                imported: Vec::new(),
+            });
+        if !project.scripts.iter().any(|p| p == path) {
+            project.scripts.push(path.to_owned());
+        }
+        Settings::of(project, common, None, false)
+    }
+}
+
+/// The indentation: command line, then papyrus.toml, then the default.
+fn indent_of(indent: Option<IndentArg>, config: &Config) -> Indent {
+    match (indent, config.indent) {
+        (Some(IndentArg(indent)), _) => indent,
+        (None, Some(IndentSetting::Spaces(n))) => Indent::Spaces(n),
+        (None, Some(IndentSetting::Tab)) => Indent::Tabs,
+        (None, None) => Indent::default(),
+    }
+}
+
+/// The formatter's case of keywords.
+const fn keywords_of(config: &Config) -> KeywordCase {
+    if config.pascal_keywords {
+        KeywordCase::Pascal
+    } else {
+        KeywordCase::Lower
+    }
+}
+
+/// Reads standard input.
+fn read_stdin() -> Result<Vec<u8>, String> {
+    let mut bytes = Vec::new();
+    std::io::stdin()
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("standard input: {e}"))?;
+    Ok(bytes)
+}
+
+/// Where the script on standard input is: where it was said to be, else
+/// where its `ScriptName` puts it in the current folder.
+fn stdin_path(given: Option<&Path>, text: &str) -> PathBuf {
+    let path = given.map_or_else(
+        || {
+            let parse = papyrus_syntax::parse(text, Dialect::new(GameId::Starfield));
+            let name = ScriptSummary::of(&parse.syntax()).map_or("stdin".to_owned(), |s| s.name);
+            PathBuf::from(format!("{}.psc", name.replace(':', "/")))
+        },
+        Path::to_owned,
+    );
+    std::path::absolute(&path).unwrap_or(path)
 }
 
 /// Guesses the game of a project's scripts when neither `--game` nor its
@@ -287,9 +406,14 @@ fn main() -> ExitCode {
     let result = match cli.command {
         Command::Check(args) => {
             reporter.format = args.message_format;
-            Settings::resolve(&args.common, None)
-                .map(|projects| check(&projects, args.fix, args.unsafe_fixes, &mut reporter))
+            if args.stdin {
+                check_stdin(&args, &mut reporter)
+            } else {
+                Settings::resolve(&args.common, None)
+                    .and_then(|projects| check(&projects, &args, &mut reporter))
+            }
         }
+        Command::Fmt(args) if args.stdin => fmt_stdin(&args),
         Command::Fmt(args) => Settings::resolve(&args.common, args.indent)
             .map(|projects| fmt(&projects, args.check, &mut reporter)),
         // The fragments are compiled too: the game needs them.
@@ -299,12 +423,17 @@ fn main() -> ExitCode {
             Settings::resolve(&args.common, None)
                 .and_then(|projects| build::build(&projects, &args, &mut reporter))
         }
+        Command::Init(args) => init(&args),
         Command::Lints => {
             lints();
             Ok(true)
         }
+        Command::Explain { lint } => explain(&lint),
         Command::Lsp => papyrus_lsp::run().map(|()| true).map_err(|e| e.to_string()),
     };
+    if result.is_ok() {
+        reporter.finish();
+    }
     match result {
         Ok(true) => ExitCode::SUCCESS,
         Ok(false) => ExitCode::FAILURE,
@@ -323,6 +452,55 @@ fn lints() {
             lint.code, lint.name, level, lint.description
         );
     }
+}
+
+fn explain(key: &str) -> Result<bool, String> {
+    if key.eq_ignore_ascii_case("baseline") {
+        println!("{}", baseline::HELP);
+        return Ok(true);
+    }
+    let lint = papyrus_lint::find(key).ok_or_else(|| papyrus_lint::unknown_message(key))?;
+    println!(
+        "{} {} — {} by default\n\n{}\n\n{}\n\n\
+         To change its level, in papyrus.toml:\n    [lints]\n    \"{name}\" = \"allow\"\n\
+         To allow one case, at the end of the line or alone above it:\n    \
+         ; papyrus: allow({name})",
+        lint.code,
+        lint.name,
+        lint.default.as_str(),
+        lint.description,
+        papyrus_lint::explanation(lint),
+        name = lint.name,
+    );
+    Ok(true)
+}
+
+/// Writes a papyrus.toml for the scripts under the folder.
+fn init(args: &InitArgs) -> Result<bool, String> {
+    let dir = args.path.clone().unwrap_or_else(|| PathBuf::from("."));
+    if !dir.is_dir() {
+        return Err(format!("{}: not a folder", dir.display()));
+    }
+    let path = dir.join(papyrus_project::config::FILE_NAME);
+    if path.exists() {
+        return Err(format!("{}: already exists", path.display()));
+    }
+    let scripts = papyrus_project::discover(
+        std::slice::from_ref(&dir),
+        DiscoverOptions {
+            include_fragments: false,
+        },
+    )
+    .map_err(|e| e.to_string())?;
+    let game = args.game.or_else(|| detect(&scripts, None));
+    std::fs::write(&path, papyrus_project::edit::template(game))
+        .map_err(|e| format!("{}: {e}", path.display()))?;
+    eprintln!(
+        "created {}, for {} script(s) — `papyrus check` runs on them",
+        path.display(),
+        scripts.len()
+    );
+    Ok(true)
 }
 
 /// Reads a file, or reports why it cannot.
@@ -382,7 +560,8 @@ fn analyze(
 
 /// Reads a project's scripts, then its imported ones: what they declare, to
 /// follow `extends` from one file to another, and the semantic model.
-fn index(settings: &Settings) -> Index {
+/// `stdin` is a script read elsewhere than from its path.
+fn index(settings: &Settings, stdin: Option<(&Path, &str)>) -> Index {
     let mut workspace = Workspace::default();
     let mut db = Database::default();
     let mut files = HashMap::new();
@@ -394,10 +573,15 @@ fn index(settings: &Settings) -> Index {
         .map(|p| (p, false))
         .chain(settings.imported.iter().map(|p| (p, true)))
     {
-        let Ok(bytes) = std::fs::read(path) else {
-            continue;
+        let text = match stdin {
+            Some((stdin, text)) if stdin == path => text.to_owned(),
+            _ => {
+                let Ok(bytes) = std::fs::read(path) else {
+                    continue;
+                };
+                decode(&bytes).text
+            }
         };
-        let text = decode(&bytes).text;
         let parse = papyrus_syntax::parse(&text, dialect);
         if let Some(summary) = ScriptSummary::of(&parse.syntax()) {
             // The project's own script wins over an imported one.
@@ -426,40 +610,132 @@ struct Fixes {
     risky: bool,
 }
 
-fn check(projects: &[Settings], fix: bool, unsafe_fixes: bool, reporter: &mut Reporter) -> bool {
+fn check(projects: &[Settings], args: &CheckArgs, reporter: &mut Reporter) -> Result<bool, String> {
     let mut fixed = 0;
     let fixes = Fixes {
-        safe: fix,
-        risky: fix && unsafe_fixes,
+        safe: args.fix,
+        risky: args.fix && args.unsafe_fixes,
     };
+    let (mut hidden, mut gone) = (0, 0);
+    let mut recorded = std::collections::BTreeMap::<String, usize>::new();
     for settings in projects {
+        let mut baseline = (!args.no_baseline)
+            .then(|| Baseline::load(&settings.root, args.write_baseline))
+            .transpose()?;
         // A project only sees its own scripts, and those it imports.
-        let mut index = index(settings);
+        let mut index = index(settings, None);
         for path in &settings.scripts {
-            fixed += usize::from(check_file(path, settings, &mut index, fixes, reporter));
+            let Some(bytes) = read(path, reporter) else {
+                continue;
+            };
+            fixed += usize::from(check_bytes(
+                path,
+                &bytes,
+                settings,
+                &mut index,
+                fixes,
+                baseline.as_mut(),
+                reporter,
+            ));
+        }
+        let Some(baseline) = baseline else {
+            continue;
+        };
+        hidden += baseline.hidden;
+        gone += baseline.gone();
+        if args.write_baseline {
+            for (code, count) in baseline.save()? {
+                *recorded.entry(code).or_default() += count;
+            }
         }
     }
 
-    if fix {
+    if args.fix {
         eprintln!("{fixed} file(s) fixed");
     }
     let files = projects.iter().map(|p| p.scripts.len()).sum();
     reporter.summary(files, "checked");
-    reporter.is_clean()
+    if args.write_baseline {
+        report_recorded(&recorded);
+    } else {
+        report_baseline(hidden, gone);
+    }
+    reporter.hint();
+    Ok(reporter.is_clean())
+}
+
+/// What `--write-baseline` recorded, and what to do with it.
+fn report_recorded(recorded: &std::collections::BTreeMap<String, usize>) {
+    let total: usize = recorded.values().sum();
+    eprintln!("{total} problem(s) recorded in {}:", baseline::FILE_NAME);
+    for (code, count) in recorded {
+        let name = papyrus_lint::find(code).map_or("", |lint| lint.name);
+        eprintln!("{count:>6}  {code} {name}");
+    }
+    eprintln!(
+        "`papyrus check` now only reports new problems: commit the file.\n\
+         `papyrus explain <code>` says what each one means, `papyrus explain baseline` how to \
+         pay them down."
+    );
+}
+
+/// What the baseline changed in this run.
+fn report_baseline(hidden: usize, gone: usize) {
+    if hidden > 0 {
+        eprintln!(
+            "{hidden} known problem(s) hidden by {} — `papyrus check --no-baseline` shows them",
+            baseline::FILE_NAME
+        );
+    }
+    if gone > 0 {
+        eprintln!(
+            "{gone} problem(s) of the baseline are gone — `papyrus check --write-baseline` \
+             removes them"
+        );
+    }
+}
+
+fn check_stdin(args: &CheckArgs, reporter: &mut Reporter) -> Result<bool, String> {
+    let bytes = read_stdin()?;
+    let text = decode(&bytes).text;
+    let path = stdin_path(args.stdin_filename.as_deref(), &text);
+    let settings = Settings::around(&path, &args.common)?;
+    let mut index = index(&settings, Some((&path, &text)));
+    let mut baseline = (!args.no_baseline)
+        .then(|| Baseline::load(&settings.root, false))
+        .transpose()?;
+    let fixes = Fixes {
+        safe: false,
+        risky: false,
+    };
+    check_bytes(
+        &path,
+        &bytes,
+        &settings,
+        &mut index,
+        fixes,
+        baseline.as_mut(),
+        reporter,
+    );
+    reporter.summary(1, "checked");
+    if let Some(baseline) = baseline {
+        report_baseline(baseline.hidden, 0);
+    }
+    reporter.hint();
+    Ok(reporter.is_clean())
 }
 
 /// Checks one file, and fixes it if asked; true if it was rewritten.
-fn check_file(
+fn check_bytes(
     path: &Path,
+    bytes: &[u8],
     settings: &Settings,
     index: &mut Index,
     fixes: Fixes,
+    baseline: Option<&mut Baseline>,
     reporter: &mut Reporter,
 ) -> bool {
-    let Some(bytes) = read(path, reporter) else {
-        return false;
-    };
-    let mut decoded = decode(&bytes);
+    let mut decoded = decode(bytes);
     let file = index.file(path, &decoded.text);
     let (mut parse, mut lints) = analyze(&decoded, settings, index, file);
 
@@ -515,6 +791,9 @@ fn check_file(
             range: d.range,
         }
     }));
+    if let Some(baseline) = baseline {
+        diagnostics = baseline.pass(path, &decoded.text, diagnostics);
+    }
     reporter.emit(path, &decoded.text, &diagnostics);
     fixed
 }
@@ -524,11 +803,7 @@ fn fmt(projects: &[Settings], check_only: bool, reporter: &mut Reporter) -> bool
     for settings in projects {
         let options = FormatOptions {
             indent: settings.indent,
-            keywords: if settings.config.pascal_keywords {
-                KeywordCase::Pascal
-            } else {
-                KeywordCase::Lower
-            },
+            keywords: keywords_of(&settings.config),
         };
         for path in &settings.scripts {
             changed += usize::from(fmt_file(
@@ -549,6 +824,45 @@ fn fmt(projects: &[Settings], check_only: bool, reporter: &mut Reporter) -> bool
     let files: usize = projects.iter().map(|p| p.scripts.len()).sum();
     eprintln!("{changed} file(s) {verb} out of {files}");
     reporter.is_clean() && !(check_only && changed > 0)
+}
+
+/// Formats standard input on standard output, nothing on failure: an editor
+/// keeps its text. With `--check`, only says if it would change.
+fn fmt_stdin(args: &FmtArgs) -> Result<bool, String> {
+    let bytes = read_stdin()?;
+    let decoded = decode(&bytes);
+    if decoded.lossy {
+        return Err("invalid bytes for its encoding; rewriting it would lose them".to_owned());
+    }
+    let path = stdin_path(args.stdin_filename.as_deref(), &decoded.text);
+    let config = Config::discover(&path).map_err(|e| e.to_string())?;
+    let game = args.common.game.or(config.game).or_else(|| {
+        let parse = papyrus_syntax::parse(&decoded.text, Dialect::new(GameId::Starfield));
+        let verdict = papyrus_project::detect::evidence(&parse.syntax()).verdict();
+        papyrus_project::detect::majority([verdict]).map(|(game, _, _)| game)
+    });
+    let options = FormatOptions {
+        indent: indent_of(args.indent, &config),
+        keywords: keywords_of(&config),
+    };
+    let dialect = game.map(Dialect::new).unwrap_or_default();
+    let formatted =
+        papyrus_fmt::format(&decoded.text, dialect, &options).map_err(|error| match error {
+            FormatError::Syntax(errors) => {
+                format!("{} syntax error(s), see `papyrus check`", errors.len())
+            }
+            error @ FormatError::Unsafe { .. } => format!("{error} — please report this bug"),
+        })?;
+    if args.check {
+        return Ok(formatted == decoded.text);
+    }
+    // Re-encoded as read, like a file.
+    let bytes = encode(&formatted, decoded.encoding)
+        .ok_or("the result cannot be represented in the original encoding")?;
+    std::io::stdout()
+        .write_all(&bytes)
+        .map_err(|e| format!("standard output: {e}"))?;
+    Ok(true)
 }
 
 /// Formats one file; true if it changed, or would change with `--check`.

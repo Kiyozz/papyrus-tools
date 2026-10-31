@@ -16,6 +16,7 @@
 #![forbid(unsafe_code)]
 
 use papyrus_hir::case;
+mod explain;
 mod rules;
 mod suppress;
 mod workspace;
@@ -28,6 +29,7 @@ use papyrus_project::{Decoded, Level};
 use papyrus_syntax::{SyntaxNode, TextRange, lex};
 
 pub use case::{to_lower_camel, to_pascal};
+pub use explain::explanation;
 pub use rules::vanilla_flags;
 pub use workspace::{ScriptSummary, Workspace};
 
@@ -472,7 +474,7 @@ pub fn closest(key: &str) -> Option<&'static str> {
 }
 
 /// "unknown lint `x`", with a suggestion when possible.
-fn unknown_message(key: &str) -> String {
+pub fn unknown_message(key: &str) -> String {
     match closest(key) {
         Some(name) => format!("unknown lint `{key}` — did you mean `{name}`?"),
         None => format!("unknown lint `{key}`; `papyrus lints` lists them"),

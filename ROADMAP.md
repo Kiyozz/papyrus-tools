@@ -68,9 +68,18 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-- **v0.13 — A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the
+- **v0.13 — The CLI and the server, completed.** `papyrus init`, `papyrus
+  explain`, `--stdin`, a baseline for older mods, `--message-format json` and
+  SARIF; a script renamed with its file, range formatting, type hierarchy.
+- **v0.14 — `.ppj` projects.** Pyro's and the Creation Kit's project files read
+  as a configuration, and imported into `papyrus.toml`.
+- **v0.15 — `.pex`.** A reader and a disassembler in Rust, a read-only view in
+  the editor.
+- **v0.16 — A debugger.** Starts with a discovery: reuse or fork the xSE plugin
+  of joelday's `papyrus-lang`, or write one; the DAP adapter on our side.
+- **v0.17 — Publication** (may move): the extension on the Marketplace and
+  Open VSX (tokens), CI on the release PR.
+- **v0.18 — A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the
   binary embedded, settings, `papyrus build` as a run configuration. Starts
   with a discovery of the best way to match the VSCode extension — Kotlin,
   Gradle, the IntelliJ Platform's LSP API or LSP4IJ.
-- **v0.14 — Publication** (may move): the extension on the Marketplace and
-  Open VSX (tokens), CI on the release PR.

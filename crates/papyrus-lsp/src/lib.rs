@@ -38,6 +38,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_hir::{Database, ParameterHints, Semantics, SourceFile};
 use papyrus_lint::{Model, ScriptSummary, Workspace};
+use papyrus_project::discover::is_script;
 use papyrus_project::{ConfigLocator, decode};
 use papyrus_syntax::{TextRange, TextSize};
 use salsa::Setter;
@@ -87,6 +88,10 @@ struct State {
     can_progress: bool,
     /// The client creates files in a workspace edit.
     can_create: bool,
+    /// The client renames files in a workspace edit.
+    can_rename: bool,
+    /// The client takes the type hierarchy at the server's request.
+    can_register_types: bool,
     /// The semantic model.
     db: Database,
     /// The model's file of each script read, by path; a document without a
@@ -240,6 +245,7 @@ impl State {
         let navigator = Navigator {
             db: &self.db,
             columns: self.columns,
+            can_rename: self.can_rename,
             uri: &uri_of,
         };
         Some(f(&navigator, model, file, offset))
@@ -250,6 +256,7 @@ impl State {
         Snapshot {
             db: self.db.clone(),
             columns: self.columns,
+            can_rename: self.can_rename,
             uris: self
                 .documents
                 .iter()
@@ -452,6 +459,7 @@ fn summary_of(text: &str) -> Option<ScriptSummary> {
 struct Snapshot {
     db: Database,
     columns: Columns,
+    can_rename: bool,
     uris: HashMap<PathBuf, Uri>,
 }
 
@@ -476,6 +484,7 @@ impl Snapshot {
                 let navigator = Navigator {
                     db: &self.db,
                     columns: self.columns,
+                    can_rename: self.can_rename,
                     uri: &uri_of,
                 };
                 f(&navigator)
@@ -747,6 +756,24 @@ impl LanguageServer for Backend {
                         .as_ref()
                         .is_some_and(|ops| ops.contains(&ResourceOperationKind::Create))
             });
+        let can_register_types = params
+            .capabilities
+            .text_document
+            .as_ref()
+            .and_then(|t| t.type_hierarchy.as_ref())
+            .and_then(|t| t.dynamic_registration)
+            .unwrap_or(false);
+        let can_rename = params
+            .capabilities
+            .workspace
+            .as_ref()
+            .and_then(|w| w.workspace_edit.as_ref())
+            .is_some_and(|e| {
+                e.document_changes == Some(true)
+                    && e.resource_operations
+                        .as_ref()
+                        .is_some_and(|ops| ops.contains(&ResourceOperationKind::Rename))
+            });
         {
             let mut state = self.state();
             if let Some(hints) = params
@@ -761,6 +788,8 @@ impl LanguageServer for Backend {
             state.can_watch = can_watch;
             state.can_progress = can_progress;
             state.can_create = can_create;
+            state.can_rename = can_rename;
+            state.can_register_types = can_register_types;
         }
 
         Ok(InitializeResult {
@@ -781,6 +810,7 @@ impl LanguageServer for Backend {
                 document_symbol_provider: Some(OneOf::Left(true)),
                 folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
                 document_formatting_provider: Some(OneOf::Left(true)),
+                document_range_formatting_provider: Some(OneOf::Left(true)),
                 definition_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 signature_help_provider: Some(SignatureHelpOptions {
@@ -797,6 +827,22 @@ impl LanguageServer for Backend {
                 document_highlight_provider: Some(OneOf::Left(true)),
                 implementation_provider: Some(ImplementationProviderCapability::Simple(true)),
                 call_hierarchy_provider: Some(CallHierarchyServerCapability::Simple(true)),
+                workspace: Some(WorkspaceServerCapabilities {
+                    workspace_folders: None,
+                    file_operations: Some(WorkspaceFileOperationsServerCapabilities {
+                        will_rename: Some(FileOperationRegistrationOptions {
+                            filters: vec![FileOperationFilter {
+                                scheme: Some("file".to_owned()),
+                                pattern: FileOperationPattern {
+                                    glob: "**/*.[pP][sS][cC]".to_owned(),
+                                    matches: Some(FileOperationPatternKind::File),
+                                    options: None,
+                                },
+                            }],
+                        }),
+                        ..WorkspaceFileOperationsServerCapabilities::default()
+                    }),
+                }),
                 code_lens_provider: Some(CodeLensOptions {
                     resolve_provider: Some(true),
                 }),
@@ -860,6 +906,32 @@ impl LanguageServer for Backend {
                     .log_message(
                         MessageType::WARNING,
                         format!("papyrus: file watching refused ({error})"),
+                    )
+                    .await;
+            }
+        }
+        // `ServerCapabilities` has no field for it: the client is told here.
+        if self.state().can_register_types {
+            let options = TypeHierarchyRegistrationOptions {
+                text_document_registration_options: TextDocumentRegistrationOptions {
+                    document_selector: Some(vec![DocumentFilter {
+                        language: Some("papyrus".to_owned()),
+                        scheme: None,
+                        pattern: None,
+                    }]),
+                },
+                ..TypeHierarchyRegistrationOptions::default()
+            };
+            let registration = Registration {
+                id: "papyrus-types".to_owned(),
+                method: "textDocument/prepareTypeHierarchy".to_owned(),
+                register_options: serde_json::to_value(options).ok(),
+            };
+            if let Err(error) = self.client.register_capability(vec![registration]).await {
+                self.client
+                    .log_message(
+                        MessageType::WARNING,
+                        format!("papyrus: type hierarchy refused ({error})"),
                     )
                     .await;
             }
@@ -1130,6 +1202,7 @@ impl LanguageServer for Backend {
         let navigator = Navigator {
             db: &state.db,
             columns: state.columns,
+            can_rename: state.can_rename,
             uri: &uri_of,
         };
         Ok(Some(navigator.inlay_hints(model, file, range, state.hints)))
@@ -1275,6 +1348,84 @@ impl LanguageServer for Backend {
         Ok(CodeLens { command, ..lens })
     }
 
+    async fn prepare_type_hierarchy(
+        &self,
+        params: TypeHierarchyPrepareParams,
+    ) -> Result<Option<Vec<TypeHierarchyItem>>> {
+        let at = params.text_document_position_params;
+        Ok(self
+            .state()
+            .navigate(
+                &at.text_document.uri,
+                at.position,
+                |nav, project, file, offset| nav.prepare_type_hierarchy(project, file, offset),
+            )
+            .flatten())
+    }
+
+    async fn supertypes(
+        &self,
+        params: TypeHierarchySupertypesParams,
+    ) -> Result<Option<Vec<TypeHierarchyItem>>> {
+        let item = params.item;
+        self.navigate_off(
+            &item.uri,
+            item.selection_range.start,
+            |nav, project, file, _| nav.supertypes(project, file),
+        )
+        .await
+    }
+
+    async fn subtypes(
+        &self,
+        params: TypeHierarchySubtypesParams,
+    ) -> Result<Option<Vec<TypeHierarchyItem>>> {
+        let item = params.item;
+        self.navigate_off(
+            &item.uri,
+            item.selection_range.start,
+            |nav, project, file, _| nav.subtypes(project, file),
+        )
+        .await
+    }
+
+    async fn will_rename_files(&self, params: RenameFilesParams) -> Result<Option<WorkspaceEdit>> {
+        let mut changes: HashMap<Uri, Vec<TextEdit>> = HashMap::new();
+        for rename in params.files {
+            let (Ok(old), Ok(new)) = (rename.old_uri.parse::<Uri>(), rename.new_uri.parse::<Uri>())
+            else {
+                continue;
+            };
+            let Some(stem) = file_path(&new)
+                .filter(|path| is_script(path))
+                .and_then(|path| Some(path.file_stem()?.to_str()?.to_owned()))
+            else {
+                continue;
+            };
+            let renamed = self
+                .navigate_off(&old, Position::default(), move |nav, project, file, _| {
+                    nav.file_renamed(project, file, &stem)
+                })
+                .await?
+                .flatten();
+            let Some((edits, warning)) = renamed else {
+                continue;
+            };
+            for (uri, edits) in edits {
+                changes.entry(uri).or_default().extend(edits);
+            }
+            if let Some(warning) = warning {
+                self.client
+                    .show_message(MessageType::WARNING, format!("papyrus: {warning}"))
+                    .await;
+            }
+        }
+        Ok((!changes.is_empty()).then(|| WorkspaceEdit {
+            changes: Some(changes),
+            ..WorkspaceEdit::default()
+        }))
+    }
+
     async fn prepare_rename(
         &self,
         params: TextDocumentPositionParams,
@@ -1341,6 +1492,26 @@ impl LanguageServer for Backend {
         let result = self.with_document(&params.text_document.uri, |state, document, map| {
             let analysis = state.analyze(document);
             analysis::format(document, &analysis, map)
+        });
+        match result {
+            None => Ok(None),
+            Some(Ok(edits)) => Ok(edits),
+            Some(Err(message)) => {
+                let mut error = Error::internal_error();
+                error.message = message.into();
+                Err(error)
+            }
+        }
+    }
+
+    async fn range_formatting(
+        &self,
+        params: DocumentRangeFormattingParams,
+    ) -> Result<Option<Vec<TextEdit>>> {
+        let range = params.range;
+        let result = self.with_document(&params.text_document.uri, |state, document, map| {
+            let analysis = state.analyze(document);
+            analysis::format_range(document, &analysis, map, range)
         });
         match result {
             None => Ok(None),

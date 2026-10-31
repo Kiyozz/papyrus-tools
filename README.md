@@ -22,7 +22,12 @@ papyrus check --fix --unsafe .                    # and the case of properties
 papyrus fmt .                                     # format in place
 papyrus fmt --check --indent tab .                # CI: fail if a file needs formatting
 papyrus build                                     # compile with PapyrusCompiler or Caprica
+papyrus init                                      # write a papyrus.toml, the game inferred
 papyrus lints                                     # list the lints
+papyrus explain PAP015                            # what a lint means, and what to do
+papyrus check --write-baseline                    # adopt on an old mod: only new problems from now on
+papyrus check --message-format sarif > out.sarif  # or json: a report on standard output
+papyrus fmt --stdin --stdin-filename My.psc       # for editors and hooks; check has --stdin too
 papyrus lsp                                       # language server, for an editor
 ```
 
@@ -150,6 +155,23 @@ alone on the line before. `all` covers every lint.
 `--fix` only fixes case. Papyrus being case-insensitive, the rename changes
 nothing for the compiler and cannot collide with anything. Properties are only
 renamed with `--fix --unsafe`: plugins (`.esp`, `.esm`) bind them by name.
+
+`papyrus explain <code>` says why a lint matters, with an example and what to
+do about it.
+
+### Baseline
+
+To adopt `papyrus` on a mod that already has many problems, `papyrus check
+--write-baseline` records them in `papyrus-baseline.json`, next to
+`papyrus.toml`: commit it. `papyrus check` then only reports new problems, and
+says how many it hides and when some are gone.
+
+A problem is known by its file, its lint and the text of its line, not by its
+line number: moving code keeps it known, editing the line reports it again.
+Syntax errors are never recorded. `--no-baseline` shows everything,
+`--write-baseline` again records what remains, and on a single file leaves the
+others alone. The editor ignores the baseline. `papyrus explain baseline` says
+all this in the terminal.
 
 ### Dead events
 
@@ -332,9 +354,15 @@ switches them to `all` arguments (except those already named like the
 parameter) or to `none`.
 
 A rename covers the whole project, overrides included. It is refused on
-native and imported declarations, on events, which the engine calls by name,
-and on script names, which are file names; on a property, it warns that
-plugins must be filled again in the Creation Kit.
+native and imported declarations, and on events, which the engine calls by
+name; on a property, it warns that plugins must be filled again in the Creation
+Kit. Renaming a script renames its file, and renaming a `.psc` in the editor
+renames its script and every use, with the same warning; namespaced scripts are
+left to you.
+
+The type hierarchy follows `extends` through the scripts with a source: add the
+game's sources to `imports` to see the native ones. Formatting a selection only
+changes the selected lines.
 
 **VSCode** — the extension, in `editors/vscode`, is published once per platform
 (Windows x64 and arm64, macOS arm64, Linux x64 and arm64), with the `papyrus`

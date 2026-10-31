@@ -11,6 +11,7 @@ use papyrus_project::edit::{self as config, Change};
 use papyrus_project::flags::{FlagDef, parse_flags};
 use papyrus_project::{Config, Decoded, IndentSetting, Level, SourceEncoding, decode};
 use papyrus_syntax::{Parse, TextRange, TextSize};
+use similar::{DiffTag, TextDiff};
 use tower_lsp_server::ls_types::{
     CodeAction, CodeActionKind, CodeActionOrCommand, CreateFile, CreateFileOptions, Diagnostic,
     DiagnosticSeverity, DiagnosticTag, DocumentChangeOperation, DocumentChanges, NumberOrString,
@@ -462,12 +463,8 @@ fn whole(text: &str, map: &LineMap, new_text: String) -> TextEdit {
     TextEdit::new(Range::new(Position::new(0, 0), end), new_text)
 }
 
-/// The formatted document, or `None` if it already is.
-pub(crate) fn format(
-    document: &Document,
-    analysis: &Analysis,
-    map: &LineMap,
-) -> Result<Option<Vec<TextEdit>>, String> {
+/// The formatted text of a document, `None` if it already is.
+fn formatted(document: &Document, analysis: &Analysis) -> Result<Option<String>, String> {
     let text = &document.decoded.text;
     let dialect = analysis.game.map(Dialect::new).unwrap_or_default();
     let options = FormatOptions {
@@ -476,9 +473,83 @@ pub(crate) fn format(
     };
     match papyrus_fmt::format(text, dialect, &options) {
         Ok(formatted) if formatted == *text => Ok(None),
-        Ok(formatted) => Ok(Some(vec![whole(text, map, formatted)])),
+        Ok(formatted) => Ok(Some(formatted)),
         // Syntax errors are already displayed: nothing to add.
         Err(FormatError::Syntax(_)) => Ok(None),
         Err(error @ FormatError::Unsafe { .. }) => Err(format!("{error} — please report this bug")),
     }
+}
+
+/// The formatted document, or `None` if it already is.
+pub(crate) fn format(
+    document: &Document,
+    analysis: &Analysis,
+    map: &LineMap,
+) -> Result<Option<Vec<TextEdit>>, String> {
+    let text = &document.decoded.text;
+    Ok(formatted(document, analysis)?.map(|new| vec![whole(text, map, new)]))
+}
+
+/// What formatting changes on the lines of `range`: the formatter works on
+/// whole scripts, so the changes elsewhere are left out.
+pub(crate) fn format_range(
+    document: &Document,
+    analysis: &Analysis,
+    map: &LineMap,
+    range: Range,
+) -> Result<Option<Vec<TextEdit>>, String> {
+    let (Some(start), Some(end)) = (map.offset(range.start), map.offset(range.end)) else {
+        return Ok(None);
+    };
+    let text = &document.decoded.text;
+    let Some(new) = formatted(document, analysis)? else {
+        return Ok(None);
+    };
+    let selection = usize::from(start)..usize::from(end);
+    Ok(Some(edits_within(text, &new, map, &selection)))
+}
+
+/// The changes from `old` to `new` on the lines `selection` touches.
+fn edits_within(
+    old: &str,
+    new: &str,
+    map: &LineMap,
+    selection: &std::ops::Range<usize>,
+) -> Vec<TextEdit> {
+    let diff = TextDiff::from_lines(old, new);
+    let new_lines = diff.new_slices();
+    let mut starts = vec![0];
+    for line in diff.old_slices() {
+        starts.push(starts[starts.len() - 1] + line.len());
+    }
+    let mut edits = Vec::new();
+    let mut change = |old_lines: std::ops::Range<usize>, new: std::ops::Range<usize>| {
+        let (from, to) = (starts[old_lines.start], starts[old_lines.end]);
+        let touched = if from == to {
+            // Lines added: at the selection's edge or in it.
+            selection.contains(&from) || from == selection.end
+        } else {
+            from < selection.end.max(selection.start + 1) && selection.start < to
+        };
+        if touched {
+            let range = TextRange::new(TextSize::new(from as u32), TextSize::new(to as u32));
+            edits.push(TextEdit::new(map.range(range), new_lines[new].concat()));
+        }
+    };
+    for op in diff.ops() {
+        let (old_lines, new) = (op.old_range(), op.new_range());
+        if op.tag() == DiffTag::Equal {
+            continue;
+        }
+        // Lines replaced one for one are as many changes: neighbours stay
+        // out of the selection.
+        if old_lines.len() == new.len() {
+            for (old_line, new_line) in old_lines.zip(new) {
+                change(old_line..old_line + 1, new_line..new_line + 1);
+            }
+        } else {
+            change(old_lines, new);
+        }
+    }
+    edits
 }

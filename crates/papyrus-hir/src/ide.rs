@@ -99,6 +99,8 @@ pub struct RenameEdit {
     pub new_name: String,
     /// A rename that compiles but may break something outside the scripts.
     pub warning: Option<String>,
+    /// The script renamed: its file must take the new name too.
+    pub script: Option<SourceFile>,
 }
 
 /// Why a name cannot be renamed.
@@ -713,8 +715,15 @@ impl Semantics<'_> {
             Def::NativeScript(_) | Def::NativeFunction { .. } | Def::NativeProperty { .. } => Err(
                 RenameError(format!("`{name}` comes from the game's native scripts")),
             ),
-            Def::Script { .. } => Err(RenameError(format!(
-                "renaming the script `{name}` means renaming its file, which is not supported"
+            Def::Script { file } if self.index().is_imported(file) => Err(RenameError(format!(
+                "`{name}` is an imported script, which papyrus never changes"
+            ))),
+            Def::Script { .. } if name.contains(':') => Err(RenameError(format!(
+                "`{name}` has a namespace: rename its file by hand"
+            ))),
+            Def::Script { .. } => Ok(Some(format!(
+                "`{name}` is a script: plugins (.esp, .esm) attach scripts by name, attach it \
+                 again in the Creation Kit"
             ))),
             Def::Item { file, index } => {
                 if self.index().is_imported(file) {
@@ -752,6 +761,18 @@ impl Semantics<'_> {
         let (_, def) = self.prepare_rename(file, offset)?;
         let warning = self.renamable(&def)?;
         let index = self.index();
+        let script = match self.canonical(&def) {
+            Def::Script { file } => Some(file),
+            _ => None,
+        };
+        if let Some(script) = script {
+            let taken = index.files().any(|other| {
+                other != script && self.items(other).name.eq_ignore_ascii_case(new_name)
+            });
+            if taken {
+                return Err(RenameError(format!("a script `{new_name}` already exists")));
+            }
+        }
         let edits = self
             .references_of(&def)
             .into_iter()
@@ -761,6 +782,7 @@ impl Semantics<'_> {
             edits,
             new_name: new_name.to_owned(),
             warning,
+            script,
         })
     }
 }

@@ -17,6 +17,7 @@ papyrus-hir.workspace = true
 line-index.workspace = true
 salsa.workspace = true
 serde_json.workspace = true
+similar.workspace = true
 tokio.workspace = true
 tower-lsp-server.workspace = true
 

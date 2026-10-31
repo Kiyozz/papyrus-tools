@@ -596,6 +596,8 @@ dependencies = [
  "papyrus-project",
  "papyrus-syntax",
  "salsa",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -649,6 +651,7 @@ dependencies = [
  "papyrus-syntax",
  "salsa",
  "serde_json",
+ "similar",
  "tokio",
  "tower-lsp-server",
 ]

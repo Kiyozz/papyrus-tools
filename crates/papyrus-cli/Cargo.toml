@@ -23,6 +23,8 @@ papyrus-build.workspace = true
 clap.workspace = true
 ariadne.workspace = true
 salsa.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true

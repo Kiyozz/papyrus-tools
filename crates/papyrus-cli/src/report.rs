@@ -4,7 +4,10 @@ use std::ops::Range;
 use std::path::Path;
 
 use ariadne::{Color, Config, IndexType, Label, Report, ReportKind, Source};
+use papyrus_lint::{LINTS, explanation};
+use papyrus_project::Level;
 use papyrus_syntax::TextRange;
+use serde_json::{Value, json};
 
 /// Severity of a diagnostic.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,6 +35,22 @@ pub(crate) enum MessageFormat {
     /// `path:line:column:end line:end column: error[PAP001]: message`,
     /// lines and columns from 1, in characters.
     Short,
+    /// A JSON array on standard output, for scripts.
+    Json,
+    /// SARIF 2.1.0 on standard output, for GitHub code scanning.
+    Sarif,
+}
+
+/// A problem kept for the JSON and SARIF reports.
+#[derive(Debug)]
+struct Record {
+    path: std::path::PathBuf,
+    severity: &'static str,
+    code: String,
+    name: Option<String>,
+    message: String,
+    start: (usize, usize),
+    end: (usize, usize),
 }
 
 /// Prints diagnostics and counts them.
@@ -41,6 +60,7 @@ pub(crate) struct Reporter {
     pub(crate) format: MessageFormat,
     errors: usize,
     warnings: usize,
+    records: Vec<Record>,
 }
 
 impl Reporter {
@@ -50,6 +70,7 @@ impl Reporter {
             format: MessageFormat::Human,
             errors: 0,
             warnings: 0,
+            records: Vec::new(),
         }
     }
 
@@ -76,9 +97,16 @@ impl Reporter {
                     (ReportKind::Warning, Color::Yellow)
                 }
             };
-            if self.format == MessageFormat::Short {
-                eprintln!("{}", short(path, source, diagnostic));
-                continue;
+            match self.format {
+                MessageFormat::Human => {}
+                MessageFormat::Short => {
+                    eprintln!("{}", short(path, source, diagnostic));
+                    continue;
+                }
+                MessageFormat::Json | MessageFormat::Sarif => {
+                    self.records.push(Record::of(path, source, diagnostic));
+                    continue;
+                }
             }
             let span = span(diagnostic.range, source);
             let report = Report::build(kind, (name.as_str(), span.clone()))
@@ -123,24 +151,172 @@ impl Reporter {
             self.errors, self.warnings
         );
     }
+
+    /// Where to learn more, once problems were shown to someone.
+    pub(crate) fn hint(&self) {
+        if self.format == MessageFormat::Human && !self.is_clean() {
+            eprintln!("`papyrus explain <code>` says what a lint means, and what to do");
+        }
+    }
+
+    /// Prints the JSON or SARIF report, on standard output.
+    pub(crate) fn finish(&self) {
+        let report = match self.format {
+            MessageFormat::Human | MessageFormat::Short => return,
+            MessageFormat::Json => json_report(&self.records),
+            MessageFormat::Sarif => sarif_report(&self.records),
+        };
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report).expect("a JSON value")
+        );
+    }
+}
+
+impl Record {
+    fn of(path: &Path, source: &str, diagnostic: &Diagnostic) -> Record {
+        let (code, name) = match diagnostic.code.split_once(' ') {
+            Some((code, name)) => (code.to_owned(), Some(name.to_owned())),
+            None => (diagnostic.code.clone(), None),
+        };
+        Record {
+            path: std::path::absolute(path).unwrap_or_else(|_| path.to_owned()),
+            severity: severity(diagnostic),
+            code,
+            name,
+            message: diagnostic.message.clone(),
+            start: position(source, usize::from(diagnostic.range.start())),
+            end: position(source, usize::from(diagnostic.range.end())),
+        }
+    }
+}
+
+fn json_report(records: &[Record]) -> Value {
+    records
+        .iter()
+        .map(|r| {
+            json!({
+                "path": r.path,
+                "severity": r.severity,
+                "code": r.code,
+                "name": r.name,
+                "message": r.message,
+                "line": r.start.0,
+                "column": r.start.1,
+                "endLine": r.end.0,
+                "endColumn": r.end.1,
+            })
+        })
+        .collect()
+}
+
+fn sarif_report(records: &[Record]) -> Value {
+    let rules: Vec<Value> = LINTS
+        .iter()
+        .map(|lint| {
+            let level = match lint.default {
+                Level::Allow => "none",
+                Level::Warn => "warning",
+                Level::Error => "error",
+            };
+            json!({
+                "id": lint.code,
+                "name": lint.name,
+                "shortDescription": { "text": lint.description },
+                "help": { "text": explanation(lint) },
+                "defaultConfiguration": { "level": level },
+            })
+        })
+        .collect();
+    let root = std::env::current_dir().ok();
+    let results: Vec<Value> = records
+        .iter()
+        .map(|r| {
+            json!({
+                "ruleId": r.code,
+                "level": r.severity,
+                "message": { "text": r.message },
+                "locations": [{
+                    "physicalLocation": {
+                        "artifactLocation": { "uri": uri(&r.path, root.as_deref()) },
+                        "region": {
+                            "startLine": r.start.0,
+                            "startColumn": r.start.1,
+                            "endLine": r.end.0,
+                            "endColumn": r.end.1,
+                        },
+                    },
+                }],
+            })
+        })
+        .collect();
+    json!({
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": "papyrus",
+                    "version": env!("CARGO_PKG_VERSION"),
+                    "informationUri": "https://github.com/Kiyozz/papyrus-tools",
+                    "rules": rules,
+                },
+            },
+            "results": results,
+        }],
+    })
+}
+
+/// The URI of `path`: relative to `root` when under it, as code scanning
+/// wants, else absolute.
+fn uri(path: &Path, root: Option<&Path>) -> String {
+    let relative = root.and_then(|root| path.strip_prefix(root).ok());
+    let text = relative
+        .unwrap_or(path)
+        .to_string_lossy()
+        .replace('\\', "/");
+    let mut out = String::new();
+    if relative.is_none() {
+        out.push_str(if text.starts_with('/') {
+            "file://"
+        } else {
+            "file:///"
+        });
+    }
+    for byte in text.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' | b'/' => {
+                out.push(byte as char);
+            }
+            // The drive of a Windows path.
+            b':' if relative.is_none() => out.push(':'),
+            _ => out.push_str(&format!("%{byte:02X}")),
+        }
+    }
+    out
+}
+
+const fn severity(diagnostic: &Diagnostic) -> &'static str {
+    match diagnostic.severity {
+        Severity::Error => "error",
+        Severity::Warning => "warning",
+    }
+}
+
+/// The line and column of `offset`, from 1, in characters.
+fn position(source: &str, offset: usize) -> (usize, usize) {
+    let before = &source[..offset.min(source.len())];
+    let line = before.matches('\n').count() + 1;
+    let start = before.rfind('\n').map_or(0, |i| i + 1);
+    (line, before[start..].chars().count() + 1)
 }
 
 /// `diagnostic` on one line, its path absolute.
 fn short(path: &Path, source: &str, diagnostic: &Diagnostic) -> String {
-    // Line and column from 1, in characters.
-    let at = |offset: usize| {
-        let before = &source[..offset.min(source.len())];
-        let line = before.matches('\n').count() + 1;
-        let start = before.rfind('\n').map_or(0, |i| i + 1);
-        (line, before[start..].chars().count() + 1)
-    };
-    let (line, column) = at(usize::from(diagnostic.range.start()));
-    let (end_line, end_column) = at(usize::from(diagnostic.range.end()));
+    let (line, column) = position(source, usize::from(diagnostic.range.start()));
+    let (end_line, end_column) = position(source, usize::from(diagnostic.range.end()));
     let path = std::path::absolute(path).unwrap_or_else(|_| path.to_owned());
-    let severity = match diagnostic.severity {
-        Severity::Error => "error",
-        Severity::Warning => "warning",
-    };
+    let severity = severity(diagnostic);
     format!(
         "{}:{line}:{column}:{end_line}:{end_column}: {severity}[{}]: {}",
         path.display(),

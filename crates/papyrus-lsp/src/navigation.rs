@@ -12,13 +12,18 @@ use papyrus_hir::{
 use papyrus_syntax::{TextRange, TextSize};
 use tower_lsp_server::ls_types::{
     CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CodeLens, Command,
-    CompletionItem, CompletionItemKind, DocumentHighlight, DocumentHighlightKind, Documentation,
-    Hover, HoverContents, InlayHint, InlayHintKind, InlayHintLabel, Location, MarkupContent,
-    MarkupKind, ParameterInformation, ParameterLabel, Position, Range, SignatureHelp,
-    SignatureInformation, SymbolInformation, SymbolKind, TextEdit, Uri, WorkspaceEdit,
+    CompletionItem, CompletionItemKind, DocumentChangeOperation, DocumentChanges,
+    DocumentHighlight, DocumentHighlightKind, Documentation, Hover, HoverContents, InlayHint,
+    InlayHintKind, InlayHintLabel, Location, MarkupContent, MarkupKind, OneOf,
+    OptionalVersionedTextDocumentIdentifier, ParameterInformation, ParameterLabel, Position, Range,
+    RenameFile, ResourceOp, SignatureHelp, SignatureInformation, SymbolInformation, SymbolKind,
+    TextDocumentEdit, TextEdit, TypeHierarchyItem, Uri, WorkspaceEdit,
 };
 
 use crate::position::{Columns, LineMap};
+
+/// Text edits by document.
+pub(crate) type Changes = HashMap<Uri, Vec<TextEdit>>;
 
 /// The LSP kind of an item.
 fn symbol_kind(kind: ItemKind) -> SymbolKind {
@@ -38,6 +43,8 @@ fn symbol_kind(kind: ItemKind) -> SymbolKind {
 pub(crate) struct Navigator<'a> {
     pub(crate) db: &'a Database,
     pub(crate) columns: Columns,
+    /// The client renames files in a workspace edit.
+    pub(crate) can_rename: bool,
     /// The URI of a file, `None` if it cannot be named.
     pub(crate) uri: &'a dyn Fn(SourceFile) -> Option<Uri>,
 }
@@ -246,22 +253,131 @@ impl Navigator<'_> {
         let edit = Semantics::new(self.db, project)
             .rename(file, offset, new_name)
             .map_err(|e| e.0)?;
-        let mut changes: HashMap<Uri, Vec<TextEdit>> = HashMap::new();
-        for reference in edit.edits {
+        let changes = self.changes(&edit.edits, new_name)?;
+        let workspace_edit = match edit.script {
+            Some(script) => self.with_file_renamed(script, new_name, changes)?,
+            None => WorkspaceEdit {
+                changes: Some(changes),
+                ..WorkspaceEdit::default()
+            },
+        };
+        Ok((workspace_edit, edit.warning))
+    }
+
+    /// `new_name` at every reference, by file.
+    fn changes(&self, references: &[Reference], new_name: &str) -> Result<Changes, String> {
+        let mut changes = Changes::new();
+        for reference in references {
             let uri = (self.uri)(reference.file)
                 .ok_or_else(|| format!("{} has no URI", reference.file.path(self.db).display()))?;
             changes.entry(uri).or_default().push(TextEdit::new(
                 self.range(reference.file, reference.range),
-                edit.new_name.clone(),
+                new_name.to_owned(),
             ));
         }
-        Ok((
-            WorkspaceEdit {
-                changes: Some(changes),
-                ..WorkspaceEdit::default()
+        Ok(changes)
+    }
+
+    /// `changes`, then the file of `script` renamed: the edits name it by
+    /// its old URI.
+    fn with_file_renamed(
+        &self,
+        script: SourceFile,
+        new_name: &str,
+        changes: Changes,
+    ) -> Result<WorkspaceEdit, String> {
+        if !self.can_rename {
+            return Err(
+                "this editor cannot rename files from the server: rename the file instead"
+                    .to_owned(),
+            );
+        }
+        let path = script.path(self.db);
+        let old_uri = (self.uri)(script).ok_or_else(|| format!("{} has no URI", path.display()))?;
+        let new_path = path.with_file_name(format!("{new_name}.psc"));
+        let new_uri = Uri::from_file_path(&new_path)
+            .ok_or_else(|| format!("{} has no URI", new_path.display()))?;
+        let mut operations: Vec<DocumentChangeOperation> = changes
+            .into_iter()
+            .map(|(uri, edits)| {
+                DocumentChangeOperation::Edit(TextDocumentEdit {
+                    text_document: OptionalVersionedTextDocumentIdentifier { uri, version: None },
+                    edits: edits.into_iter().map(OneOf::Left).collect(),
+                })
+            })
+            .collect();
+        operations.push(DocumentChangeOperation::Op(ResourceOp::Rename(
+            RenameFile {
+                old_uri,
+                new_uri,
+                options: None,
+                annotation_id: None,
             },
-            edit.warning,
-        ))
+        )));
+        Ok(WorkspaceEdit {
+            document_changes: Some(DocumentChanges::Operations(operations)),
+            ..WorkspaceEdit::default()
+        })
+    }
+
+    /// The script of a file about to be named `stem`, renamed with it: its
+    /// edits and the warning to show. Nothing for a script that was not
+    /// named after its file, which the rename may well be correcting.
+    pub(crate) fn file_renamed(
+        &self,
+        project: Project,
+        file: SourceFile,
+        stem: &str,
+    ) -> Option<(Changes, Option<String>)> {
+        let sema = Semantics::new(self.db, project);
+        let items = sema.items(file);
+        let old_stem = file.path(self.db).file_stem()?.to_str()?;
+        if !items.name.eq_ignore_ascii_case(old_stem) || items.name == stem {
+            return None;
+        }
+        let edit = sema.rename(file, items.name_range.start(), stem).ok()?;
+        Some((self.changes(&edit.edits, stem).ok()?, edit.warning))
+    }
+
+    fn type_item(&self, project: Project, file: SourceFile) -> Option<TypeHierarchyItem> {
+        let items = Semantics::new(self.db, project).items(file);
+        let whole = TextRange::up_to(TextSize::of(file.text(self.db)));
+        Some(TypeHierarchyItem {
+            name: items.name.clone(),
+            kind: SymbolKind::CLASS,
+            tags: None,
+            detail: items.parent.clone(),
+            uri: (self.uri)(file)?,
+            range: self.range(file, whole),
+            selection_range: self.range(file, items.name_range),
+            data: None,
+        })
+    }
+
+    pub(crate) fn prepare_type_hierarchy(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+    ) -> Option<Vec<TypeHierarchyItem>> {
+        let script = Semantics::new(self.db, project).script_at(file, offset)?;
+        Some(vec![self.type_item(project, script)?])
+    }
+
+    pub(crate) fn supertypes(&self, project: Project, file: SourceFile) -> Vec<TypeHierarchyItem> {
+        let found = Semantics::new(self.db, project).supertypes(file);
+        found
+            .into_iter()
+            .filter_map(|file| self.type_item(project, file))
+            .collect()
+    }
+
+    pub(crate) fn subtypes(&self, project: Project, file: SourceFile) -> Vec<TypeHierarchyItem> {
+        let found = Semantics::new(self.db, project).subtypes(file);
+        found
+            .into_iter()
+            .filter_map(|file| self.type_item(project, file))
+            .collect()
     }
 
     #[allow(deprecated)] // `SymbolInformation::deprecated`, required by the type.

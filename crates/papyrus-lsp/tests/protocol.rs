@@ -754,6 +754,137 @@ async fn calls_are_checked_helped_and_hinted() {
 }
 
 /// A session on `dir`, whose client creates files in its workspace edits.
+#[tokio::test]
+async fn scripts_are_renamed_with_their_files_and_form_a_hierarchy() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-types-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let base = dir.join("Base.psc");
+    let child = dir.join("Child.psc");
+    std::fs::write(&base, "ScriptName Base extends Quest\n").unwrap();
+    std::fs::write(&child, "ScriptName Child extends Base\n").unwrap();
+    let mut client = connect();
+    client
+        .request(
+            "initialize",
+            json!({
+                "capabilities": { "workspace": { "workspaceEdit": {
+                    "documentChanges": true, "resourceOperations": ["rename"],
+                } } },
+                "workspaceFolders": [{ "uri": uri(&dir), "name": "project" }],
+            }),
+        )
+        .await;
+    client.notify("initialized", json!({})).await;
+    client
+        .wait(|m| {
+            m["method"] == "window/logMessage"
+                && m["params"]["message"]
+                    .as_str()
+                    .is_some_and(|s| s.contains("indexed"))
+        })
+        .await;
+
+    // The hierarchy, from the parent down and back up.
+    let prepared = client
+        .request(
+            "textDocument/prepareTypeHierarchy",
+            json!({
+                "textDocument": { "uri": uri(&base) },
+                "position": { "line": 0, "character": 12 },
+            }),
+        )
+        .await;
+    let item = prepared[0].clone();
+    assert_eq!(item["name"], "Base");
+    let subtypes = client
+        .request("typeHierarchy/subtypes", json!({ "item": item }))
+        .await;
+    assert_eq!(subtypes[0]["name"], "Child");
+    let supertypes = client
+        .request("typeHierarchy/supertypes", json!({ "item": subtypes[0] }))
+        .await;
+    assert_eq!(supertypes[0]["name"], "Base");
+
+    // Renaming the script moves the file, after the edits.
+    let edit = client
+        .request(
+            "textDocument/rename",
+            json!({
+                "textDocument": { "uri": uri(&base) },
+                "position": { "line": 0, "character": 12 },
+                "newName": "Root",
+            }),
+        )
+        .await;
+    let changes = edit["documentChanges"].as_array().unwrap();
+    assert_eq!(changes.len(), 3, "{edit}");
+    let rename = &changes[2];
+    assert_eq!(rename["kind"], "rename");
+    assert!(rename["newUri"].as_str().unwrap().ends_with("/Root.psc"));
+
+    // Renaming the file updates the script.
+    let edit = client
+        .request(
+            "workspace/willRenameFiles",
+            json!({ "files": [{
+                "oldUri": uri(&base),
+                "newUri": uri(&dir.join("Root.psc")),
+            }] }),
+        )
+        .await;
+    let changes = edit["changes"].as_object().unwrap();
+    assert_eq!(changes.len(), 2, "{edit}");
+    for edits in changes.values() {
+        assert_eq!(edits[0]["newText"], "Root");
+    }
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn range_formatting_stays_on_the_selected_lines() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-range-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let script = dir.join("MyQuest.psc");
+    let text = "scriptname MyQuest\n\nfunction F()\nint a = 1\nint b = 2\nendfunction\n";
+    std::fs::write(&script, text).unwrap();
+    let mut client = editing_client(&dir).await;
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": uri(&script), "languageId": "papyrus", "version": 1, "text": text,
+            } }),
+        )
+        .await;
+    let edits = client
+        .request(
+            "textDocument/rangeFormatting",
+            json!({
+                "textDocument": { "uri": uri(&script) },
+                "range": {
+                    "start": { "line": 4, "character": 0 },
+                    "end": { "line": 4, "character": 3 },
+                },
+                "options": { "tabSize": 4, "insertSpaces": true },
+            }),
+        )
+        .await;
+    let edits = edits.as_array().unwrap();
+    assert_eq!(edits.len(), 1, "{edits:?}");
+    assert_eq!(edits[0]["newText"], "  int b = 2\n");
+    assert_eq!(edits[0]["range"]["start"]["line"], 4);
+    assert_eq!(edits[0]["range"]["end"]["line"], 5);
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 async fn editing_client(dir: &Path) -> Client {
     let mut client = connect();
     client

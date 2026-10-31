@@ -135,6 +135,37 @@ impl Semantics<'_> {
         Some(out)
     }
 
+    // ── Types ─────────────────────────────────────────────────────────────
+
+    /// The script at `offset`, to start a type hierarchy: the one named
+    /// there, else the file's own.
+    pub fn script_at(&self, file: SourceFile, offset: TextSize) -> Option<SourceFile> {
+        match self.def_at(file, offset) {
+            Some(Def::Script { file }) => Some(file),
+            Some(Def::NativeScript(_)) => None,
+            _ => (!self.items(file).name.is_empty()).then_some(file),
+        }
+    }
+
+    /// The parent of a script, when it has a source.
+    pub fn supertypes(&self, file: SourceFile) -> Vec<SourceFile> {
+        match self.chain(ScriptRef::Source(file)).nth(1) {
+            Some(ScriptRef::Source(parent)) => vec![parent],
+            _ => Vec::new(),
+        }
+    }
+
+    /// The scripts extending `file` directly.
+    pub fn subtypes(&self, file: SourceFile) -> Vec<SourceFile> {
+        self.index()
+            .files()
+            .filter(|&other| {
+                other != file
+                    && self.chain(ScriptRef::Source(other)).nth(1) == Some(ScriptRef::Source(file))
+            })
+            .collect()
+    }
+
     // ── Calls ─────────────────────────────────────────────────────────────
 
     /// `def` in the call hierarchy: a function, an event or a property

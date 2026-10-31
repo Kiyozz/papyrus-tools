@@ -540,13 +540,66 @@ fn some_renames_are_refused() {
     assert!(error("Shared", "Mine").contains("imported"));
     assert!(error("RegisterForUpdate", "Mine").contains("native"));
     assert!(error("OnInit", "Start").contains("event"));
-    assert!(error("A extends", "B").contains("file"));
+    assert!(error("Lib\n", "Mine").contains("imported"));
+    assert!(error("A extends", "Lib").contains("already exists"));
     assert!(
         sema.rename(file, at("Shared"), "1abc")
             .unwrap_err()
             .0
             .contains("valid")
     );
+}
+
+#[test]
+fn a_script_is_renamed_everywhere_with_its_file() {
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[
+            (
+                "Base.psc",
+                "ScriptName Base extends Quest\nFunction Greet() Global\nEndFunction\n",
+            ),
+            (
+                "Child.psc",
+                "ScriptName Child extends Base\nBase Property other Auto\nEvent OnInit()\n\tBase.Greet()\n\tQuest q = other as Base\nEndEvent\n",
+            ),
+        ],
+    );
+    let (base, child) = (f.file("Base.psc"), f.file("Child.psc"));
+    let edit = f.sema().rename(base, TextSize::new(12), "Root").unwrap();
+    assert_eq!(edit.script, Some(base));
+    assert!(edit.warning.unwrap().contains("Creation Kit"));
+    let in_child = edit.edits.iter().filter(|e| e.file == child).count();
+    assert_eq!(in_child, 4);
+    assert_eq!(edit.edits.len(), 5);
+}
+
+#[test]
+fn the_type_hierarchy_follows_extends() {
+    let f = Fixture::new(
+        GameId::Skyrim,
+        &[
+            ("Base.psc", "ScriptName Base extends Quest\n"),
+            ("Child.psc", "ScriptName Child extends Base\n"),
+            ("Grand.psc", "ScriptName Grand extends Child\n"),
+            ("Other.psc", "ScriptName Other extends Base\n"),
+        ],
+    );
+    let (base, child) = (f.file("Base.psc"), f.file("Child.psc"));
+    let sema = f.sema();
+    assert_eq!(sema.supertypes(child), [base]);
+    // Quest has no source.
+    assert!(sema.supertypes(base).is_empty());
+    let mut subtypes: Vec<_> = sema
+        .subtypes(base)
+        .iter()
+        .map(|&file| sema.items(file).name.clone())
+        .collect();
+    subtypes.sort();
+    assert_eq!(subtypes, ["Child", "Other"]);
+    // On the parent's name, the parent; anywhere else, the file's script.
+    assert_eq!(sema.script_at(child, TextSize::new(26)), Some(base));
+    assert_eq!(sema.script_at(child, TextSize::new(0)), Some(child));
 }
 
 #[test]

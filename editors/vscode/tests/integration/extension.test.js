@@ -15,12 +15,12 @@ const config = path.join(folder, "papyrus.toml");
  * Polls `check` until it returns something truthy, and returns it.
  * @template T
  * @param {string} what
- * @param {() => T | undefined} check
+ * @param {() => T | undefined | Promise<T | undefined>} check
  */
 async function until(what, check, ms = 30_000) {
   const end = Date.now() + ms;
   while (Date.now() < end) {
-    const found = check();
+    const found = await check();
     if (found) {
       return found;
     }
@@ -88,6 +88,19 @@ describe("the extension", () => {
     assert.equal(found.source, "papyrus");
     assert.equal(found.severity, vscode.DiagnosticSeverity.Error);
     assert.equal(found.range.start.line, 4);
+  });
+
+  it("shows the type hierarchy", async () => {
+    const items = await until("the type hierarchy", async () => {
+      /** @type {vscode.TypeHierarchyItem[]} */
+      const found = await vscode.commands.executeCommand(
+        "vscode.prepareTypeHierarchy",
+        script,
+        new vscode.Position(0, 12),
+      );
+      return found?.length ? found : undefined;
+    });
+    assert.equal(items[0].name, "Hello");
   });
 
   it("provides the build and check tasks", async () => {
