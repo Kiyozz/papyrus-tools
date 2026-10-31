@@ -990,6 +990,29 @@ EndFunction
 }
 
 #[test]
+fn an_imported_function_named_without_parentheses_is_reported() {
+    let db = Database::default();
+    let text = "ScriptName MyQuest extends Quest\nImport Utility\nEvent OnInit()\n\tWait\n\tRandomFloat\nEndEvent\n";
+    let file = SourceFile::new(&db, "MyQuest.psc".into(), text.to_owned());
+    let project = Project::new(&db, vec![file], Vec::new(), Some(GameId::Skyrim));
+    let found = Semantics::new(&db, project).check(file);
+    let unknown: Vec<&str> = found
+        .iter()
+        .filter(|d| d.problem == Problem::UnknownMember)
+        .map(|d| d.message.as_str())
+        .collect();
+    assert_eq!(
+        unknown,
+        [
+            "`Wait` is a function of `Utility`, not a variable: call it with parentheses, `Wait()`",
+            "`RandomFloat` is a function of `Utility`, not a variable: call it with parentheses, `RandomFloat()`",
+        ]
+    );
+    // The `Import` is used, if badly.
+    assert!(found.iter().all(|d| d.problem != Problem::UnusedImport));
+}
+
+#[test]
 fn a_function_named_without_parentheses_is_reported() {
     let lib = "ScriptName MyScript Hidden\nint Function Count() global\nReturn 1\nEndFunction\n";
     let main = "ScriptName A extends Quest

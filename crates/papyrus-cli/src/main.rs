@@ -611,7 +611,7 @@ struct Fixes {
 }
 
 fn check(projects: &[Settings], args: &CheckArgs, reporter: &mut Reporter) -> Result<bool, String> {
-    let mut fixed = 0;
+    let (mut fixed, mut renamed) = (0, 0);
     let fixes = Fixes {
         safe: args.fix,
         risky: args.fix && args.unsafe_fixes,
@@ -624,6 +624,11 @@ fn check(projects: &[Settings], args: &CheckArgs, reporter: &mut Reporter) -> Re
             .transpose()?;
         // A project only sees its own scripts, and those it imports.
         let mut index = index(settings, None);
+        if fixes.risky {
+            for path in &settings.scripts {
+                renamed += rename_to_convention(path, settings, &mut index, reporter);
+            }
+        }
         for path in &settings.scripts {
             let Some(bytes) = read(path, reporter) else {
                 continue;
@@ -651,7 +656,7 @@ fn check(projects: &[Settings], args: &CheckArgs, reporter: &mut Reporter) -> Re
     }
 
     if args.fix {
-        eprintln!("{fixed} file(s) fixed");
+        eprintln!("{fixed} file(s) fixed, {renamed} name(s) renamed");
     }
     let files = projects.iter().map(|p| p.scripts.len()).sum();
     reporter.summary(files, "checked");
@@ -725,6 +730,91 @@ fn check_stdin(args: &CheckArgs, reporter: &mut Reporter) -> Result<bool, String
     Ok(reporter.is_clean())
 }
 
+/// Renames the names of a file that break the convention beyond case, across
+/// the project; the number of renames. A name is left alone if the new one is
+/// already in the file, or if the rename is refused, as for an event.
+fn rename_to_convention(
+    path: &Path,
+    settings: &Settings,
+    index: &mut Index,
+    reporter: &mut Reporter,
+) -> usize {
+    let mut renamed = 0;
+    let mut refused: Vec<String> = Vec::new();
+    loop {
+        let Some(bytes) = read(path, reporter) else {
+            return renamed;
+        };
+        let decoded = decode(&bytes);
+        let file = index.file(path, &decoded.text);
+        let (parse, lints) = analyze(&decoded, settings, index, file);
+        let Some(file) = file.filter(|_| parse.ok() && !decoded.lossy) else {
+            return renamed;
+        };
+        let tokens = papyrus_syntax::lex(&decoded.text);
+        let next = lints.iter().find_map(|lint| {
+            let name = decoded
+                .text
+                .get(std::ops::Range::<usize>::from(lint.range))?;
+            let new = papyrus_lint::conventional_name(lint, name)?;
+            let free = !tokens
+                .iter()
+                .any(|t| t.text(&decoded.text).eq_ignore_ascii_case(&new));
+            (free && !refused.iter().any(|r| r == name)).then(|| (lint.range, name.to_owned(), new))
+        });
+        let Some((range, name, new)) = next else {
+            return renamed;
+        };
+        let edit = Semantics::new(&index.db, index.project).rename(file, range.start(), &new);
+        match edit.map(|edit| apply_rename(&edit, index, reporter)) {
+            Ok(true) => renamed += 1,
+            _ => refused.push(name),
+        }
+    }
+}
+
+/// Writes a rename to its files; false if one of them cannot take it, and
+/// then none is written.
+fn apply_rename(
+    edit: &papyrus_hir::RenameEdit,
+    index: &mut Index,
+    reporter: &mut Reporter,
+) -> bool {
+    let mut by_file: HashMap<PathBuf, Vec<papyrus_syntax::TextRange>> = HashMap::new();
+    for reference in &edit.edits {
+        let path = reference.file.path(&index.db).to_owned();
+        by_file.entry(path).or_default().push(reference.range);
+    }
+    let mut writes = Vec::new();
+    for (path, mut ranges) in by_file {
+        let Some(bytes) = read(&path, reporter) else {
+            return false;
+        };
+        let decoded = decode(&bytes);
+        if decoded.lossy {
+            return false;
+        }
+        let mut text = decoded.text;
+        ranges.sort_by_key(|range| std::cmp::Reverse(range.start()));
+        ranges.dedup();
+        for range in ranges {
+            text.replace_range(std::ops::Range::<usize>::from(range), &edit.new_name);
+        }
+        let Some(bytes) = encode(&text, decoded.encoding) else {
+            return false;
+        };
+        writes.push((path, text, bytes));
+    }
+    for (path, text, bytes) in writes {
+        if let Err(error) = write_atomic(&path, &bytes) {
+            reporter.io_error(&path, &error);
+            return false;
+        }
+        index.file(&path, &text);
+    }
+    true
+}
+
 /// Checks one file, and fixes it if asked; true if it was rewritten.
 fn check_bytes(
     path: &Path,
@@ -762,6 +852,29 @@ fn check_bytes(
         }
     }
 
+    // Removing one thing may leave another useless: an assignment, then the
+    // variable it was the only use of.
+    while fixes.safe && parse.ok() && !decoded.lossy {
+        let Some(text) = papyrus_lint::apply_cleanups(&decoded.text, &lints) else {
+            break;
+        };
+        if !papyrus_syntax::parse(&text, settings.dialect()).ok() {
+            reporter.skip(path, "cleanup refused — please report this bug");
+            break;
+        }
+        let Some(bytes) = encode(&text, decoded.encoding) else {
+            break;
+        };
+        if let Err(error) = write_atomic(path, &bytes) {
+            reporter.io_error(path, &error);
+            return false;
+        }
+        fixed = true;
+        decoded.text = text;
+        let file = index.file(path, &decoded.text);
+        (parse, lints) = analyze(&decoded, settings, index, file);
+    }
+
     let mut diagnostics: Vec<Diagnostic> = parse
         .errors()
         .iter()
@@ -773,7 +886,7 @@ fn check_bytes(
         })
         .collect();
     diagnostics.extend(lints.into_iter().map(|d| {
-        let hint = if d.fix.is_some() {
+        let hint = if d.fix.is_some() || papyrus_lint::has_cleanup(&d) {
             " Fixable with `papyrus check --fix`."
         } else if d.unsafe_fix.is_some() {
             " Fixable with `papyrus check --fix --unsafe`."
@@ -787,7 +900,11 @@ fn check_bytes(
                 Severity::Warning
             },
             code: format!("{} {}", d.lint.code, d.lint.name),
-            message: format!("{}{hint}", d.message),
+            message: if hint.is_empty() || d.message.ends_with('.') {
+                format!("{}{hint}", d.message)
+            } else {
+                format!("{}.{hint}", d.message)
+            },
             range: d.range,
         }
     }));

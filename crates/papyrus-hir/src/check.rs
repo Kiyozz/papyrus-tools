@@ -12,7 +12,7 @@ use papyrus_syntax::{SyntaxKind, SyntaxNode, TextRange, TextSize};
 use crate::SourceFile;
 use crate::calls::{Arg, SignatureParam, arg_list, args, callee};
 use crate::items::{ItemKind, compact, trimmed};
-use crate::semantics::{Def, ScriptRef, Semantics, is_callee, locals_in_scope};
+use crate::semantics::{Def, Namespace, ScriptRef, Semantics, is_callee, locals_in_scope};
 use crate::ty::Ty;
 use crate::types::Object;
 
@@ -1357,6 +1357,20 @@ impl Semantics<'_> {
         if let Some(d) = self.not_called(this, name_ref, None) {
             out.push(d);
             return;
+        }
+        // `Wait` after `Import Utility`: only its global functions come along.
+        for import in &self.items(file).imports {
+            let Some(script) = self.script(import) else {
+                continue;
+            };
+            let global = self
+                .own_member(script, &name, Namespace::Callable)
+                .is_some_and(|def| self.is_global(&def));
+            if global {
+                let owner = self.script_name(script);
+                out.extend(self.not_called(script, name_ref, Some(owner)));
+                return;
+            }
         }
         // A state or a struct used as a value: another error, which the
         // compiler words better.

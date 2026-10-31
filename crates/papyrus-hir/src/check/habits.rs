@@ -8,7 +8,7 @@ use papyrus_syntax::{SyntaxKind, SyntaxNode, SyntaxToken};
 use super::{Diagnostic, Fix, Problem, Replacement, child};
 use crate::SourceFile;
 use crate::items::{ItemKind, compact, has_flag, trimmed};
-use crate::semantics::{Def, ScriptRef, Semantics, member_name_ref};
+use crate::semantics::{Def, Namespace, ScriptRef, Semantics, member_name_ref};
 use crate::ty::Ty;
 
 fn operator(node: &SyntaxNode) -> Option<SyntaxToken> {
@@ -364,6 +364,17 @@ impl Semantics<'_> {
                         .parent()
                         .is_some_and(|p| p.kind() == SyntaxKind::CALL_EXPR);
                     if !unqualified {
+                        // `Wait` for `Wait()`: a mistake, but the `Import`'s.
+                        let bare = node
+                            .parent()
+                            .is_some_and(|p| p.kind() != SyntaxKind::FIELD_EXPR);
+                        let name = compact(&node);
+                        let global = self
+                            .own_member(script, &name, Namespace::Callable)
+                            .is_some_and(|def| self.is_global(&def));
+                        if bare && global {
+                            return true;
+                        }
                         continue;
                     }
                     let from = match self.resolve_name_ref(file, &node) {

@@ -1192,20 +1192,8 @@ impl LanguageServer for Backend {
                     .decoded
                     .text
                     .get(std::ops::Range::<usize>::from(lint.range));
-                let wanted = match name {
-                    // Already fixed in the file, or left to an explicit choice.
-                    _ if lint.fix.is_some() || lint.unsafe_fix.is_some() => None,
-                    Some(name) if code == papyrus_lint::NAMING_FUNCTIONS.code => {
-                        Some((name, papyrus_lint::to_pascal(name)))
-                    }
-                    Some(name)
-                        if code == papyrus_lint::NAMING_LOCALS.code
-                            || code == papyrus_lint::NAMING_VARIABLES.code =>
-                    {
-                        Some((name, papyrus_lint::to_lower_camel(name)))
-                    }
-                    _ => None,
-                };
+                let wanted = name
+                    .and_then(|name| Some((name, papyrus_lint::conventional_name(lint, name)?)));
                 let position = map.position(lint.range.start());
                 let renamed = state
                     .navigate(&uri, position, |nav, project, file, offset| match &wanted {

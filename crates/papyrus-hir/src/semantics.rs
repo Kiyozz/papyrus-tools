@@ -539,7 +539,7 @@ impl<'db> Semantics<'db> {
     }
 
     /// True for a `Global` function.
-    fn is_global(&self, def: &Def) -> bool {
+    pub(crate) fn is_global(&self, def: &Def) -> bool {
         match def {
             Def::Item { file, index } => self.item(*file, *index).global,
             Def::NativeFunction { function, .. } => function.global,

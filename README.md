@@ -152,13 +152,15 @@ imported one of the same name.
 To allow a case: `; papyrus: allow(naming/locals)` at the end of the line, or
 alone on the line before. `all` covers every lint.
 
-`--fix` only fixes case. Papyrus being case-insensitive, the rename changes
-nothing for the compiler and cannot collide with anything. Properties are only
-renamed with `--fix --unsafe`: plugins (`.esp`, `.esm`) bind them by name.
+`--fix` fixes case: Papyrus being case-insensitive, the rename changes nothing
+for the compiler and cannot collide with anything. It also removes what does
+nothing: an unused `Import`, an assignment to itself, a variable no code names,
+a local whose value is a literal, a comparison with `True` or `False`.
 
-The editor goes further with quick fixes the user picks: `naming/*` renames a
-name across the project unless the new one is taken in the file, and a useless
-`Import`, assignment, variable or local whose value is a literal can be removed.
+`--fix --unsafe` adds what may break outside the scripts: properties, which
+plugins (`.esp`, `.esm`) bind by name, and the names of `naming/*` across the
+project, unless the new one is taken in the file. The editor offers the same
+fixes as quick fixes.
 
 `papyrus explain <code>` says why a lint matters, with an example and what to
 do about it.

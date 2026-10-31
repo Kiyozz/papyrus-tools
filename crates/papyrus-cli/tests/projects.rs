@@ -308,6 +308,59 @@ fn checking_one_file_keeps_the_baseline_of_the_others() {
 }
 
 #[test]
+fn fix_removes_what_does_nothing() {
+    let script = "ScriptName MyQuest extends Quest\nImport Utility\nint unread\nFunction F(bool flag)\n\tint a = 1\n\tint b = Compute()\n\tint c = 2\n\tc = c\n\tif flag == True\n\t\tDebug.Trace(\"x\")\n\tendif\nEndFunction\nint Function Compute()\n\treturn 1\nEndFunction\n";
+    let root = tree(
+        "cleanups",
+        &[
+            ("papyrus.toml", "game = \"skyrim\"\n"),
+            ("MyQuest.psc", script),
+        ],
+    );
+    papyrus(&root, &["check", "--fix"], "");
+    // `c` goes with its assignment; a call stays, for its effects.
+    assert_eq!(
+        std::fs::read_to_string(root.join("MyQuest.psc")).unwrap(),
+        "ScriptName MyQuest extends Quest\nFunction F(bool flag)\n\tint b = Compute()\n\tif flag\n\t\tDebug.Trace(\"x\")\n\tendif\nEndFunction\nint Function Compute()\n\treturn 1\nEndFunction\n"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn fix_unsafe_renames_across_files() {
+    let base = "ScriptName Base extends Quest\nFunction do_thing()\nEndFunction\nint Property Hit_Points Auto\nint Taken_Name\nint takenName\nFunction G()\n\tHit_Points = Taken_Name + takenName\nEndFunction\n";
+    let user =
+        "ScriptName User extends Base\nEvent OnInit()\n\tdo_thing()\n\tHit_Points = 1\nEndEvent\n";
+    let root = tree(
+        "renames",
+        &[
+            ("papyrus.toml", "game = \"skyrim\"\n"),
+            ("Base.psc", base),
+            ("User.psc", user),
+        ],
+    );
+    // `--fix` alone leaves names to `--unsafe`.
+    papyrus(&root, &["check", "--fix"], "");
+    assert_eq!(
+        std::fs::read_to_string(root.join("User.psc")).unwrap(),
+        user
+    );
+
+    papyrus(&root, &["check", "--fix", "--unsafe"], "");
+    let base = std::fs::read_to_string(root.join("Base.psc")).unwrap();
+    assert!(base.contains("Function DoThing()"), "{base}");
+    assert!(base.contains("Property hitPoints"), "{base}");
+    // Its new name is taken: renaming would merge the two.
+    assert!(base.contains("int Taken_Name"), "{base}");
+    assert_eq!(
+        std::fs::read_to_string(root.join("User.psc")).unwrap(),
+        user.replace("do_thing", "DoThing")
+            .replace("Hit_Points", "hitPoints")
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
 fn reports_go_to_standard_output() {
     let root = tree(
         "reports",
@@ -447,7 +500,7 @@ fn the_short_format_puts_each_problem_on_a_line() {
     let stderr = run(&root, &["--message-format", "short"]);
     let path = std::path::absolute(root.join("MyQuest.psc")).unwrap();
     let expected = format!(
-        "{}:3:6:3:12: warning[PAP015 locals/unused]: the variable `unused` is never used",
+        "{}:3:6:3:12: warning[PAP015 locals/unused]: the variable `unused` is never used. Fixable with `papyrus check --fix`.",
         path.display()
     );
     assert_eq!(stderr.lines().next(), Some(expected.as_str()), "{stderr}");

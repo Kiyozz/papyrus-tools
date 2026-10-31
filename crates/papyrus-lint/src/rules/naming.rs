@@ -132,7 +132,7 @@ pub(super) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
         let unsafe_fix = (matches!(role, Role::Property) && case_only)
             .then(|| rename_in_script(context.root, &token, &suggestion));
         let note = match role {
-            _ if !case_only => " The name changes beyond case: rename it by hand.",
+            _ if !case_only => " Fixable across the project with `papyrus check --fix --unsafe`.",
             Role::Property => " Unsafe fix: plugins (.esp, .esm) bind properties by name.",
             _ => "",
         };
