@@ -298,8 +298,14 @@ impl Navigator<'_> {
     fn changes(&self, references: &[Reference], new_name: &str) -> Result<Changes, String> {
         let mut changes = Changes::new();
         for reference in references {
+            let path = reference.file.path(self.db);
             let uri = (self.uri)(reference.file)
-                .ok_or_else(|| format!("{} has no URI", reference.file.path(self.db).display()))?;
+                .ok_or_else(|| format!("{} has no URI", path.display()))?;
+            // A tab outliving its file, reopened as the server restarts: an
+            // edit there would bring the file back on the next save.
+            if uri.scheme().as_str() == "file" && !path.exists() {
+                continue;
+            }
             changes.entry(uri).or_default().push(TextEdit::new(
                 self.range(reference.file, reference.range),
                 new_name.to_owned(),

@@ -1069,6 +1069,7 @@ impl LanguageServer for Backend {
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
+        let mut cleared = Vec::new();
         let (settings_changed, batch) = {
             let mut state = self.state();
             let mut settings_changed = false;
@@ -1083,15 +1084,18 @@ impl LanguageServer for Backend {
                     || extension.eq_ignore_ascii_case("flg")
                 {
                     settings_changed = true;
-                } else if extension.eq_ignore_ascii_case("psc")
-                    && !state.documents.contains_key(&change.uri)
-                {
+                } else if extension.eq_ignore_ascii_case("psc") {
                     let Some(text) = read(&path) else {
+                        // Its tab may outlive it: a rename editing it would
+                        // bring the file back on the next save.
+                        state.documents.remove(&change.uri);
+                        state.declared.remove(&change.uri);
                         state.forget(&path);
+                        cleared.push(change.uri.clone());
                         continue;
                     };
                     // A script modified outside the editor.
-                    {
+                    if !state.documents.contains_key(&change.uri) {
                         let root = state.root_of(Some(&path));
                         if let Some(summary) = summary_of(&text) {
                             state
@@ -1126,6 +1130,9 @@ impl LanguageServer for Backend {
             (settings_changed, state.all())
         };
         self.publish(batch).await;
+        for uri in cleared {
+            self.client.publish_diagnostics(uri, Vec::new(), None).await;
+        }
         if settings_changed {
             self.rescan();
         }

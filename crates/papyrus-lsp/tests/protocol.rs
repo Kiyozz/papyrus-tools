@@ -445,6 +445,8 @@ async fn navigation_across_files() {
     let log = log["params"]["message"].as_str().unwrap().to_owned();
     assert!(log.contains("1 scripts indexed, 1 imported"), "{log}");
 
+    // On disk too: a rename does not touch a tab without a file.
+    std::fs::write(root.join("Child.psc"), "").unwrap();
     let child = uri(&root.join("Child.psc"));
     let text = "ScriptName Child extends MyBase\nEvent OnInit()\n\tGreet()\n\tShared()\n\tCount += 1\n\tself.\nEndEvent\n";
     client
@@ -988,6 +990,28 @@ async fn a_deleted_script_leaves_its_project() {
         })
         .await;
 
+    // A tab whose file was already gone, as the server restarts.
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": uri(&dir.join("Ghost.psc")), "languageId": "papyrus", "version": 1,
+                "text": "ScriptName Ghost extends Base\n",
+            } }),
+        )
+        .await;
+
+    // Open in a tab, which outlives the file.
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": uri(&gone), "languageId": "papyrus", "version": 1,
+                "text": "ScriptName Gone extends Base\n",
+            } }),
+        )
+        .await;
+
     // As after a rename: the script is gone, and the editor says so.
     std::fs::remove_file(&gone).unwrap();
     client
@@ -1012,7 +1036,12 @@ async fn a_deleted_script_leaves_its_project() {
         .filter_map(|c| c["textDocument"]["uri"].as_str())
         .collect();
     assert_eq!(edited.len(), 2, "{edit}");
-    assert!(edited.iter().all(|u| !u.ends_with("Gone.psc")), "{edit}");
+    assert!(
+        edited
+            .iter()
+            .all(|u| !u.ends_with("Gone.psc") && !u.ends_with("Ghost.psc")),
+        "{edit}"
+    );
 
     client.request("shutdown", Value::Null).await;
     client.notify("exit", Value::Null).await;
