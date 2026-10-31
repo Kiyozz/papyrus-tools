@@ -67,6 +67,16 @@ impl Client {
         assert!(response.get("error").is_none(), "{response}");
         response["result"].clone()
     }
+
+    /// The message of the error a request must fail with.
+    async fn request_error(&mut self, method: &str, params: Value) -> String {
+        self.next_id += 1;
+        let id = self.next_id;
+        self.send(json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params }))
+            .await;
+        let response = self.wait(|m| m["id"] == id).await;
+        response["error"]["message"].as_str().unwrap().to_owned()
+    }
 }
 
 fn uri(path: &Path) -> String {
@@ -445,7 +455,7 @@ async fn navigation_across_files() {
     let log = log["params"]["message"].as_str().unwrap().to_owned();
     assert!(log.contains("1 scripts indexed, 1 imported"), "{log}");
 
-    // On disk too: a rename does not touch a tab without a file.
+    // On disk too: a document without a file stays out of its project.
     std::fs::write(root.join("Child.psc"), "").unwrap();
     let child = uri(&root.join("Child.psc"));
     let text = "ScriptName Child extends MyBase\nEvent OnInit()\n\tGreet()\n\tShared()\n\tCount += 1\n\tself.\nEndEvent\n";
@@ -650,6 +660,7 @@ async fn calls_are_checked_helped_and_hinted() {
     client.wait(|m| m["method"] == "window/logMessage").await;
 
     // A call missing its argument, in another file than the callee.
+    std::fs::write(dir.join("Child.psc"), "").unwrap();
     let child = uri(&dir.join("Child.psc"));
     let text = "ScriptName Child extends Quest\nLib1 Property other Auto\nEvent OnInit()\n\tother.Start()\n\tother.Start(1, true)\nEndEvent\n";
     client
@@ -1042,6 +1053,40 @@ async fn a_deleted_script_leaves_its_project() {
             .all(|u| !u.ends_with("Gone.psc") && !u.ends_with("Ghost.psc")),
         "{edit}"
     );
+
+    // Neither holds its name any more.
+    for name in ["Gone", "Ghost"] {
+        client
+            .request(
+                "textDocument/rename",
+                json!({
+                    "textDocument": { "uri": uri(&dir.join("Kept.psc")) },
+                    "position": { "line": 0, "character": 12 },
+                    "newName": name,
+                }),
+            )
+            .await;
+    }
+
+    // Saved, a document joins its project.
+    std::fs::write(dir.join("Ghost.psc"), "ScriptName Ghost extends Base\n").unwrap();
+    client
+        .notify(
+            "textDocument/didSave",
+            json!({ "textDocument": { "uri": uri(&dir.join("Ghost.psc")) } }),
+        )
+        .await;
+    let error = client
+        .request_error(
+            "textDocument/rename",
+            json!({
+                "textDocument": { "uri": uri(&dir.join("Kept.psc")) },
+                "position": { "line": 0, "character": 12 },
+                "newName": "Ghost",
+            }),
+        )
+        .await;
+    assert!(error.contains("already exists"), "{error}");
 
     client.request("shutdown", Value::Null).await;
     client.notify("exit", Value::Null).await;

@@ -239,6 +239,12 @@ impl State {
         let Some(document) = self.documents.get(uri) else {
             return;
         };
+        // VSCode may keep a deleted file open, even without a tab: it is
+        // analyzed alone, and joins its project once saved. A rename editing
+        // it would bring the file back, and its name would stay taken.
+        if document.path.as_deref().is_some_and(|p| !p.exists()) {
+            return;
+        }
         let (path, root, text) = (
             key(uri, document),
             document.project.clone(),
@@ -1042,6 +1048,7 @@ impl LanguageServer for Backend {
             };
             // The editor may have changed the encoding when saving.
             document.reload_encoding();
+            state.feed(&uri);
             state.diagnostics(&uri).into_iter().collect()
         };
         self.publish(batch).await;
