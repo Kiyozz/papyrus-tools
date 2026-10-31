@@ -970,6 +970,62 @@ async fn a_name_against_the_convention_is_renamed_everywhere() {
 }
 
 #[tokio::test]
+async fn recursion_shows_as_hints_and_lenses() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-rec-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let text = "ScriptName MyQuest extends Quest\nFunction F(int n)\n    if n > 0\n        F(n - 1)\n    endif\nEndFunction\n";
+    let script = dir.join("MyQuest.psc");
+    std::fs::write(&script, text).unwrap();
+    let mut client = editing_client(&dir).await;
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": uri(&script), "languageId": "papyrus", "version": 1, "text": text,
+            } }),
+        )
+        .await;
+    let hints = client
+        .request(
+            "textDocument/inlayHint",
+            json!({
+                "textDocument": { "uri": uri(&script) },
+                "range": {
+                    "start": { "line": 0, "character": 0 },
+                    "end": { "line": 6, "character": 0 },
+                },
+            }),
+        )
+        .await;
+    let hint = hints
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|h| h["label"] == "↻ recursive")
+        .unwrap_or_else(|| panic!("{hints}"));
+    assert_eq!(hint["position"], json!({ "line": 3, "character": 16 }));
+
+    let lenses = client
+        .request(
+            "textDocument/codeLens",
+            json!({ "textDocument": { "uri": uri(&script) } }),
+        )
+        .await;
+    let lens = lenses
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|l| l["command"]["title"] == "↻ recursive")
+        .unwrap_or_else(|| panic!("{lenses}"));
+    assert_eq!(lens["range"]["start"]["line"], 1);
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
 async fn a_deleted_script_leaves_its_project() {
     let dir = std::env::temp_dir().join(format!("papyrus-lsp-deleted-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();

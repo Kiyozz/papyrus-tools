@@ -23,6 +23,14 @@ use tower_lsp_server::ls_types::{
 
 use crate::position::{Columns, LineMap};
 
+/// What marks a recursion, in a hint or a lens.
+fn recursive_label(through: Option<&str>) -> String {
+    match through {
+        Some(function) => format!("↻ recursive through {function}"),
+        None => "↻ recursive".to_owned(),
+    }
+}
+
 /// Text edits by document.
 pub(crate) type Changes = HashMap<Uri, Vec<TextEdit>>;
 
@@ -122,7 +130,8 @@ impl Navigator<'_> {
         mode: ParameterHints,
     ) -> Vec<InlayHint> {
         let map = self.map(file);
-        Semantics::new(self.db, project)
+        let sema = Semantics::new(self.db, project);
+        let parameters = sema
             .parameter_hints(file, range, mode)
             .into_iter()
             .map(|hint| InlayHint {
@@ -134,8 +143,22 @@ impl Navigator<'_> {
                 padding_left: None,
                 padding_right: Some(true),
                 data: None,
-            })
-            .collect()
+            });
+        let recursions = sema
+            .recursions(file)
+            .into_iter()
+            .filter(|r| r.call.intersect(range).is_some())
+            .map(|r| InlayHint {
+                position: map.position(r.call.end()),
+                label: InlayHintLabel::String(recursive_label(r.through.as_deref())),
+                kind: None,
+                text_edits: None,
+                tooltip: None,
+                padding_left: Some(true),
+                padding_right: None,
+                data: None,
+            });
+        parameters.chain(recursions).collect()
     }
 
     pub(crate) fn hover(
@@ -547,7 +570,25 @@ impl Navigator<'_> {
     ) -> Vec<CodeLens> {
         let sema = Semantics::new(self.db, project);
         let map = self.map(file);
-        sema.items(file)
+        let mut recursive: Vec<CodeLens> = Vec::new();
+        let mut seen = Vec::new();
+        for recursion in sema.recursions(file) {
+            if !seen.contains(&recursion.function) {
+                seen.push(recursion.function);
+                recursive.push(CodeLens {
+                    range: map.range(recursion.function),
+                    // A label: nothing to run.
+                    command: Some(Command {
+                        title: recursive_label(recursion.through.as_deref()),
+                        command: String::new(),
+                        arguments: None,
+                    }),
+                    data: None,
+                });
+            }
+        }
+        let references = sema
+            .items(file)
             .items
             .iter()
             .filter(|i| {
@@ -564,8 +605,9 @@ impl Navigator<'_> {
                 range: map.range(i.name_range),
                 command: None,
                 data: Some(serde_json::json!({ "uri": uri.as_str() })),
-            })
-            .collect()
+            });
+        recursive.extend(references);
+        recursive
     }
 
     /// The references of the item named at `offset`, as a lens command.

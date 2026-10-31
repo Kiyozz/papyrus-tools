@@ -366,6 +366,14 @@ pub static IMPORTS_UNUSED: Lint = Lint {
     description: "`Import` of a script none of whose global functions or types the script uses",
 };
 
+/// `PAP041`: function that never returns.
+pub static CALLS_INFINITE_RECURSION: Lint = Lint {
+    code: "PAP041",
+    name: "calls/infinite-recursion",
+    default: Level::Warn,
+    description: "function that comes back to itself on every path, directly or through others, and never returns",
+};
+
 /// `PAP101`: locals and parameters in lowerCamelCase.
 pub static NAMING_LOCALS: Lint = Lint {
     code: "PAP101",
@@ -432,6 +440,7 @@ pub static LINTS: &[&Lint] = &[
     &CODE_SELF_COMPARE,
     &VARIABLES_UNUSED,
     &IMPORTS_UNUSED,
+    &CALLS_INFINITE_RECURSION,
     &NAMING_LOCALS,
     &NAMING_VARIABLES,
     &NAMING_FUNCTIONS,

@@ -103,6 +103,8 @@ pub enum Problem {
     SelfAssign,
     /// `x == x`, `x < x`: always the same answer.
     SelfCompare,
+    /// A function coming back to itself on every path.
+    InfiniteRecursion,
     /// A script variable never read.
     UnusedVariable,
     /// An `Import` nothing uses.
@@ -572,6 +574,9 @@ impl Semantics<'_> {
                     usage::check_unreachable(&body, &mut out);
                     let duplicated = usage::check_duplicates(&root, &node, &body, &mut out);
                     self.check_unused(file, &node, &body, &duplicated, &mut out);
+                    if node.kind() == SyntaxKind::FUNCTION_DECL {
+                        self.check_infinite_recursion(file, &node, &body, &mut out);
+                    }
                     for inner in body.descendants() {
                         self.check_expr(file, &inner, &mut out);
                         self.check_habits(file, &inner, &mut out);

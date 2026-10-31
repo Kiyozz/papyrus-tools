@@ -55,6 +55,7 @@ pub(crate) fn run(context: &Context<'_>, findings: &mut Vec<Finding>) {
             Problem::SelfCompare => &crate::CODE_SELF_COMPARE,
             Problem::UnusedVariable => &crate::VARIABLES_UNUSED,
             Problem::UnusedImport => &crate::IMPORTS_UNUSED,
+            Problem::InfiniteRecursion => &crate::CALLS_INFINITE_RECURSION,
         };
         let mut suggestions: Vec<Suggestion> = diagnostic
             .fixes

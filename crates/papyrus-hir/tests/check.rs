@@ -989,6 +989,118 @@ EndFunction
     assert!(fixed[0].1.contains("\n\tTEST = 33\n"), "{}", fixed[0].1);
 }
 
+/// The functions reported as never returning.
+fn endless(files: &[(&str, &str)]) -> Vec<String> {
+    let db = Database::default();
+    let sources: Vec<SourceFile> = files
+        .iter()
+        .map(|(name, text)| SourceFile::new(&db, (*name).into(), (*text).to_owned()))
+        .collect();
+    let project = Project::new(&db, sources.clone(), Vec::new(), Some(GameId::Skyrim));
+    let sema = Semantics::new(&db, project);
+    sources
+        .iter()
+        .flat_map(|&file| sema.check(file))
+        .filter(|d| d.problem == Problem::InfiniteRecursion)
+        .map(|d| d.message)
+        .collect()
+}
+
+#[test]
+fn a_function_that_never_returns_is_reported() {
+    let script = |body: &str| format!("ScriptName T extends Quest\n{body}");
+    let found = endless(&[(
+        "T.psc",
+        &script("int Function F(int n)\n\treturn n + F(n - 1)\nEndFunction\n"),
+    )]);
+    assert_eq!(found, ["`F` calls itself on every path: it never returns"]);
+
+    // Both branches come back.
+    let both =
+        "Function F(bool a)\n\tif a\n\t\tF(a)\n\telse\n\t\tself.F(a)\n\tendif\nEndFunction\n";
+    assert_eq!(endless(&[("T.psc", &script(both))]).len(), 1);
+
+    // Through another function, across files.
+    let found = endless(&[(
+        "A.psc",
+        "ScriptName A extends Quest\nB Property other Auto\nFunction F()\n\tG()\nEndFunction\nFunction G()\n\tF()\nEndFunction\n",
+    )]);
+    assert_eq!(
+        found,
+        [
+            "`F` comes back to itself through `G` on every path: it never returns",
+            "`G` comes back to itself through `F` on every path: it never returns",
+        ]
+    );
+}
+
+#[test]
+fn a_recursion_with_a_way_out_is_left_alone() {
+    let script = |body: &str| format!("ScriptName T extends Quest\n{body}");
+    for body in [
+        // A condition before the call.
+        "int Function F(int n)\n\tif n <= 0\n\t\treturn 0\n\tendif\n\treturn n + F(n - 1)\nEndFunction\n",
+        "Function F(int n)\n\tif n > 0\n\t\tF(n - 1)\n\tendif\nEndFunction\n",
+        // A loop that may not run.
+        "Function F(int n)\n\twhile n > 0\n\t\tF(n - 1)\n\tendwhile\nEndFunction\n",
+        // The right of `&&` may not run.
+        "bool Function F(bool a)\n\treturn a && F(a)\nEndFunction\n",
+        // Another object.
+        "T Property next Auto\nFunction F()\n\tnext.F()\nEndFunction\n",
+        // A state may stop it.
+        "Function F()\n\tF()\nEndFunction\nState Done\n\tFunction F()\n\tEndFunction\nEndState\n",
+        "Function F()\n\tGotoState(\"Done\")\n\tF()\nEndFunction\nState Done\nEndState\n",
+    ] {
+        assert_eq!(endless(&[("T.psc", &script(body))]), [""; 0], "{body}");
+    }
+
+    // An override may stop it, and `Parent.F()` is not a recursion.
+    let found = endless(&[
+        ("T.psc", &script("Function F()\n\tF()\nEndFunction\n")),
+        (
+            "Kid.psc",
+            "ScriptName Kid extends T\nFunction F()\n\tParent.F()\nEndFunction\n",
+        ),
+    ]);
+    assert_eq!(found, [""; 0]);
+}
+
+#[test]
+fn recursions_are_found_directly_and_through_others() {
+    let db = Database::default();
+    let a = "ScriptName A extends Quest\nB Property other Auto\nFunction Start(int n)\n\tif n > 0\n\t\tother.Next(n - 1)\n\tendif\nEndFunction\nFunction Count(int n)\n\tif n > 0\n\t\tCount(n - 1)\n\tendif\nEndFunction\nFunction Plain()\n\tCount(1)\nEndFunction\nEvent OnUpdate()\n\tRegisterForSingleUpdate(1.0)\nEndEvent\n";
+    let b = "ScriptName B extends Quest\nA Property back Auto\nFunction Next(int n)\n\tback.Start(n)\nEndFunction\n";
+    let file = SourceFile::new(&db, "A.psc".into(), a.to_owned());
+    let other = SourceFile::new(&db, "B.psc".into(), b.to_owned());
+    let project = Project::new(&db, vec![file, other], Vec::new(), Some(GameId::Skyrim));
+    let sema = Semantics::new(&db, project);
+    let found: Vec<(&str, Option<&str>)> = sema
+        .recursions(file)
+        .iter()
+        .map(|r| {
+            let range = std::ops::Range::<usize>::from(r.function);
+            (
+                &a[range],
+                r.through
+                    .as_deref()
+                    .map(|t| if t == "Next" { "Next" } else { "Other" }),
+            )
+        })
+        .collect();
+    assert_eq!(found, [("Start", Some("Next")), ("Count", None)]);
+}
+
+#[test]
+fn a_call_on_parent_does_not_recurse() {
+    let db = Database::default();
+    let kid = "ScriptName Kid extends T\nFunction F()\n\tParent.F()\nEndFunction\n";
+    let file = SourceFile::new(&db, "Kid.psc".into(), kid.to_owned());
+    let base = "ScriptName T extends Quest\nFunction F()\nEndFunction\n";
+    let parent = SourceFile::new(&db, "T.psc".into(), base.to_owned());
+    let project = Project::new(&db, vec![file, parent], Vec::new(), Some(GameId::Skyrim));
+    assert!(Semantics::new(&db, project).recursions(file).is_empty());
+}
+
 #[test]
 fn an_imported_function_named_without_parentheses_is_reported() {
     let db = Database::default();

@@ -145,6 +145,7 @@ imported one of the same name.
 | `PAP038` | `code/self-compare` | warn | Value compared with itself |
 | `PAP039` | `variables/unused` | warn | Script variable never read, `Conditional` ones excepted |
 | `PAP040` | `imports/unused` | warn | `Import` of a script none of whose global functions or types is used unqualified |
+| `PAP041` | `calls/infinite-recursion` | warn | Function that comes back to itself on every path, directly or through others |
 | `PAP101` | `naming/locals` | warn | Locals and parameters not in lowerCamelCase — fixable |
 | `PAP102` | `naming/variables` | warn | Script variables, properties, fields not in lowerCamelCase |
 | `PAP103` | `naming/functions` | warn | Functions, events, states, structs not in PascalCase |
@@ -367,6 +368,10 @@ editor renames its script and every use, with the same warning. From Fallout 4,
 namespaces are the folders: `MyMod:Base` lives in `MyMod/Base.psc`, and moving it
 to `Other/` makes it `Other:Base`. A script whose file is not where its name says
 is left alone.
+
+A recursive function shows `↻ recursive` above it and after each call that comes
+back, directly or through other functions, across files. An override counts as
+the function it overrides, but `Parent.F()` does not recurse.
 
 The type hierarchy follows `extends` through the scripts with a source: add the
 game's sources to `imports` to see the native ones. Formatting a selection only

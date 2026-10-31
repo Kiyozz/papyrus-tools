@@ -371,6 +371,18 @@ name. This one is used by nothing in the script.
 
 Remove it. Writing `Utility.Wait(1.0)` in full needs no `Import`."#
         }
+        "PAP041" => {
+            r#"Whatever its arguments, this function calls itself before it can return,
+directly or through others: nothing ever stops it.
+
+    int Function Sum(int n)
+        return n + Sum(n - 1)
+    EndFunction
+
+Add the case that ends it, tested before the call. Only what is certain is
+reported: a function with a `GotoState`, redefined in a state or overridden by
+a child is left alone, since these may end it."#
+        }
         "PAP101" => {
             r#"Locals and parameters are written in lowerCamelCase. A style lint, for the
 compiler ignores case.

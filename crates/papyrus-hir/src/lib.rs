@@ -43,6 +43,7 @@ mod hints;
 mod ide;
 mod items;
 mod mentions;
+mod recursion;
 mod semantics;
 mod ty;
 mod types;
@@ -63,6 +64,7 @@ pub use ide::{
     SymbolKind, workspace_symbols,
 };
 pub use items::{Item, ItemKind, Param, ScriptItems};
+pub use recursion::Recursion;
 pub use semantics::{Def, ScriptRef, Semantics};
 pub use ty::Ty;
 
