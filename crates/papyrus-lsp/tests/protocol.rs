@@ -823,16 +823,18 @@ async fn scripts_are_renamed_with_their_files_and_form_a_hierarchy() {
     assert_eq!(rename["kind"], "rename");
     assert!(rename["newUri"].as_str().unwrap().ends_with("/Root.psc"));
 
-    // Renaming the file updates the script.
+    // VSCode asks about that very move: its edits are already made.
+    let moved = json!({ "files": [{
+        "oldUri": uri(&base),
+        "newUri": uri(&dir.join("Root.psc")),
+    }] });
     let edit = client
-        .request(
-            "workspace/willRenameFiles",
-            json!({ "files": [{
-                "oldUri": uri(&base),
-                "newUri": uri(&dir.join("Root.psc")),
-            }] }),
-        )
+        .request("workspace/willRenameFiles", moved.clone())
         .await;
+    assert_eq!(edit, Value::Null);
+
+    // Renaming the file updates the script.
+    let edit = client.request("workspace/willRenameFiles", moved).await;
     let changes = edit["changes"].as_object().unwrap();
     assert_eq!(changes.len(), 2, "{edit}");
     for edits in changes.values() {
@@ -905,6 +907,48 @@ async fn a_namespaced_script_is_renamed_from_where_it_is_extended() {
             .unwrap()
             .ends_with("Source/MyMod/Manage.psc"),
         "{edit}"
+    );
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn a_name_against_the_convention_is_renamed_everywhere() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-naming-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("papyrus.toml"), "game = \"skyrim\"\n").unwrap();
+    let text = "ScriptName MyQuest extends Quest\nint Hit_Points\nint Taken_Name\nint takenName\nFunction F()\n    Hit_Points = Taken_Name + takenName\nEndFunction\n";
+    let script = dir.join("MyQuest.psc");
+    std::fs::write(&script, text).unwrap();
+    let mut client = editing_client(&dir).await;
+
+    let actions = actions_on(&mut client, &script, text, "PAP102").await;
+    let rename = titled(&actions, "Rename to `hitPoints`");
+    let changes = rename["edit"]["changes"].as_object().unwrap();
+    let edits = changes.values().next().unwrap().as_array().unwrap();
+    assert_eq!(edits.len(), 2, "{edits:?}");
+
+    // The script already has a `takenName`: renaming would merge them.
+    let position = at(text, "Taken_Name\n", 1);
+    let response = client
+        .request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": uri(&script) },
+                "range": { "start": position, "end": position },
+                "context": { "diagnostics": [] },
+            }),
+        )
+        .await;
+    assert!(
+        response
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|a| a["title"] != "Rename to `takenName`"),
+        "{response}"
     );
 
     client.request("shutdown", Value::Null).await;

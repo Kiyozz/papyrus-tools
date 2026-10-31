@@ -261,11 +261,31 @@ impl Semantics<'_> {
             } else {
                 "is never used"
             };
+            // Its value may be a call made for its effects: only a literal
+            // goes without a thought.
+            let removable = local.parent().filter(|decl| {
+                !found.written
+                    && decl.children().all(|c| {
+                        matches!(
+                            c.kind(),
+                            SyntaxKind::TYPE_REF
+                                | SyntaxKind::NAME
+                                | SyntaxKind::LITERAL
+                                | SyntaxKind::FLAG_LIST
+                        )
+                    })
+            });
             out.push(Diagnostic {
                 problem: Problem::UnusedLocal,
                 range: trimmed(local),
                 message: format!("the variable `{}` {what}", compact(local)),
-                fixes: Vec::new(),
+                fixes: removable
+                    .map(|decl| {
+                        let title = "Remove the variable";
+                        Fix::remove_lines(title, file.text(self.db()), trimmed(&decl))
+                    })
+                    .into_iter()
+                    .collect(),
             });
         }
 

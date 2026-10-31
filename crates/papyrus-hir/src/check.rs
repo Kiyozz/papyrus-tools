@@ -139,6 +139,20 @@ impl Fix {
             }],
         }
     }
+
+    /// Removes the lines of `range`, in `text`, their line end included.
+    fn remove_lines(title: &str, text: &str, range: TextRange) -> Fix {
+        let (start, end) = (usize::from(range.start()), usize::from(range.end()));
+        let start = text[..start].rfind('\n').map_or(0, |i| i + 1);
+        let end = text[end..].find('\n').map_or(text.len(), |i| end + i + 1);
+        Fix {
+            title: title.to_owned(),
+            edits: vec![Replacement {
+                range: TextRange::new(TextSize::new(start as u32), TextSize::new(end as u32)),
+                text: String::new(),
+            }],
+        }
+    }
 }
 
 /// A problem found in a file.

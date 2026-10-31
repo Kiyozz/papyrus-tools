@@ -34,6 +34,7 @@ mod symbols;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use papyrus_dialect::{Dialect, GameId};
 use papyrus_hir::{Database, ParameterHints, Semantics, SourceFile};
@@ -52,6 +53,9 @@ use tower_lsp_server::{
 use analysis::{Analysis, ConfigEdits, Document, Settings, analyze};
 use navigation::Navigator;
 use position::{Columns, LineMap};
+
+/// How long a rename's move is awaited: a later one is the user's.
+const OWN_MOVE_LIFETIME: Duration = Duration::from_secs(30);
 
 /// What the server knows about one project: the folder of a `papyrus.toml`,
 /// or a workspace folder without one.
@@ -92,6 +96,9 @@ struct State {
     can_rename: bool,
     /// The client takes the type hierarchy at the server's request.
     can_register_types: bool,
+    /// The files a rename sent to move, and when: the client applies it
+    /// shortly after, unless the user declined.
+    own_moves: HashMap<String, Instant>,
     /// The semantic model.
     db: Database,
     /// The model's file of each script read, by path; a document without a
@@ -744,6 +751,15 @@ impl Backend {
     }
 }
 
+/// What identifies a moved file: the spelling of a URI, and of a Windows drive,
+/// differs from one side to the other.
+fn move_key(uri: &Uri) -> String {
+    file_path(uri).map_or_else(
+        || uri.as_str().to_owned(),
+        |path| path.to_string_lossy().to_ascii_lowercase(),
+    )
+}
+
 fn file_path(uri: &Uri) -> Option<PathBuf> {
     (uri.scheme().as_str() == "file")
         .then(|| uri.to_file_path().map(|p| p.into_owned()))
@@ -1166,18 +1182,42 @@ impl LanguageServer for Backend {
                 can_create: state.can_create,
             };
             let mut actions = analysis::code_actions(&uri, document, &analysis, map, range, config);
-            // A use following the naming convention its declaration breaks:
-            // the declaration takes its case, across the project.
+            // What only a rename across the project can fix.
             for lint in &analysis.lints {
-                if lint.lint.code != papyrus_lint::NAMES_CASE.code
-                    || lint.range.intersect(range).is_none()
-                {
+                if lint.range.intersect(range).is_none() {
                     continue;
                 }
+                let code = lint.lint.code;
+                let name = document
+                    .decoded
+                    .text
+                    .get(std::ops::Range::<usize>::from(lint.range));
+                let wanted = match name {
+                    // Already fixed in the file, or left to an explicit choice.
+                    _ if lint.fix.is_some() || lint.unsafe_fix.is_some() => None,
+                    Some(name) if code == papyrus_lint::NAMING_FUNCTIONS.code => {
+                        Some((name, papyrus_lint::to_pascal(name)))
+                    }
+                    Some(name)
+                        if code == papyrus_lint::NAMING_LOCALS.code
+                            || code == papyrus_lint::NAMING_VARIABLES.code =>
+                    {
+                        Some((name, papyrus_lint::to_lower_camel(name)))
+                    }
+                    _ => None,
+                };
                 let position = map.position(lint.range.start());
                 let renamed = state
-                    .navigate(&uri, position, |nav, project, file, offset| {
-                        nav.rename_declaration(project, file, offset)
+                    .navigate(&uri, position, |nav, project, file, offset| match &wanted {
+                        Some((old, new)) => {
+                            nav.rename_to_convention(project, file, offset, old, new)
+                        }
+                        // A use following the naming convention its
+                        // declaration breaks: the declaration takes its case.
+                        None if code == papyrus_lint::NAMES_CASE.code => {
+                            nav.rename_declaration(project, file, offset)
+                        }
+                        None => None,
                     })
                     .flatten();
                 if let Some((title, edit)) = renamed {
@@ -1446,6 +1486,12 @@ impl LanguageServer for Backend {
             else {
                 continue;
             };
+            // VSCode asks about the moves of a rename too: its edits are
+            // already made, those it would get here would touch the old file.
+            let own = self.state().own_moves.remove(&move_key(&old));
+            if own.is_some_and(|sent| sent.elapsed() < OWN_MOVE_LIFETIME) {
+                continue;
+            }
             let Some(path) = file_path(&new).filter(|path| is_script(path)) else {
                 continue;
             };
@@ -1507,6 +1553,16 @@ impl LanguageServer for Backend {
         match result {
             None => Ok(None),
             Some(Ok((edit, warning))) => {
+                if let Some(DocumentChanges::Operations(operations)) = &edit.document_changes {
+                    let mut state = self.state();
+                    for operation in operations {
+                        if let DocumentChangeOperation::Op(ResourceOp::Rename(rename)) = operation {
+                            state
+                                .own_moves
+                                .insert(move_key(&rename.old_uri), Instant::now());
+                        }
+                    }
+                }
                 if let Some(warning) = warning {
                     self.client
                         .show_message(MessageType::WARNING, format!("papyrus: {warning}"))

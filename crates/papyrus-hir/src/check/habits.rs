@@ -61,7 +61,11 @@ impl Semantics<'_> {
                             "`{}` is assigned to itself: this does nothing",
                             compact(&target)
                         ),
-                        fixes: Vec::new(),
+                        fixes: vec![Fix::remove_lines(
+                            "Remove the assignment",
+                            file.text(self.db()),
+                            trimmed(node),
+                        )],
                     });
                 }
             }
@@ -254,11 +258,23 @@ impl Semantics<'_> {
             if !read {
                 let range =
                     child(&decl, SyntaxKind::NAME).map_or_else(|| trimmed(&decl), |n| trimmed(&n));
+                // Assigned somewhere, removing it alone would not compile.
+                let assigned = name_refs.iter().any(|r| {
+                    compact(r).eq_ignore_ascii_case(name)
+                        && self.resolve_name_ref(file, r) == Some(Def::Item { file, index })
+                });
+                let fixes = (!assigned)
+                    .then(|| {
+                        let title = "Remove the variable";
+                        Fix::remove_lines(title, file.text(self.db()), trimmed(&decl))
+                    })
+                    .into_iter()
+                    .collect();
                 out.push(Diagnostic {
                     problem: Problem::UnusedVariable,
                     range,
                     message: format!("the script variable `{name}` is never read"),
-                    fixes: Vec::new(),
+                    fixes,
                 });
             }
         }
@@ -278,7 +294,11 @@ impl Semantics<'_> {
                     message: format!(
                         "nothing of `{written}` is used unqualified: the `Import` can go"
                     ),
-                    fixes: Vec::new(),
+                    fixes: vec![Fix::remove_lines(
+                        "Remove the `Import`",
+                        file.text(self.db()),
+                        trimmed(&import),
+                    )],
                 });
             }
         }

@@ -156,6 +156,10 @@ alone on the line before. `all` covers every lint.
 nothing for the compiler and cannot collide with anything. Properties are only
 renamed with `--fix --unsafe`: plugins (`.esp`, `.esm`) bind them by name.
 
+The editor goes further with quick fixes the user picks: `naming/*` renames a
+name across the project unless the new one is taken in the file, and a useless
+`Import`, assignment, variable or local whose value is a literal can be removed.
+
 `papyrus explain <code>` says why a lint matters, with an example and what to
 do about it.
 

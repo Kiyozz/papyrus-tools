@@ -243,6 +243,35 @@ impl Navigator<'_> {
         Some((format!("Rename the declaration to `{new_name}`"), edit))
     }
 
+    /// The name at `offset` renamed to `new_name`, the convention's, across
+    /// the project: the action's title and its edits. Nothing if the file
+    /// already holds that name: the rename would merge the two.
+    pub(crate) fn rename_to_convention(
+        &self,
+        project: Project,
+        file: SourceFile,
+        offset: TextSize,
+        old_name: &str,
+        new_name: &str,
+    ) -> Option<(String, WorkspaceEdit)> {
+        let root = Semantics::new(self.db, project).root(file);
+        let taken = !old_name.eq_ignore_ascii_case(new_name)
+            && root
+                .descendants_with_tokens()
+                .filter_map(|element| element.into_token())
+                .any(|token| token.text().eq_ignore_ascii_case(new_name));
+        if taken {
+            return None;
+        }
+        let (edit, warning) = self.rename(project, file, offset, new_name).ok()?;
+        let note = if warning.is_some() {
+            " (plugins bind it by name)"
+        } else {
+            ""
+        };
+        Some((format!("Rename to `{new_name}`{note}"), edit))
+    }
+
     /// The edits of a rename, and the warning to show.
     pub(crate) fn rename(
         &self,
