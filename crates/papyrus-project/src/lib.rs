@@ -11,9 +11,11 @@ pub mod discover;
 pub mod edit;
 pub mod encoding;
 pub mod flags;
+pub mod ppj;
 pub mod project;
 
 pub use config::{BuildConfig, Config, ConfigError, IndentSetting, Level};
 pub use discover::{DiscoverOptions, discover};
 pub use encoding::{Decoded, SourceEncoding, decode, encode};
+pub use ppj::Sources;
 pub use project::{ConfigLocator, Project, ProjectError, projects};

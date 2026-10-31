@@ -27,6 +27,7 @@
   "main": "./dist/extension.js",
   "activationEvents": [
     "workspaceContains:**/papyrus.toml",
+    "workspaceContains:**/*.ppj",
     "onTaskType:papyrus"
   ],
   "contributes": {

@@ -1339,6 +1339,54 @@ async fn without_papyrus_toml_one_is_created() {
 }
 
 #[tokio::test]
+async fn a_ppj_makes_a_project() {
+    let dir = std::env::temp_dir().join(format!("papyrus-lsp-ppj-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(dir.join("Source")).unwrap();
+    std::fs::create_dir_all(dir.join("Lib")).unwrap();
+    std::fs::write(
+        dir.join("mod.ppj"),
+        r#"<PapyrusProject xmlns="PapyrusProject.xsd" Game="sse">
+          <Imports><Import>Source</Import><Import>Lib</Import></Imports>
+          <Folders><Folder>Source</Folder></Folders>
+        </PapyrusProject>"#,
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("Lib/Base.psc"),
+        "ScriptName Base extends Quest\nFunction Helper()\nEndFunction\n",
+    )
+    .unwrap();
+    let text = "ScriptName MyQuest extends Base\nFunction F()\n    Helper()\nEndFunction\n";
+    let script = dir.join("Source/MyQuest.psc");
+    std::fs::write(&script, text).unwrap();
+    let mut client = editing_client(&dir).await;
+
+    client
+        .notify(
+            "textDocument/didOpen",
+            json!({ "textDocument": {
+                "uri": uri(&script), "languageId": "papyrus", "version": 1, "text": text,
+            } }),
+        )
+        .await;
+    let published = client
+        .wait(|m| m["method"] == "textDocument/publishDiagnostics")
+        .await;
+    assert_eq!(codes(&published), Vec::<String>::new());
+
+    // A papyrus.toml created there builds on it.
+    let command = json!({ "command": "papyrus.server.createConfig", "arguments": [uri(&dir)] });
+    client.request("workspace/executeCommand", command).await;
+    let written = std::fs::read_to_string(dir.join("papyrus.toml")).unwrap();
+    assert!(written.contains("ppj = \"mod.ppj\""), "{written}");
+
+    client.request("shutdown", Value::Null).await;
+    client.notify("exit", Value::Null).await;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
 async fn a_declaration_against_the_convention_takes_the_case_of_its_use() {
     let dir = std::env::temp_dir().join(format!("papyrus-lsp-case-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();

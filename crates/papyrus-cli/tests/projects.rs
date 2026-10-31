@@ -396,6 +396,92 @@ fn reports_go_to_standard_output() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+/// A mod described by a `.ppj`, with a script it leaves out.
+fn ppj_project(name: &str) -> PathBuf {
+    let ugly = "ScriptName Listed extends Quest\nFunction F()\n  int unused = 1\nEndFunction\n";
+    tree(
+        name,
+        &[
+            ("mod/Source/Listed.psc", ugly),
+            (
+                "mod/Source/Left.psc",
+                "ScriptName Left extends Quest\nFunction G()\n  int unused = 1\nEndFunction\n",
+            ),
+            ("mod/Lib/Base.psc", "ScriptName Base extends Quest\n"),
+            (
+                "mod/mod.ppj",
+                r#"<PapyrusProject xmlns="PapyrusProject.xsd" Game="sse">
+                  <Imports><Import>Source</Import><Import>Lib</Import><Import>Z:\none</Import></Imports>
+                  <Scripts><Script>Listed.psc</Script></Scripts>
+                  <PostBuildEvent><Command>exit 1</Command></PostBuildEvent>
+                </PapyrusProject>"#,
+            ),
+        ],
+    )
+}
+
+#[test]
+fn a_ppj_is_a_configuration() {
+    let root = ppj_project("ppj");
+    let found = papyrus(&root.join("mod"), &["check"], "");
+    let stdout = String::from_utf8_lossy(&found.stdout);
+    let stderr = String::from_utf8_lossy(&found.stderr);
+    assert!(
+        stdout.contains("Listed.psc") || stderr.contains("Listed.psc"),
+        "{stdout}{stderr}"
+    );
+    assert!(
+        !stdout.contains("Left.psc") && !stderr.contains("Left.psc"),
+        "{stdout}{stderr}"
+    );
+    assert!(
+        stderr.contains("import `Z:\\none`: not found, skipped"),
+        "{stderr}"
+    );
+    assert!(stderr.contains("1 file(s) checked"), "{stderr}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn init_names_the_ppj() {
+    let root = ppj_project("ppj-init");
+    let dir = root.join("mod");
+    let made = papyrus(&dir, &["init"], "");
+    assert!(made.status.success());
+    let stderr = String::from_utf8_lossy(&made.stderr);
+    assert!(stderr.contains("PostBuildEvent"), "{stderr}");
+    let toml = std::fs::read_to_string(dir.join("papyrus.toml")).unwrap();
+    assert!(
+        toml.contains("ppj = \"mod.ppj\"") && toml.contains("game = \"skyrim\""),
+        "{toml}"
+    );
+
+    // Still only what it lists, with papyrus.toml on top.
+    std::fs::write(
+        dir.join("papyrus.toml"),
+        format!("{toml}\n[lints]\n\"locals/unused\" = \"allow\"\n").replace("[lints]\n#", "#"),
+    )
+    .unwrap();
+    let found = papyrus(&dir, &["check"], "");
+    let stderr = String::from_utf8_lossy(&found.stderr);
+    assert!(
+        stderr.contains("1 file(s) checked: 0 error(s), 0 warning(s)"),
+        "{stderr}"
+    );
+
+    // Two of them: nothing chosen behind the user's back.
+    std::fs::remove_file(dir.join("papyrus.toml")).unwrap();
+    std::fs::copy(dir.join("mod.ppj"), dir.join("other.ppj")).unwrap();
+    let refused = papyrus(&dir, &["init"], "");
+    assert!(!refused.status.success());
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("--ppj"));
+    let refused = papyrus(&dir, &["check"], "");
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("2 `.ppj` files"));
+    let made = papyrus(&dir, &["init", "--ppj", "other.ppj"], "");
+    assert!(made.status.success());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 #[test]
 fn stdin_takes_the_place_of_the_file() {
     let root = tree(

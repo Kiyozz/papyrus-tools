@@ -22,7 +22,7 @@ papyrus check --fix --unsafe .                    # and the case of properties
 papyrus fmt .                                     # format in place
 papyrus fmt --check --indent tab .                # CI: fail if a file needs formatting
 papyrus build                                     # compile with PapyrusCompiler or Caprica
-papyrus init                                      # write a papyrus.toml, the game inferred
+papyrus init                                      # write a papyrus.toml, on top of a .ppj if there is one
 papyrus lints                                     # list the lints
 papyrus explain PAP015                            # what a lint means, and what to do
 papyrus check --write-baseline                    # adopt on an old mod: only new problems from now on
@@ -100,6 +100,18 @@ framework, another mod — relative to papyrus.toml, like the compiler's import
 folders. They are read to follow `extends` and calls, for the lints and the
 editor, but never checked nor changed. A project's own script wins over an
 imported one of the same name.
+
+A `.ppj`, the Creation Kit's or [Pyro](https://github.com/fireundubh/pyro)'s,
+needs no configuration: in a folder without `papyrus.toml`, it is one. `check`,
+`fmt`, `build` and the editor read its `Game`, `Imports`, `Folders`, `Scripts`,
+`Flags`, `Output`, `Optimize`, `Release`, `Final` and `Variables`. Its project
+is what it lists, wherever that is, rather than the scripts of the folder. An
+import that is not on this machine or is remote is skipped with a note. To set
+what a `.ppj` cannot say, `papyrus init` writes a `papyrus.toml` naming it with
+`ppj = "mod.ppj"`: the `.ppj` stays the source, and what `papyrus.toml` sets
+wins, `imports` adding up. Several `.ppj` in a folder need that key, or
+`papyrus init --ppj`. Pyro's packages, archives and build events are left to
+Pyro: nothing of a `.ppj` is ever run.
 
 ### Lints
 
@@ -308,7 +320,8 @@ line they name. The compiler comes from `--compiler`, `compiler` under
 It is given, in order: the project's source folders — for Fallout 4 and
 Starfield, the folder above each namespace —, its `imports`, then the game's
 own sources, found next to the Creation Kit's compiler; with Caprica, list
-them in `imports`. Each source folder is compiled whole, fragments included.
+them in `imports`. Each source folder is compiled whole, fragments included,
+unless a `.ppj` lists only part of it: its scripts then go one by one.
 The flags are `flags`, else the game's, looked up in those folders. Caprica's
 language extensions are not supported: `papyrus check` would reject them.
 Caprica writes no `.pex` at all once a script fails, where the Creation Kit's

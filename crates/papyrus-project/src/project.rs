@@ -5,17 +5,22 @@
 //! first `papyrus.toml` found walking up from it; scripts no `papyrus.toml`
 //! covers belong to the root they were found under, with the defaults.
 //!
+//! A `.ppj` in a folder without `papyrus.toml` stands for one, and a
+//! `papyrus.toml` can name one. Its project is then what it lists, wherever
+//! that is, rather than the scripts of the folder.
+//!
 //! Projects are sealed: a script only sees the scripts of its own project.
 //! Following `extends` into another project, a shared library for instance,
 //! is left to an explicit setting.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::config::{Config, ConfigError, FILE_NAME};
 use crate::discover::{is_fragment_dir, is_fragment_name, is_script};
+use crate::ppj::Sources;
 
 /// The scripts of one project, and its configuration.
 #[derive(Debug, Clone)]
@@ -62,7 +67,8 @@ pub struct ConfigLocator {
 }
 
 impl ConfigLocator {
-    /// The `papyrus.toml` covering `path`, a file or a folder.
+    /// The `papyrus.toml`, or else the `.ppj`, covering `path`, a file or a
+    /// folder.
     pub fn locate(&mut self, path: &Path) -> Option<PathBuf> {
         let path = std::path::absolute(path).unwrap_or_else(|_| path.to_owned());
         let dir = if path.is_dir() {
@@ -80,6 +86,8 @@ impl ConfigLocator {
         let candidate = dir.join(FILE_NAME);
         let found = if candidate.is_file() {
             Some(candidate)
+        } else if let Some(ppj) = crate::ppj::in_folder(dir).into_iter().next() {
+            Some(ppj)
         } else {
             dir.parent().and_then(|parent| self.locate_dir(parent))
         };
@@ -99,6 +107,7 @@ pub fn projects(roots: &[PathBuf], include_fragments: bool) -> Result<Vec<Projec
         configs: HashMap::new(),
         include_fragments,
         projects: BTreeMap::new(),
+        listed: HashSet::new(),
     };
     for root in roots {
         let root = std::path::absolute(root).unwrap_or_else(|_| root.clone());
@@ -120,7 +129,9 @@ pub fn projects(roots: &[PathBuf], include_fragments: bool) -> Result<Vec<Projec
         .map(|(root, (config, mut scripts))| {
             scripts.sort();
             scripts.dedup();
-            let imported = imported(&config)?;
+            // A `.ppj` imports its own folders too.
+            let mut imported = imported(&config)?;
+            imported.retain(|path| scripts.binary_search(path).is_err());
             Ok(Project {
                 root,
                 config,
@@ -149,6 +160,8 @@ struct Gather {
     configs: HashMap<PathBuf, Config>,
     include_fragments: bool,
     projects: BTreeMap<PathBuf, (Config, Vec<PathBuf>)>,
+    /// The projects whose `.ppj` was listed.
+    listed: HashSet<PathBuf>,
 }
 
 impl Gather {
@@ -158,9 +171,7 @@ impl Gather {
             return Ok((fallback.to_owned(), Config::default()));
         };
         if !self.configs.contains_key(&path) {
-            let text =
-                std::fs::read_to_string(&path).map_err(|e| ProjectError::Io(path.clone(), e))?;
-            let config = Config::parse(&text, &path).map_err(ProjectError::Config)?;
+            let config = Config::load(&path).map_err(ProjectError::Config)?;
             self.configs.insert(path.clone(), config);
         }
         let root = path.parent().unwrap_or(&path).to_owned();
@@ -177,9 +188,42 @@ impl Gather {
         Ok(())
     }
 
+    /// Adds what the `.ppj` of the project at `root` lists; from a folder
+    /// inside the project, only what is under it.
+    fn list(
+        &mut self,
+        root: PathBuf,
+        config: Config,
+        sources: &Sources,
+        fragments: bool,
+        walked: &Path,
+    ) -> Result<(), ProjectError> {
+        if !self.listed.insert(root.clone()) {
+            return Ok(());
+        }
+        let whole = root.starts_with(walked);
+        let scripts = sources
+            .list(fragments)
+            .map_err(|e| ProjectError::Io(root.clone(), e))?;
+        self.projects
+            .entry(root)
+            .or_insert_with(|| (config, Vec::new()))
+            .1
+            .extend(
+                scripts
+                    .into_iter()
+                    .filter(|s| whole || s.starts_with(walked)),
+            );
+        Ok(())
+    }
+
     fn walk(&mut self, dir: &Path, fallback: &Path) -> Result<(), ProjectError> {
-        let (_, config) = self.config(dir, fallback)?;
+        let (root, config) = self.config(dir, fallback)?;
         let fragments = self.include_fragments || config.include_fragments;
+        let sources = config.sources.clone();
+        if let Some(sources) = &sources {
+            self.list(root, config, sources, fragments, fallback)?;
+        }
         let entries = std::fs::read_dir(dir).map_err(|e| ProjectError::Io(dir.to_owned(), e))?;
         for entry in entries {
             let path = entry
@@ -189,7 +233,10 @@ impl Gather {
                 if fragments || !is_fragment_dir(&path) {
                     self.walk(&path, fallback)?;
                 }
-            } else if is_script(&path) && (fragments || !is_fragment_name(&path)) {
+            } else if sources.is_none()
+                && is_script(&path)
+                && (fragments || !is_fragment_name(&path))
+            {
                 self.add(&path, fallback)?;
             }
         }

@@ -66,13 +66,17 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
   apart, drops the parentheses of conditions, writes keywords in PascalCase
   on demand.
 
-## Next
-
 - **v0.13 — The CLI and the server, completed.** `papyrus init`, `papyrus
   explain`, `--stdin`, a baseline for older mods, `--message-format json` and
-  SARIF; a script renamed with its file, range formatting, type hierarchy.
+  SARIF; `--fix` removing what does nothing, `--fix --unsafe` renaming across
+  files; a script renamed with its file, namespaces following folders, range
+  formatting, type hierarchy; recursion shown in the editor, `PAP041`.
+  Exit criterion: vanilla scripts of the three games compile after the fixes.
+
+## Next
+
 - **v0.14 — `.ppj` projects.** Pyro's and the Creation Kit's project files read
-  as a configuration, and imported into `papyrus.toml`.
+  as a configuration, and named from `papyrus.toml`.
 - **v0.15 — `.pex`.** A reader and a disassembler in Rust, a read-only view in
   the editor.
 - **v0.16 — A debugger.** Starts with a discovery: reuse or fork the xSE plugin

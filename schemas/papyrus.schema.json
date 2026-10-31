@@ -1866,6 +1866,10 @@
       },
       "type": "object"
     },
+    "ppj": {
+      "description": "A Creation Kit or Pyro project read underneath this file, relative to it: its scripts become the project's.",
+      "type": "string"
+    },
     "skse": {
       "default": false,
       "description": "Skyrim with SKSE installed: its functions and scripts are known.",

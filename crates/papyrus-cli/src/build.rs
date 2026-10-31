@@ -4,8 +4,9 @@
 use std::path::{Path, PathBuf};
 
 use papyrus_build::{Compiler, CompilerKind, Job, Message, Severity as BuildSeverity};
+use papyrus_dialect::GameId;
 use papyrus_lint::ScriptSummary;
-use papyrus_project::decode;
+use papyrus_project::{DiscoverOptions, decode};
 
 use crate::report::{Diagnostic, Reporter, Severity};
 use crate::{BuildArgs, Settings, read};
@@ -46,6 +47,36 @@ fn named(settings: &Settings) -> Vec<(PathBuf, String)> {
             let summary = ScriptSummary::of(&parse.syntax())?;
             Some((path.clone(), summary.name))
         })
+        .collect()
+}
+
+/// What to compile in `root`: the whole folder, or the scripts one by one
+/// when a `.ppj` lists only part of it, relative to `root`.
+fn units(settings: &Settings, root: &Path, game: GameId) -> Vec<Option<PathBuf>> {
+    if settings.config.sources.is_none() {
+        return vec![None];
+    }
+    // Only the compilers of the games with namespaces recurse.
+    let compiled = |path: &&PathBuf| {
+        path.starts_with(root) && (game.rank() >= 1 || path.parent() == Some(root))
+    };
+    let options = DiscoverOptions {
+        include_fragments: true,
+    };
+    let all = papyrus_project::discover(&[root.to_owned()], options).unwrap_or_default();
+    if all
+        .iter()
+        .filter(compiled)
+        .all(|p| settings.scripts.contains(p))
+    {
+        return vec![None];
+    }
+    settings
+        .scripts
+        .iter()
+        .filter(compiled)
+        .filter_map(|path| path.strip_prefix(root).ok())
+        .map(|path| Some(path.to_owned()))
         .collect()
 }
 
@@ -117,14 +148,16 @@ pub(crate) fn build(
         );
         files += scripts.len();
         for root in &roots {
-            let outcome = papyrus_build::compile(&compiler, &job, root)
-                .map_err(|e| format!("{}: {e}", compiler.path.display()))?;
-            success &= outcome.success;
-            for message in &outcome.messages {
-                report(message, name, reporter);
-            }
-            for line in &outcome.other {
-                reporter.general(line);
+            for script in units(settings, root, game) {
+                let outcome = papyrus_build::compile(&compiler, &job, root, script.as_deref())
+                    .map_err(|e| format!("{}: {e}", compiler.path.display()))?;
+                success &= outcome.success;
+                for message in &outcome.messages {
+                    report(message, name, reporter);
+                }
+                for line in &outcome.other {
+                    reporter.general(line);
+                }
             }
         }
     }
