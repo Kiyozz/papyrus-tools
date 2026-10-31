@@ -223,6 +223,8 @@ fn sarif_report(records: &[Record]) -> Value {
                 "id": lint.code,
                 "name": lint.name,
                 "shortDescription": { "text": lint.description },
+                // Code scanning requires it.
+                "fullDescription": { "text": explanation(lint) },
                 "help": { "text": explanation(lint) },
                 "defaultConfiguration": { "level": level },
             })

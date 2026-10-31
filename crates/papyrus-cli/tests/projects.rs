@@ -386,6 +386,13 @@ fn reports_go_to_standard_output() {
     let location = &result["locations"][0]["physicalLocation"];
     assert_eq!(location["artifactLocation"]["uri"], "MyQuest.psc");
     assert_eq!(location["region"]["startLine"], 3);
+    // What code scanning requires of a rule.
+    for rule in log["runs"][0]["tool"]["driver"]["rules"]
+        .as_array()
+        .unwrap()
+    {
+        assert!(rule["fullDescription"]["text"].is_string(), "{rule}");
+    }
     let _ = std::fs::remove_dir_all(&root);
 }
 
