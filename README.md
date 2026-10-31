@@ -467,6 +467,9 @@ required to build the project.
 PAPYRUS_CORPUS_SKYRIM=".../Skyrim Special Edition/Data/Source/Scripts" \
 PAPYRUS_CORPUS_FALLOUT4=".../Fallout 4/Data/Scripts/Source" \
 PAPYRUS_CORPUS_STARFIELD=".../Starfield/Data/Scripts/Source" \
+PAPYRUS_COMPILER_SKYRIM=".../PapyrusCompiler.exe" \
+PAPYRUS_COMPILER_FALLOUT4=".../PapyrusCompiler.exe" \
+PAPYRUS_COMPILER_STARFIELD=".../PapyrusCompiler.exe" \
   cargo test --release --workspace \
     --features papyrus-syntax/external-corpus,papyrus-fmt/external-corpus,papyrus-lint/external-corpus,papyrus-project/external-corpus,papyrus-hir/external-corpus \
     -- --nocapture

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PapyrusProject xmlns="PapyrusProject.xsd" Flags="GAME_FLAGS" Output="Build">
+  <Imports>
+    <Import>Source</Import>
+    <Import>Lib</Import>
+    <Import>GAME_SOURCES</Import>
+  </Imports>
+  <Folders>
+    <Folder NoRecurse="true">Source</Folder>
+  </Folders>
+</PapyrusProject>

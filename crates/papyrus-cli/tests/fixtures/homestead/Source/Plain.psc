@@ -1,0 +1,1 @@
+ScriptName Plain extends Quest
