@@ -111,21 +111,28 @@ pub(crate) fn build(
         })?;
         let compiler = compiler(settings, args, game)?;
         let alone = settings.scripts.iter().all(|path| given.contains(path));
-        let scripts = if alone {
-            named(settings, &whole_project(settings))
-        } else {
-            named(settings, &settings.scripts)
+        let folders = |scripts: &[(PathBuf, String)]| {
+            papyrus_build::roots(scripts.iter().map(|(p, n)| (p.as_path(), n.as_str())))
         };
-        let roots = papyrus_build::outermost(
-            game,
-            papyrus_build::roots(scripts.iter().map(|(p, n)| (p.as_path(), n.as_str()))),
-        );
+        let roots = papyrus_build::outermost(game, folders(&named(settings, &settings.scripts)));
+        // From the names of the scripts compiled alone: a script of the
+        // project out of its namespace's folder would move the others' root.
+        // All the project's folders are searched, even inside one another, for
+        // that same script's folder not to hide them.
+        let mut searched = roots.clone();
+        if alone {
+            for root in folders(&named(settings, &whole_project(settings))) {
+                if !searched.contains(&root) {
+                    searched.push(root);
+                }
+            }
+        }
         let build = &settings.config.build;
         let mut imports = settings.config.imports.clone();
         imports.extend(compiler.game_sources(game));
         let job = Job {
             game,
-            roots: roots.clone(),
+            roots: searched,
             imports,
             flags: settings
                 .config

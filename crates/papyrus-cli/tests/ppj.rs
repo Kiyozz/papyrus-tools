@@ -250,6 +250,11 @@ fn alone(game: &str, config: &str, fixture: &str, base: &str, script: &str, expe
     std::fs::remove_file(root.join("mod.ppj")).unwrap();
     let config = format!("{config}\nimports = [\"{sources}\"]\n[build]\noutput = \"Build\"\n");
     std::fs::write(root.join("papyrus.toml"), config).unwrap();
+    // Out of its namespace's folder: that one is wrong, not the others.
+    if fixture == "homestead" {
+        let stray = root.join("Source/Stray.psc");
+        std::fs::write(stray, "ScriptName Homestead:Stray\n").unwrap();
+    }
     let compiler = compiler.to_string_lossy();
     let built = papyrus(&root, &["build", "--compiler", &compiler, script]);
     let stderr = String::from_utf8_lossy(&built.stderr);
