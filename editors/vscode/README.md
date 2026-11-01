@@ -34,6 +34,9 @@ the Creation Kit — Skyrim, Fallout 4, Starfield.
 - **Papyrus: Create papyrus.toml** writes one at the root of a workspace
   folder, the game inferred from its scripts, the other keys commented out.
 - **Papyrus: Restart the server**.
+- **Papyrus: Compile this script**, in the palette and the context menus of
+  the editor and the explorer, saves and compiles the open or selected scripts
+  alone, their errors in the Problems view. It needs their `papyrus.toml`.
 - **Tasks: Run Build Task** › `papyrus: build` compiles the folder's projects
   with the compiler of `papyrus.toml`; `papyrus: check` reports the lints of
   every script, open or not. In `tasks.json`:

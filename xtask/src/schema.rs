@@ -82,6 +82,7 @@ pub(crate) fn schema() -> String {
                 "items": { "type": "string" },
                 "description": "Folders of scripts the project builds on — a library, another mod, the game's sources — read but never checked, relative to this file.",
             },
+            "ppj": path_value("A Creation Kit or Pyro project read underneath this file, relative to it: its scripts become the project's."),
             "fmt": {
                 "type": "object",
                 "additionalProperties": false,

@@ -504,7 +504,7 @@
           "type": "string"
         },
         "PAP021": {
-          "description": "`ScriptName` other than the name of the file, which the compiler refuses (PAP021, error by default)",
+          "description": "`ScriptName` other than the name of the file, or a namespace without its folder, which the compiler refuses (PAP021, error by default)",
           "enum": [
             "allow",
             "warn",
@@ -1704,7 +1704,7 @@
           "type": "string"
         },
         "scripts/name": {
-          "description": "`ScriptName` other than the name of the file, which the compiler refuses (PAP021, error by default)",
+          "description": "`ScriptName` other than the name of the file, or a namespace without its folder, which the compiler refuses (PAP021, error by default)",
           "enum": [
             "allow",
             "warn",
@@ -1865,6 +1865,10 @@
         }
       },
       "type": "object"
+    },
+    "ppj": {
+      "description": "A Creation Kit or Pyro project read underneath this file, relative to it: its scripts become the project's.",
+      "type": "string"
     },
     "skse": {
       "default": false,

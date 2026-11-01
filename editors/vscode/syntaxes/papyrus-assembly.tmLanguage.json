@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Papyrus Assembly",
+  "scopeName": "source.papyrus-assembly",
+  "patterns": [
+    { "name": "comment.line.semicolon.papyrus-assembly", "match": ";.*$" },
+    {
+      "name": "string.quoted.double.papyrus-assembly",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "name": "constant.character.escape.papyrus-assembly", "match": "\\\\." }
+      ]
+    },
+    { "name": "keyword.control.directive.papyrus-assembly", "match": "(?<![\\w:])\\.[A-Za-z]+\\b" },
+    { "name": "entity.name.label.papyrus-assembly", "match": "\\b_label\\d+\\b" },
+    { "name": "variable.language.temporary.papyrus-assembly", "match": "::[A-Za-z_]\\w*" },
+    { "name": "constant.language.papyrus-assembly", "match": "\\b(?:None|True|False)\\b" },
+    { "name": "constant.numeric.papyrus-assembly", "match": "(?<![\\w.])-?\\d+(?:\\.\\d+)?\\b" },
+    {
+      "match": "^\\s*([A-Z][A-Za-z]+)\\b",
+      "captures": { "1": { "name": "keyword.operator.opcode.papyrus-assembly" } }
+    }
+  ]
+}

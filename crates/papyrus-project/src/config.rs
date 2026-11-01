@@ -30,6 +30,9 @@ use std::str::FromStr;
 use papyrus_dialect::GameId;
 use serde::Deserialize;
 
+use crate::ppj::{self, Sources};
+use crate::project::ConfigLocator;
+
 /// The file name.
 pub const FILE_NAME: &str = "papyrus.toml";
 
@@ -118,6 +121,14 @@ pub struct Config {
     pub lints: BTreeMap<String, Level>,
     /// The `[build]` section.
     pub build: BuildConfig,
+    /// The `.ppj` that `ppj` names, relative to this file.
+    pub ppj: Option<PathBuf>,
+    /// What a `.ppj` lists, in place of the scripts of the project's folder.
+    pub sources: Option<Sources>,
+    /// What could not be followed in a `.ppj`.
+    pub notes: Vec<String>,
+    /// What a `.ppj` asks of Pyro alone: never run here.
+    pub ignored: Vec<String>,
 }
 
 /// An unreadable configuration.
@@ -139,7 +150,7 @@ impl std::error::Error for ConfigError {}
 
 /// `path` without its `.` and `..` components, resolved lexically:
 /// `mod/../lib` becomes `lib`.
-fn normalize(path: &Path) -> PathBuf {
+pub(crate) fn normalize(path: &Path) -> PathBuf {
     use std::path::Component;
     let mut out = PathBuf::new();
     for component in path.components() {
@@ -168,6 +179,7 @@ struct Raw {
     flags: Option<PathBuf>,
     #[serde(default)]
     imports: Vec<PathBuf>,
+    ppj: Option<PathBuf>,
     #[serde(default)]
     fmt: RawFmt,
     #[serde(default)]
@@ -254,6 +266,7 @@ impl Config {
         };
         let flags = raw.flags.map(relative);
         let imports = raw.imports.into_iter().map(relative).collect();
+        let ppj = raw.ppj.map(relative);
         let build = BuildConfig {
             compiler: raw.build.compiler.map(relative),
             output: raw.build.output.map(relative),
@@ -273,29 +286,65 @@ impl Config {
             imports,
             lints,
             build,
+            ppj,
+            ..Config::default()
         })
     }
 
-    /// The configuration that applies to `start`: the first `papyrus.toml`
-    /// found walking up, or the defaults.
-    pub fn discover(start: &Path) -> Result<Config, ConfigError> {
-        let start = std::path::absolute(start).unwrap_or_else(|_| start.to_owned());
-        let dir = if start.is_dir() {
-            Some(start.as_path())
-        } else {
-            start.parent()
-        };
-        for dir in dir.into_iter().flat_map(Path::ancestors) {
-            let candidate = dir.join(FILE_NAME);
-            if candidate.is_file() {
-                let text = std::fs::read_to_string(&candidate).map_err(|e| ConfigError {
-                    path: candidate.clone(),
-                    message: e.to_string(),
-                })?;
-                return Config::parse(&text, &candidate);
+    /// Reads the `papyrus.toml`, with the `.ppj` it names, or the `.ppj`, at
+    /// `path`.
+    pub fn load(path: &Path) -> Result<Config, ConfigError> {
+        if ppj::is_ppj(path) {
+            let others = path.parent().map(ppj::in_folder).unwrap_or_default();
+            if others.len() > 1 {
+                return Err(ConfigError {
+                    path: path.to_owned(),
+                    message: format!(
+                        "{} `.ppj` files in this folder: name one with `ppj` in a {FILE_NAME}",
+                        others.len()
+                    ),
+                });
+            }
+            return ppj::read(path);
+        }
+        let text = std::fs::read_to_string(path).map_err(|e| ConfigError {
+            path: path.to_owned(),
+            message: e.to_string(),
+        })?;
+        let mut config = Config::parse(&text, path)?;
+        if let Some(path) = &config.ppj {
+            let base = ppj::read(path)?;
+            config.layer(base);
+        }
+        Ok(config)
+    }
+
+    /// Completes this configuration with `base`, a `.ppj`'s: what is set
+    /// here wins.
+    fn layer(&mut self, base: Config) {
+        self.game = self.game.or(base.game);
+        self.flags = self.flags.take().or(base.flags);
+        for import in base.imports {
+            if !self.imports.contains(&import) {
+                self.imports.push(import);
             }
         }
-        Ok(Config::default())
+        self.build.output = self.build.output.take().or(base.build.output);
+        self.build.optimize |= base.build.optimize;
+        self.build.release |= base.build.release;
+        self.build.final_ |= base.build.final_;
+        self.sources = base.sources;
+        self.notes = base.notes;
+        self.ignored = base.ignored;
+    }
+
+    /// The configuration that applies to `start`: the first `papyrus.toml`
+    /// or `.ppj` found walking up, or the defaults.
+    pub fn discover(start: &Path) -> Result<Config, ConfigError> {
+        match ConfigLocator::default().locate(start) {
+            Some(path) => Config::load(&path),
+            None => Ok(Config::default()),
+        }
     }
 }
 

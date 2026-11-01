@@ -198,7 +198,12 @@ plugins bind them by name."#
     ; MyQuestScript.psc
     ScriptName MyQuest
 
-Rename one of them: the quick fix rewrites the `ScriptName`."#
+From Fallout 4, a namespace also needs its folder:
+
+    ; Source/Stray.psc, where Source/MyMod/Stray.psc is expected
+    ScriptName MyMod:Stray
+
+Rename one of them, or move the file: the quick fix rewrites the `ScriptName`."#
         }
         "PAP022" => {
             r#"A script cannot be its own ancestor.

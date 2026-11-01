@@ -69,6 +69,12 @@ enum Command {
         /// `PAP015`, `locals/unused` or `baseline`.
         lint: String,
     },
+    /// Print a compiled script (.pex) as assembly, in the format of
+    /// PapyrusAssembler.
+    Disassemble {
+        /// The `.pex` file.
+        file: PathBuf,
+    },
     /// Run the language server on standard input and output, for an
     /// editor.
     Lsp,
@@ -193,6 +199,11 @@ struct InitArgs {
     /// Target game. Inferred from the scripts by default.
     #[arg(long, short)]
     game: Option<GameId>,
+
+    /// The Creation Kit or Pyro project to read, relative to the folder. By
+    /// default, the only `.ppj` of the folder.
+    #[arg(long)]
+    ppj: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -247,6 +258,11 @@ impl Settings {
         let projects = papyrus_project::projects(&roots, common.include_fragments)
             .map_err(|e| e.to_string())?;
         let several = projects.len() > 1;
+        for project in &projects {
+            for note in &project.config.notes {
+                eprintln!("note: {}: {note}", project.root.display());
+            }
+        }
         projects
             .into_iter()
             .map(|project| Settings::of(project, common, indent, several))
@@ -429,6 +445,7 @@ fn main() -> ExitCode {
             Ok(true)
         }
         Command::Explain { lint } => explain(&lint),
+        Command::Disassemble { file } => disassemble(&file),
         Command::Lsp => papyrus_lsp::run().map(|()| true).map_err(|e| e.to_string()),
     };
     if result.is_ok() {
@@ -475,6 +492,16 @@ fn explain(key: &str) -> Result<bool, String> {
     Ok(true)
 }
 
+fn disassemble(file: &Path) -> Result<bool, String> {
+    let error = |e: &dyn std::fmt::Display| format!("{}: {e}", file.display());
+    let bytes = std::fs::read(file).map_err(|e| error(&e))?;
+    let pex = papyrus_pex::Pex::read(&bytes).map_err(|e| error(&e))?;
+    std::io::stdout()
+        .write_all(papyrus_pex::disassemble(&pex).as_bytes())
+        .map_err(|e| e.to_string())?;
+    Ok(true)
+}
+
 /// Writes a papyrus.toml for the scripts under the folder.
 fn init(args: &InitArgs) -> Result<bool, String> {
     let dir = args.path.clone().unwrap_or_else(|| PathBuf::from("."));
@@ -492,9 +519,39 @@ fn init(args: &InitArgs) -> Result<bool, String> {
         },
     )
     .map_err(|e| e.to_string())?;
-    let game = args.game.or_else(|| detect(&scripts, None));
-    std::fs::write(&path, papyrus_project::edit::template(game))
+    let several = papyrus_project::ppj::in_folder(&dir).len();
+    let ppj = match &args.ppj {
+        Some(ppj) => Some(ppj.to_string_lossy().into_owned()),
+        None if several > 1 => {
+            return Err(format!(
+                "{}: {several} `.ppj` files: choose one with `--ppj`",
+                dir.display()
+            ));
+        }
+        None => papyrus_project::edit::sole_ppj(&dir),
+    };
+    let base = ppj
+        .as_ref()
+        .map(|ppj| papyrus_project::ppj::read(&dir.join(ppj)).map_err(|e| e.to_string()))
+        .transpose()?;
+    let game = args
+        .game
+        .or(base.as_ref().and_then(|base| base.game))
+        .or_else(|| detect(&scripts, None));
+    std::fs::write(&path, papyrus_project::edit::template(game, ppj.as_deref()))
         .map_err(|e| format!("{}: {e}", path.display()))?;
+    if let Some(base) = base {
+        eprintln!("reading {}", ppj.unwrap_or_default());
+        for note in &base.notes {
+            eprintln!("note: {note}");
+        }
+        if !base.ignored.is_empty() {
+            eprintln!(
+                "note: left to Pyro, never run here: {}",
+                base.ignored.join(", ")
+            );
+        }
+    }
     eprintln!(
         "created {}, for {} script(s) — `papyrus check` runs on them",
         path.display(),

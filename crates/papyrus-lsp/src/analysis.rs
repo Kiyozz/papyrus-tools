@@ -293,7 +293,9 @@ impl ConfigEdits {
         }
         let path = document.project.join(papyrus_project::config::FILE_NAME);
         let uri = Uri::from_file_path(&path)?;
-        let text = config::apply(&config::template(game), change)?;
+        // Beside a `.ppj`, it must not hide it.
+        let ppj = config::sole_ppj(&document.project);
+        let text = config::apply(&config::template(game, ppj.as_deref()), change)?;
         let create = DocumentChangeOperation::Op(ResourceOp::Create(CreateFile {
             uri: uri.clone(),
             options: Some(CreateFileOptions {

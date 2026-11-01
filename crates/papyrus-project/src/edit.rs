@@ -61,13 +61,25 @@ fn set(item: &mut Item, new: impl Into<toml_edit::Value>) {
     *item = new;
 }
 
-/// A new `papyrus.toml` for a project targeting `game`, its other keys
-/// commented out.
-pub fn template(game: Option<GameId>) -> String {
+/// The name of the only `.ppj` of `dir`, for [`template`].
+pub fn sole_ppj(dir: &std::path::Path) -> Option<String> {
+    match crate::ppj::in_folder(dir).as_slice() {
+        [only] => Some(only.file_name()?.to_string_lossy().into_owned()),
+        _ => None,
+    }
+}
+
+/// A new `papyrus.toml` for a project targeting `game`, on top of the `.ppj`
+/// of that name, its other keys commented out.
+pub fn template(game: Option<GameId>, ppj: Option<&str>) -> String {
     let mut out = format!(
         "#:schema {SCHEMA_URL}\n\
          # Papyrus project: https://github.com/Kiyozz/papyrus-tools#configuration\n\n"
     );
+    match ppj {
+        Some(ppj) => out.push_str(&format!("ppj = \"{ppj}\"\n")),
+        None => out.push_str("# ppj = \"mod.ppj\"  # a Creation Kit or Pyro project to read\n"),
+    }
     match game {
         Some(game) => out.push_str(&format!("game = \"{}\"\n", game.as_str())),
         None => out.push_str("# game = \"skyrim\"  # fallout4, fallout76, starfield\n"),
@@ -92,7 +104,7 @@ pub fn template(game: Option<GameId>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     use super::*;
     use crate::Config;
@@ -160,10 +172,12 @@ mod tests {
     fn the_template_reads() {
         let path = Path::new("/project/papyrus.toml");
         for game in [None, Some(GameId::Skyrim), Some(GameId::Starfield)] {
-            let text = template(game);
+            let text = template(game, None);
             let config = Config::parse(&text, path).unwrap();
             assert_eq!(config.game, game);
             assert_eq!(text.contains("skse"), game != Some(GameId::Starfield));
         }
+        let config = Config::parse(&template(None, Some("mod.ppj")), path).unwrap();
+        assert_eq!(config.ppj, Some(PathBuf::from("/project/mod.ppj")));
     }
 }

@@ -575,7 +575,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "papyrus-build"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "papyrus-dialect",
  "papyrus-syntax",
@@ -583,7 +583,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-cli"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "ariadne",
  "clap",
@@ -593,6 +593,7 @@ dependencies = [
  "papyrus-hir",
  "papyrus-lint",
  "papyrus-lsp",
+ "papyrus-pex",
  "papyrus-project",
  "papyrus-syntax",
  "salsa",
@@ -602,11 +603,11 @@ dependencies = [
 
 [[package]]
 name = "papyrus-dialect"
-version = "0.13.0"
+version = "0.14.0"
 
 [[package]]
 name = "papyrus-fmt"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "papyrus-dialect",
@@ -616,7 +617,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-hir"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "papyrus-dialect",
  "papyrus-project",
@@ -628,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-lint"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "papyrus-dialect",
@@ -640,7 +641,7 @@ dependencies = [
 
 [[package]]
 name = "papyrus-lsp"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "line-index",
  "papyrus-dialect",
@@ -657,13 +658,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "papyrus-pex"
+version = "0.14.0"
+dependencies = [
+ "encoding_rs",
+]
+
+[[package]]
 name = "papyrus-project"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "encoding_rs",
  "papyrus-dialect",
  "papyrus-stdlib",
  "papyrus-syntax",
+ "roxmltree",
  "serde",
  "toml",
  "toml_edit",
@@ -671,14 +680,14 @@ dependencies = [
 
 [[package]]
 name = "papyrus-stdlib"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "papyrus-dialect",
 ]
 
 [[package]]
 name = "papyrus-syntax"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "insta",
  "logos",
@@ -830,6 +839,12 @@ dependencies = [
  "rustc-hash 1.1.0",
  "text-size",
 ]
+
+[[package]]
+name = "roxmltree"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 
 [[package]]
 name = "rustc-hash"
@@ -1255,7 +1270,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "clap",
  "papyrus-dialect",

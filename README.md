@@ -22,7 +22,9 @@ papyrus check --fix --unsafe .                    # and the case of properties
 papyrus fmt .                                     # format in place
 papyrus fmt --check --indent tab .                # CI: fail if a file needs formatting
 papyrus build                                     # compile with PapyrusCompiler or Caprica
-papyrus init                                      # write a papyrus.toml, the game inferred
+papyrus build Source/MyScript.psc                 # that script alone
+papyrus disassemble Build/MyScript.pex            # a compiled script, as assembly
+papyrus init                                      # write a papyrus.toml, on top of a .ppj if there is one
 papyrus lints                                     # list the lints
 papyrus explain PAP015                            # what a lint means, and what to do
 papyrus check --write-baseline                    # adopt on an old mod: only new problems from now on
@@ -101,6 +103,18 @@ folders. They are read to follow `extends` and calls, for the lints and the
 editor, but never checked nor changed. A project's own script wins over an
 imported one of the same name.
 
+A `.ppj`, the Creation Kit's or [Pyro](https://github.com/fireundubh/pyro)'s,
+needs no configuration: in a folder without `papyrus.toml`, it is one. `check`,
+`fmt`, `build` and the editor read its `Game`, `Imports`, `Folders`, `Scripts`,
+`Flags`, `Output`, `Optimize`, `Release`, `Final` and `Variables`. Its project
+is what it lists, wherever that is, rather than the scripts of the folder. An
+import that is not on this machine or is remote is skipped with a note. To set
+what a `.ppj` cannot say, `papyrus init` writes a `papyrus.toml` naming it with
+`ppj = "mod.ppj"`: the `.ppj` stays the source, and what `papyrus.toml` sets
+wins, `imports` adding up. Several `.ppj` in a folder need that key, or
+`papyrus init --ppj`. Pyro's packages, archives and build events are left to
+Pyro: nothing of a `.ppj` is ever run.
+
 ### Lints
 
 | Code | Name | Default | What it reports |
@@ -125,7 +139,7 @@ imported one of the same name.
 | `PAP018` | `scripts/unknown` | error | Script that does not exist, once the game's sources are in the project or its `imports` |
 | `PAP019` | `locals/duplicate` | error | Local declared twice in a block, named like a parameter or a script variable, or hiding one of an enclosing block |
 | `PAP020` | `names/case` | warn | Name written with another case than its declaration, which the compiler ignores (fixable) |
-| `PAP021` | `scripts/name` | error | `ScriptName` other than the file's name |
+| `PAP021` | `scripts/name` | error | `ScriptName` other than the file's name, or a namespace without its folder |
 | `PAP022` | `scripts/cycle` | error | Script that extends itself, directly or through its ancestors |
 | `PAP023` | `members/duplicate` | error | Function or event twice in a state, variable or property twice, a second `Auto` state; from Fallout 4, a property named like a variable |
 | `PAP024` | `returns/value` | error | `Return value` in a function without return type or an event, `Return` alone in a typed function |
@@ -303,12 +317,15 @@ folders) are skipped by default; `--include-fragments` includes them.
 `PapyrusCompiler.exe` or with [Caprica](https://github.com/Orvid/Caprica),
 told apart by their file name, and shows their errors like the lints', on the
 line they name. The compiler comes from `--compiler`, `compiler` under
-`[build]`, or a default Steam installation of the game.
+`[build]`, or a default Steam installation of the game. Given `.psc` files,
+`papyrus build Source/MyScript.psc` compiles those alone; the folders of the
+project stay available for what they use.
 
 It is given, in order: the project's source folders — for Fallout 4 and
 Starfield, the folder above each namespace —, its `imports`, then the game's
 own sources, found next to the Creation Kit's compiler; with Caprica, list
-them in `imports`. Each source folder is compiled whole, fragments included.
+them in `imports`. Each source folder is compiled whole, fragments included,
+unless a `.ppj` lists only part of it: its scripts then go one by one.
 The flags are `flags`, else the game's, looked up in those folders. Caprica's
 language extensions are not supported: `papyrus check` would reject them.
 Caprica writes no `.pex` at all once a script fails, where the Creation Kit's
@@ -319,6 +336,15 @@ out of the folder given in `imports`.
 `--message-format short`, on `build` and `check`, prints each problem on one
 line, `path:line:column:end line:end column: error[code]: message`, for
 editors' problem matchers.
+
+### Compiled scripts
+
+`papyrus disassemble` prints a `.pex` of Skyrim, Fallout 4, Fallout 76 or
+Starfield, whichever compiler wrote it, in the format of `PapyrusAssembler -D`,
+without needing the game's tools. Two differences: tables follow the order of
+the file, where `PapyrusAssembler` follows its own, and the dates in comments
+are in UTC. In VSCode, opening a `.pex` shows this text, read-only, and it
+follows the file when it is compiled again.
 
 ### Editors
 
@@ -454,6 +480,9 @@ required to build the project.
 PAPYRUS_CORPUS_SKYRIM=".../Skyrim Special Edition/Data/Source/Scripts" \
 PAPYRUS_CORPUS_FALLOUT4=".../Fallout 4/Data/Scripts/Source" \
 PAPYRUS_CORPUS_STARFIELD=".../Starfield/Data/Scripts/Source" \
+PAPYRUS_COMPILER_SKYRIM=".../PapyrusCompiler.exe" \
+PAPYRUS_COMPILER_FALLOUT4=".../PapyrusCompiler.exe" \
+PAPYRUS_COMPILER_STARFIELD=".../PapyrusCompiler.exe" \
   cargo test --release --workspace \
     --features papyrus-syntax/external-corpus,papyrus-fmt/external-corpus,papyrus-lint/external-corpus,papyrus-project/external-corpus,papyrus-hir/external-corpus \
     -- --nocapture

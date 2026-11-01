@@ -951,7 +951,7 @@ impl LanguageServer for Backend {
         // editor: the server asks to be notified, whatever the editor.
         let can_watch = self.state().can_watch;
         if can_watch {
-            let watchers = ["**/papyrus.toml", "**/*.flg", "**/*.psc"]
+            let watchers = ["**/papyrus.toml", "**/*.ppj", "**/*.flg", "**/*.psc"]
                 .into_iter()
                 .map(|glob| FileSystemWatcher {
                     glob_pattern: GlobPattern::String(glob.to_owned()),
@@ -1089,6 +1089,7 @@ impl LanguageServer for Backend {
                     .file_name()
                     .is_some_and(|n| n == papyrus_project::config::FILE_NAME)
                     || extension.eq_ignore_ascii_case("flg")
+                    || extension.eq_ignore_ascii_case("ppj")
                 {
                     settings_changed = true;
                 } else if extension.eq_ignore_ascii_case("psc") {
@@ -1654,7 +1655,8 @@ impl LanguageServer for Backend {
                 let first = games.next();
                 first.filter(|&g| games.all(|other| other == g))
             };
-            let text = papyrus_project::edit::template(game);
+            let ppj = papyrus_project::edit::sole_ppj(&folder);
+            let text = papyrus_project::edit::template(game, ppj.as_deref());
             std::fs::write(&path, text).map_err(|e| refused(format!("{}: {e}", path.display())))?;
         }
         let uri = Uri::from_file_path(&path).map(|u| u.as_str().to_owned());

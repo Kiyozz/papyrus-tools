@@ -2,7 +2,7 @@
   "name": "papyrus-tools",
   "displayName": "Papyrus",
   "description": "Diagnostics, formatting and lints for Papyrus, the scripting language of Skyrim, Fallout 4 and Starfield",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "publisher": "kiyozz",
   "license": "Apache-2.0",
   "repository": {
@@ -27,6 +27,7 @@
   "main": "./dist/extension.js",
   "activationEvents": [
     "workspaceContains:**/papyrus.toml",
+    "workspaceContains:**/*.ppj",
     "onTaskType:papyrus"
   ],
   "contributes": {
@@ -40,9 +41,35 @@
           ".psc"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "papyrus-assembly",
+        "aliases": [
+          "Papyrus Assembly"
+        ],
+        "filenamePatterns": [
+          "*.pex.pas"
+        ]
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "papyrus.pex",
+        "displayName": "Papyrus Assembly",
+        "selector": [
+          {
+            "filenamePattern": "*.pex"
+          }
+        ],
+        "priority": "default"
       }
     ],
     "grammars": [
+      {
+        "language": "papyrus-assembly",
+        "scopeName": "source.papyrus-assembly",
+        "path": "./syntaxes/papyrus-assembly.tmLanguage.json"
+      },
       {
         "language": "papyrus",
         "scopeName": "source.papyrus",
@@ -94,8 +121,35 @@
         "command": "papyrus.createConfig",
         "title": "Create papyrus.toml",
         "category": "Papyrus"
+      },
+      {
+        "command": "papyrus.compileFile",
+        "title": "Compile this script",
+        "category": "Papyrus"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "papyrus.compileFile",
+          "when": "editorLangId == papyrus && papyrus.hasConfig"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "papyrus.compileFile",
+          "when": "editorLangId == papyrus && papyrus.hasConfig",
+          "group": "1_modification"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "papyrus.compileFile",
+          "when": "resourceLangId == papyrus && papyrus.hasConfig",
+          "group": "2_workspace"
+        }
+      ]
+    },
     "snippets": [
       {
         "language": "papyrus",

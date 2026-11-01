@@ -171,16 +171,20 @@ impl Job {
     }
 }
 
-/// The command compiling `root`.
-pub fn command(compiler: &Compiler, job: &Job, root: &Path) -> Command {
+/// The command compiling `root`, or only `script`, relative to it: from
+/// Fallout 4 on, the official compiler reads a script's name in a path given
+/// to it, so that path starts at the import.
+pub fn command(compiler: &Compiler, job: &Job, root: &Path, script: Option<&Path>) -> Command {
     let mut command = Command::new(&compiler.path);
     let flags = job.flags_path();
     let newer = job.game.rank() >= 1;
     match compiler.kind {
         CompilerKind::PapyrusCompiler => {
+            match script {
+                Some(script) => command.arg(script),
+                None => command.arg(root).arg("-all"),
+            };
             command
-                .arg(root)
-                .arg("-all")
                 .arg("-quiet")
                 .arg(format!("-flags={}", flags.display()))
                 .arg(format!("-import={}", job.import_list()))
@@ -204,10 +208,15 @@ pub fn command(compiler: &Compiler, job: &Job, root: &Path) -> Command {
                 .arg("--flags")
                 .arg(&flags)
                 .arg("--output")
-                .arg(&job.output)
+                .arg(match script {
+                    Some(_) => {
+                        std::path::absolute(&job.output).unwrap_or_else(|_| job.output.clone())
+                    }
+                    None => job.output.clone(),
+                })
                 .arg("--quiet");
             // Skyrim has no namespaces: its folders are compiled one by one.
-            if newer {
+            if newer && script.is_none() {
                 command.arg("--recurse");
             }
             if job.optimize {
@@ -219,7 +228,11 @@ pub fn command(compiler: &Compiler, job: &Job, root: &Path) -> Command {
             if newer && job.final_ {
                 command.arg("--final");
             }
-            command.arg(root);
+            // Caprica reads a script's namespace in its path from there.
+            match script {
+                Some(script) => command.current_dir(root).arg(script),
+                None => command.arg(root),
+            };
         }
     }
     command
@@ -254,10 +267,15 @@ pub struct Outcome {
     pub other: Vec<String>,
 }
 
-/// Compiles `root`.
-pub fn compile(compiler: &Compiler, job: &Job, root: &Path) -> std::io::Result<Outcome> {
+/// Compiles `root`, or only `script`, relative to it.
+pub fn compile(
+    compiler: &Compiler,
+    job: &Job,
+    root: &Path,
+    script: Option<&Path>,
+) -> std::io::Result<Outcome> {
     std::fs::create_dir_all(&job.output)?;
-    let output = command(compiler, job, root).output()?;
+    let output = command(compiler, job, root, script).output()?;
     let mut text = String::from_utf8_lossy(&output.stdout).into_owned();
     text.push('\n');
     text.push_str(&String::from_utf8_lossy(&output.stderr));
@@ -349,7 +367,7 @@ mod tests {
             final_: false,
         };
         let compiler = Compiler::new("PapyrusCompiler.exe".into());
-        let command = command(&compiler, &job, Path::new("src"));
+        let command = command(&compiler, &job, Path::new("src"), None);
         let args: Vec<String> = command
             .get_args()
             .map(|a| a.to_string_lossy().into_owned())
@@ -370,6 +388,43 @@ mod tests {
     }
 
     #[test]
+    fn one_script_is_named_from_its_root() {
+        let job = Job {
+            game: GameId::Fallout4,
+            roots: vec!["src".into()],
+            imports: Vec::new(),
+            flags: "Institute_Papyrus_Flags.flg".into(),
+            output: "out".into(),
+            optimize: false,
+            release: false,
+            final_: false,
+        };
+        let script = Path::new("MyNs/B.psc");
+        let args = |compiler: &str| -> Vec<String> {
+            command(
+                &Compiler::new(compiler.into()),
+                &job,
+                Path::new("src"),
+                Some(script),
+            )
+            .get_args()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect()
+        };
+        let official = args("PapyrusCompiler.exe");
+        assert_eq!(official[0], "MyNs/B.psc");
+        assert!(!official.contains(&"-all".to_owned()));
+        let caprica = args("Caprica.exe");
+        assert_eq!(caprica.last().unwrap(), "MyNs/B.psc");
+        assert!(!caprica.contains(&"--recurse".to_owned()));
+        let caprica = Compiler::new("Caprica.exe".into());
+        assert_eq!(
+            command(&caprica, &job, Path::new("src"), Some(script)).get_current_dir(),
+            Some(Path::new("src"))
+        );
+    }
+
+    #[test]
     fn caprica_arguments() {
         let job = Job {
             game: GameId::Skyrim,
@@ -382,7 +437,7 @@ mod tests {
             final_: true,
         };
         let compiler = Compiler::new("caprica.exe".into());
-        let command = command(&compiler, &job, Path::new("src"));
+        let command = command(&compiler, &job, Path::new("src"), None);
         let args: Vec<String> = command
             .get_args()
             .map(|a| a.to_string_lossy().into_owned())

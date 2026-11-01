@@ -806,7 +806,7 @@ impl Semantics<'_> {
 
     /// The folder above the namespaces of a script: `Source` for `Ns:Foo` in
     /// `Source/Ns/Foo.psc`; `None` if its file is not where its name says.
-    fn script_root(&self, file: SourceFile) -> Option<PathBuf> {
+    pub(crate) fn script_root(&self, file: SourceFile) -> Option<PathBuf> {
         let mut dir = file.path(self.db()).with_extension("");
         for segment in self.items(file).name.rsplit(':') {
             if !dir.file_name()?.to_str()?.eq_ignore_ascii_case(segment) {

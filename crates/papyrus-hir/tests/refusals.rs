@@ -77,6 +77,26 @@ fn the_script_is_named_like_its_file() {
 }
 
 #[test]
+fn a_namespace_needs_its_folder() {
+    let named = |path, game| {
+        let text = "ScriptName MyMod:Sub:Stray\n";
+        check_in(game, &[(path, text)])
+            .into_iter()
+            .filter(|(problem, _)| *problem == Problem::ScriptName)
+            .map(|(_, text)| text)
+            .collect::<Vec<_>>()
+    };
+    for game in [GameId::Fallout4, GameId::Starfield] {
+        let wrong = ["MyMod:Sub:Stray"];
+        assert_eq!(named("Source/Stray.psc", game), wrong);
+        assert_eq!(named("Source/Sub/Stray.psc", game), wrong);
+        assert_eq!(named("Source/Other/Sub/Stray.psc", game), wrong);
+        assert_eq!(named("Source/MyMod/Sub/Stray.psc", game), [""; 0]);
+        assert_eq!(named("Source/mymod/SUB/stray.psc", game), [""; 0]);
+    }
+}
+
+#[test]
 fn a_script_cannot_extend_itself() {
     let files = [
         ("A.psc", "ScriptName A extends B\n"),
