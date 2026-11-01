@@ -141,6 +141,13 @@
           "when": "editorLangId == papyrus",
           "group": "1_modification"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "papyrus.compileFile",
+          "when": "resourceLangId == papyrus",
+          "group": "2_workspace"
+        }
       ]
     },
     "snippets": [

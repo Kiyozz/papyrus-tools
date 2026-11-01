@@ -195,6 +195,22 @@ describe("the extension", () => {
     assert.equal(event.exitCode, 2);
   });
 
+  it("compiles the scripts selected in the explorer", async () => {
+    const child = vscode.Uri.file(path.join(folder, "Child.psc"));
+    await vscode.commands.executeCommand("workbench.action.closeAllEditors");
+    const ended = new Promise((resolve) => {
+      const listener = vscode.tasks.onDidEndTaskProcess((event) => {
+        listener.dispose();
+        resolve(event);
+      });
+    });
+    await vscode.commands.executeCommand("papyrus.compileFile", child, [child, script]);
+    const event = /** @type {vscode.TaskProcessEndEvent} */ (await ended);
+    const execution = /** @type {vscode.ProcessExecution} */ (event.execution.task.execution);
+    assert.ok(execution.args.includes(child.fsPath), execution.args.join(" "));
+    assert.ok(execution.args.includes(script.fsPath), execution.args.join(" "));
+  });
+
   it("opens a .pex as read-only assembly", async () => {
     const pex = vscode.Uri.file(path.join(folder, "Sample.pex"));
     await vscode.commands.executeCommand("vscode.open", pex);

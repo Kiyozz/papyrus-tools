@@ -126,24 +126,32 @@ async function createConfig() {
 }
 
 /**
- * Compiles the script of the active editor, saved first, and nothing else.
+ * Compiles scripts, saved first, and nothing else: those selected in the
+ * explorer, else the one of the active editor.
  * @param {vscode.ExtensionContext} context
+ * @param {vscode.Uri} [clicked]
+ * @param {vscode.Uri[]} [selected]
  */
-async function compileFile(context) {
-  const document = vscode.window.activeTextEditor?.document;
-  if (document?.languageId !== "papyrus" || document.uri.scheme !== "file") {
+async function compileFile(context, clicked, selected) {
+  const active = vscode.window.activeTextEditor?.document;
+  const uris = selected ?? (clicked ? [clicked] : active?.languageId === "papyrus" ? [active.uri] : []);
+  const scripts = uris.filter((uri) => uri.scheme === "file" && uri.path.endsWith(".psc"));
+  if (scripts.length === 0) {
     vscode.window.showErrorMessage("Papyrus: open a script to compile it.");
     return;
   }
-  const folder = vscode.workspace.getWorkspaceFolder(document.uri);
+  const folder = vscode.workspace.getWorkspaceFolder(scripts[0]);
   if (!folder) {
     vscode.window.showErrorMessage("Papyrus: this script is outside the workspace folders.");
     return;
   }
-  await document.save();
-  const file = document.uri.fsPath;
+  const paths = scripts.map((uri) => uri.fsPath);
+  const open = vscode.workspace.textDocuments;
+  await Promise.all(
+    open.filter((d) => paths.includes(d.uri.fsPath) && d.isDirty).map((d) => d.save()),
+  );
   await vscode.tasks.executeTask(
-    task(context, folder, { type: "papyrus", command: "build", args: [file] }),
+    task(context, folder, { type: "papyrus", command: "build", args: paths }),
   );
 }
 
@@ -207,7 +215,9 @@ async function activate(context) {
       await start(context);
     }),
     vscode.commands.registerCommand("papyrus.createConfig", createConfig),
-    vscode.commands.registerCommand("papyrus.compileFile", () => compileFile(context)),
+    vscode.commands.registerCommand("papyrus.compileFile", (clicked, selected) =>
+      compileFile(context, clicked, selected),
+    ),
     vscode.tasks.registerTaskProvider("papyrus", {
       provideTasks: () =>
         (vscode.workspace.workspaceFolders ?? []).flatMap((folder) =>
