@@ -1,5 +1,17 @@
 # papyrus-tools
 
+## 0.15.0
+
+### Minor Changes
+
+- 9354135: `.ppj` projects, the Creation Kit's and Pyro's: read as a configuration in a folder without `papyrus.toml`, or named by `ppj` in it; `papyrus init` adopts them with `--ppj` when a folder has several; `build` compiles a partial list script by script.
+- 9354135: `.pex` files read: `papyrus disassemble` prints a compiled script of Skyrim, Fallout 4, Fallout 76 or Starfield as assembly, in the format of `PapyrusAssembler`; the VSCode extension opens `.pex` files as read-only assembly, refreshed when they are compiled again.
+- 9354135: `papyrus build Source/MyScript.psc` compiles that script alone, where it compiled its whole folder, the folders of the project staying available for what it uses. In VSCode, **Papyrus: Compile this script**, also in the context menu of the explorer, saves and compiles the open or selected scripts of a project with a `papyrus.toml`.
+
+### Patch Changes
+
+- 9354135: `PAP021` also reports a namespace whose folder is missing, `ScriptName MyMod:Stray` in `Source/Stray.psc`, which the compiler refuses.
+
 ## 0.13.0
 
 ### Minor Changes
