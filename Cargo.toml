@@ -3,23 +3,23 @@ members = ["crates/*", "xtask"]
 resolver = "3"
 
 [workspace.package]
-version = "0.13.0"
+version = "0.14.0"
 edition = "2024"
 rust-version = "1.88"
 license = "Apache-2.0"
 repository = "https://github.com/kiyozz/papyrus-tools"
 
 [workspace.dependencies]
-papyrus-dialect = { path = "crates/papyrus-dialect", version = "0.13.0" }
-papyrus-syntax = { path = "crates/papyrus-syntax", version = "0.13.0" }
-papyrus-project = { path = "crates/papyrus-project", version = "0.13.0" }
-papyrus-fmt = { path = "crates/papyrus-fmt", version = "0.13.0" }
-papyrus-lint = { path = "crates/papyrus-lint", version = "0.13.0" }
-papyrus-stdlib = { path = "crates/papyrus-stdlib", version = "0.13.0" }
-papyrus-lsp = { path = "crates/papyrus-lsp", version = "0.13.0" }
-papyrus-hir = { path = "crates/papyrus-hir", version = "0.13.0" }
-papyrus-build = { path = "crates/papyrus-build", version = "0.13.0" }
-papyrus-pex = { path = "crates/papyrus-pex", version = "0.13.0" }
+papyrus-dialect = { path = "crates/papyrus-dialect", version = "0.14.0" }
+papyrus-syntax = { path = "crates/papyrus-syntax", version = "0.14.0" }
+papyrus-project = { path = "crates/papyrus-project", version = "0.14.0" }
+papyrus-fmt = { path = "crates/papyrus-fmt", version = "0.14.0" }
+papyrus-lint = { path = "crates/papyrus-lint", version = "0.14.0" }
+papyrus-stdlib = { path = "crates/papyrus-stdlib", version = "0.14.0" }
+papyrus-lsp = { path = "crates/papyrus-lsp", version = "0.14.0" }
+papyrus-hir = { path = "crates/papyrus-hir", version = "0.14.0" }
+papyrus-build = { path = "crates/papyrus-build", version = "0.14.0" }
+papyrus-pex = { path = "crates/papyrus-pex", version = "0.14.0" }
 
 ariadne = "0.6"
 clap = { version = "4.6", features = ["derive"] }
