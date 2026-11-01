@@ -132,20 +132,20 @@
       "commandPalette": [
         {
           "command": "papyrus.compileFile",
-          "when": "editorLangId == papyrus"
+          "when": "editorLangId == papyrus && papyrus.hasConfig"
         }
       ],
       "editor/context": [
         {
           "command": "papyrus.compileFile",
-          "when": "editorLangId == papyrus",
+          "when": "editorLangId == papyrus && papyrus.hasConfig",
           "group": "1_modification"
         }
       ],
       "explorer/context": [
         {
           "command": "papyrus.compileFile",
-          "when": "resourceLangId == papyrus",
+          "when": "resourceLangId == papyrus && papyrus.hasConfig",
           "group": "2_workspace"
         }
       ]

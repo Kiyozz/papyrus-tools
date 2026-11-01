@@ -126,6 +126,45 @@ async function createConfig() {
 }
 
 /**
+ * Whether a `papyrus.toml` stands next to `file` or above it, up to `root`.
+ * @param {string} file
+ * @param {string} root
+ */
+function hasConfig(file, root) {
+  let dir = path.dirname(file);
+  while (dir.length >= root.length) {
+    if (fs.existsSync(path.join(dir, "papyrus.toml"))) {
+      return true;
+    }
+    if (dir === path.dirname(dir)) {
+      break;
+    }
+    dir = path.dirname(dir);
+  }
+  return false;
+}
+
+/**
+ * Shows "Compile this script" in the menus while the workspace has a
+ * `papyrus.toml`.
+ * @param {vscode.ExtensionContext} context
+ */
+function watchConfigs(context) {
+  const update = async () => {
+    const found = await vscode.workspace.findFiles("**/papyrus.toml", "**/node_modules/**", 1);
+    await vscode.commands.executeCommand("setContext", "papyrus.hasConfig", found.length > 0);
+  };
+  const watcher = vscode.workspace.createFileSystemWatcher("**/papyrus.toml");
+  context.subscriptions.push(
+    watcher,
+    watcher.onDidCreate(update),
+    watcher.onDidDelete(update),
+    vscode.workspace.onDidChangeWorkspaceFolders(update),
+  );
+  return update();
+}
+
+/**
  * Compiles scripts, saved first, and nothing else: those selected in the
  * explorer, else the one of the active editor.
  * @param {vscode.ExtensionContext} context
@@ -146,6 +185,10 @@ async function compileFile(context, clicked, selected) {
     return;
   }
   const paths = scripts.map((uri) => uri.fsPath);
+  if (!paths.every((file) => hasConfig(file, folder.uri.fsPath))) {
+    vscode.window.showErrorMessage("Papyrus: compiling a script needs its papyrus.toml.");
+    return;
+  }
   const open = vscode.workspace.textDocuments;
   await Promise.all(
     open.filter((d) => paths.includes(d.uri.fsPath) && d.isDirty).map((d) => d.save()),
@@ -209,6 +252,7 @@ function registerPexEditor(context) {
 /** @param {vscode.ExtensionContext} context */
 async function activate(context) {
   registerPexEditor(context);
+  await watchConfigs(context);
   context.subscriptions.push(
     vscode.commands.registerCommand("papyrus.restart", async () => {
       await client?.stop();

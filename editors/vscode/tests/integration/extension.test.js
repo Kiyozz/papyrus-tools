@@ -179,7 +179,14 @@ describe("the extension", () => {
     assert.equal(await run(await papyrusTask("build")), 2);
   });
 
+  it("compiles nothing without a papyrus.toml", async () => {
+    await vscode.window.showTextDocument(script);
+    await vscode.commands.executeCommand("papyrus.compileFile");
+    assert.equal(vscode.tasks.taskExecutions.length, 0);
+  });
+
   it("compiles the open script alone", async () => {
+    fs.writeFileSync(config, "");
     await vscode.window.showTextDocument(script);
     const ended = new Promise((resolve) => {
       const listener = vscode.tasks.onDidEndTaskProcess((event) => {
@@ -209,6 +216,7 @@ describe("the extension", () => {
     const execution = /** @type {vscode.ProcessExecution} */ (event.execution.task.execution);
     assert.ok(execution.args.includes(child.fsPath), execution.args.join(" "));
     assert.ok(execution.args.includes(script.fsPath), execution.args.join(" "));
+    fs.rmSync(config);
   });
 
   it("opens a .pex as read-only assembly", async () => {
