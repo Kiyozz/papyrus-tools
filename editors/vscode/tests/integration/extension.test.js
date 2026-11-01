@@ -179,6 +179,22 @@ describe("the extension", () => {
     assert.equal(await run(await papyrusTask("build")), 2);
   });
 
+  it("compiles the open script alone", async () => {
+    await vscode.window.showTextDocument(script);
+    const ended = new Promise((resolve) => {
+      const listener = vscode.tasks.onDidEndTaskProcess((event) => {
+        listener.dispose();
+        resolve(event);
+      });
+    });
+    await vscode.commands.executeCommand("papyrus.compileFile");
+    const event = /** @type {vscode.TaskProcessEndEvent} */ (await ended);
+    const execution = /** @type {vscode.ProcessExecution} */ (event.execution.task.execution);
+    assert.ok(execution.args.includes(script.fsPath), execution.args.join(" "));
+    // No `game` and no compiler in the fixture, as for the whole build.
+    assert.equal(event.exitCode, 2);
+  });
+
   it("opens a .pex as read-only assembly", async () => {
     const pex = vscode.Uri.file(path.join(folder, "Sample.pex"));
     await vscode.commands.executeCommand("vscode.open", pex);

@@ -22,6 +22,7 @@ papyrus check --fix --unsafe .                    # and the case of properties
 papyrus fmt .                                     # format in place
 papyrus fmt --check --indent tab .                # CI: fail if a file needs formatting
 papyrus build                                     # compile with PapyrusCompiler or Caprica
+papyrus build Source/MyScript.psc                 # that script alone
 papyrus disassemble Build/MyScript.pex            # a compiled script, as assembly
 papyrus init                                      # write a papyrus.toml, on top of a .ppj if there is one
 papyrus lints                                     # list the lints
@@ -316,7 +317,9 @@ folders) are skipped by default; `--include-fragments` includes them.
 `PapyrusCompiler.exe` or with [Caprica](https://github.com/Orvid/Caprica),
 told apart by their file name, and shows their errors like the lints', on the
 line they name. The compiler comes from `--compiler`, `compiler` under
-`[build]`, or a default Steam installation of the game.
+`[build]`, or a default Steam installation of the game. Given `.psc` files,
+`papyrus build Source/MyScript.psc` compiles those alone; the folders of the
+project stay available for what they use.
 
 It is given, in order: the project's source folders — for Fallout 4 and
 Starfield, the folder above each namespace —, its `imports`, then the game's

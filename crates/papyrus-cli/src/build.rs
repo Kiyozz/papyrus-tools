@@ -35,11 +35,9 @@ fn compiler(
     }
 }
 
-/// The script names of a project's files, to find the folders above their
-/// namespaces.
-fn named(settings: &Settings) -> Vec<(PathBuf, String)> {
-    settings
-        .scripts
+/// The script names of files, to find the folders above their namespaces.
+fn named(settings: &Settings, scripts: &[PathBuf]) -> Vec<(PathBuf, String)> {
+    scripts
         .iter()
         .filter_map(|path| {
             let bytes = std::fs::read(path).ok()?;
@@ -50,10 +48,25 @@ fn named(settings: &Settings) -> Vec<(PathBuf, String)> {
         .collect()
 }
 
-/// What to compile in `root`: the whole folder, or the scripts one by one
-/// when a `.ppj` lists only part of it, relative to `root`.
-fn units(settings: &Settings, root: &Path, game: GameId) -> Vec<Option<PathBuf>> {
-    if settings.config.sources.is_none() {
+/// The scripts of a project in which only some were named, one by one, on the
+/// command line: they still need the folders of the others.
+fn whole_project(settings: &Settings) -> Vec<PathBuf> {
+    let projects = papyrus_project::projects(std::slice::from_ref(&settings.root), true);
+    let project = projects
+        .into_iter()
+        .flatten()
+        .find(|project| project.root == settings.root);
+    let mut scripts = project.map_or_else(Vec::new, |project| project.scripts);
+    scripts.extend(settings.scripts.iter().cloned());
+    scripts.sort();
+    scripts.dedup();
+    scripts
+}
+
+/// What to compile in `root`: the whole folder, or `scripts` one by one,
+/// relative to `root`, if `partial` and they leave some of it out.
+fn units(partial: bool, scripts: &[PathBuf], root: &Path, game: GameId) -> Vec<Option<PathBuf>> {
+    if !partial {
         return vec![None];
     }
     // Only the compilers of the games with namespaces recurse.
@@ -64,15 +77,10 @@ fn units(settings: &Settings, root: &Path, game: GameId) -> Vec<Option<PathBuf>>
         include_fragments: true,
     };
     let all = papyrus_project::discover(&[root.to_owned()], options).unwrap_or_default();
-    if all
-        .iter()
-        .filter(compiled)
-        .all(|p| settings.scripts.contains(p))
-    {
+    if all.iter().filter(compiled).all(|p| scripts.contains(p)) {
         return vec![None];
     }
-    settings
-        .scripts
+    scripts
         .iter()
         .filter(compiled)
         .filter_map(|path| path.strip_prefix(root).ok())
@@ -87,6 +95,13 @@ pub(crate) fn build(
 ) -> Result<bool, String> {
     let mut success = true;
     let mut files = 0;
+    let given: Vec<PathBuf> = args
+        .common
+        .paths
+        .iter()
+        .filter(|path| path.is_file())
+        .filter_map(|path| std::path::absolute(path).ok())
+        .collect();
     for settings in projects {
         let game = settings.game.ok_or_else(|| {
             format!(
@@ -95,7 +110,12 @@ pub(crate) fn build(
             )
         })?;
         let compiler = compiler(settings, args, game)?;
-        let scripts = named(settings);
+        let alone = settings.scripts.iter().all(|path| given.contains(path));
+        let scripts = if alone {
+            named(settings, &whole_project(settings))
+        } else {
+            named(settings, &settings.scripts)
+        };
         let roots = papyrus_build::outermost(
             game,
             papyrus_build::roots(scripts.iter().map(|(p, n)| (p.as_path(), n.as_str()))),
@@ -142,13 +162,14 @@ pub(crate) fn build(
         }
         eprintln!(
             "compiling {} script(s) for {} with {name} into {}",
-            scripts.len(),
+            settings.scripts.len(),
             game.display_name(),
             job.output.display()
         );
-        files += scripts.len();
+        files += settings.scripts.len();
+        let partial = alone || settings.config.sources.is_some();
         for root in &roots {
-            for script in units(settings, root, game) {
+            for script in units(partial, &settings.scripts, root, game) {
                 let outcome = papyrus_build::compile(&compiler, &job, root, script.as_deref())
                     .map_err(|e| format!("{}: {e}", compiler.path.display()))?;
                 success &= outcome.success;
@@ -182,4 +203,29 @@ fn report(message: &Message, compiler: &str, reporter: &mut Reporter) {
         range: papyrus_build::range_of(&source, message.line, message.position),
     };
     reporter.emit(path, &source, &[diagnostic]);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_script_alone_leaves_its_folder_out() {
+        let root = std::env::temp_dir().join(format!("papyrus-units-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("MyNs")).unwrap();
+        let (one, other) = (root.join("MyNs/One.psc"), root.join("Other.psc"));
+        std::fs::write(&one, "ScriptName MyNs:One\n").unwrap();
+        std::fs::write(&other, "ScriptName Other\n").unwrap();
+        let game = GameId::Fallout4;
+
+        let single = std::slice::from_ref(&one);
+        let script = one.strip_prefix(&root).unwrap().to_owned();
+        assert_eq!(units(true, single, &root, game), [Some(script)]);
+        // Nothing left out, or nothing chosen: the compiler takes the folder.
+        let both = [one.clone(), other];
+        assert_eq!(units(true, &both, &root, game), [None]);
+        assert_eq!(units(false, single, &root, game), [None]);
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }

@@ -126,6 +126,28 @@ async function createConfig() {
 }
 
 /**
+ * Compiles the script of the active editor, saved first, and nothing else.
+ * @param {vscode.ExtensionContext} context
+ */
+async function compileFile(context) {
+  const document = vscode.window.activeTextEditor?.document;
+  if (document?.languageId !== "papyrus" || document.uri.scheme !== "file") {
+    vscode.window.showErrorMessage("Papyrus: open a script to compile it.");
+    return;
+  }
+  const folder = vscode.workspace.getWorkspaceFolder(document.uri);
+  if (!folder) {
+    vscode.window.showErrorMessage("Papyrus: this script is outside the workspace folders.");
+    return;
+  }
+  await document.save();
+  const file = document.uri.fsPath;
+  await vscode.tasks.executeTask(
+    task(context, folder, { type: "papyrus", command: "build", args: [file] }),
+  );
+}
+
+/**
  * The assembly of a `.pex`, or comments saying why there is none: this is
  * what the reader sees either way.
  * @param {vscode.ExtensionContext} context
@@ -185,6 +207,7 @@ async function activate(context) {
       await start(context);
     }),
     vscode.commands.registerCommand("papyrus.createConfig", createConfig),
+    vscode.commands.registerCommand("papyrus.compileFile", () => compileFile(context)),
     vscode.tasks.registerTaskProvider("papyrus", {
       provideTasks: () =>
         (vscode.workspace.workspaceFolders ?? []).flatMap((folder) =>

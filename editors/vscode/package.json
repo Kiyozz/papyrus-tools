@@ -121,8 +121,28 @@
         "command": "papyrus.createConfig",
         "title": "Create papyrus.toml",
         "category": "Papyrus"
+      },
+      {
+        "command": "papyrus.compileFile",
+        "title": "Compile this script",
+        "category": "Papyrus"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "papyrus.compileFile",
+          "when": "editorLangId == papyrus"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "papyrus.compileFile",
+          "when": "editorLangId == papyrus",
+          "group": "1_modification"
+        }
+      ]
+    },
     "snippets": [
       {
         "language": "papyrus",

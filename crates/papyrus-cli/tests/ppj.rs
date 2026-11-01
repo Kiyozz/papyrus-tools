@@ -234,6 +234,70 @@ fn starfield_agrees_with_the_official_compiler() {
     same_as_the_official_compiler("STARFIELD", "", "Starfield_Papyrus_Flags.flg");
 }
 
+/// A project of `papyrus.toml`, in which `script` alone is compiled: the
+/// script next to it that does not compile stays out of it, and the folders
+/// of the others are still there for what it uses.
+fn alone(game: &str, config: &str, fixture: &str, base: &str, script: &str, expected: &str) {
+    let Some((sources, compiler)) = installed(game, base) else {
+        return;
+    };
+    let project = if fixture == "homestead" {
+        "whole.ppj"
+    } else {
+        "pyro.ppj"
+    };
+    let root = prepare(&format!("alone-{game}"), fixture, project, "", "");
+    std::fs::remove_file(root.join("mod.ppj")).unwrap();
+    let config = format!("{config}\nimports = [\"{sources}\"]\n[build]\noutput = \"Build\"\n");
+    std::fs::write(root.join("papyrus.toml"), config).unwrap();
+    let compiler = compiler.to_string_lossy();
+    let built = papyrus(&root, &["build", "--compiler", &compiler, script]);
+    let stderr = String::from_utf8_lossy(&built.stderr);
+    assert!(built.status.success(), "{stderr}");
+    assert!(stderr.contains("compiling 1 script(s)"), "{stderr}");
+    assert_eq!(
+        compiled(&root.join("Build")),
+        BTreeSet::from([expected.to_owned()])
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn fallout4_compiles_a_script_alone() {
+    alone(
+        "FALLOUT4",
+        "game = \"fallout4\"",
+        "homestead",
+        "/Base",
+        "Source/Homestead/Main.psc",
+        "Homestead/Main.pex",
+    );
+}
+
+#[test]
+fn starfield_compiles_a_script_alone() {
+    alone(
+        "STARFIELD",
+        "game = \"starfield\"",
+        "homestead",
+        "",
+        "Source/Homestead/Main.psc",
+        "Homestead/Main.pex",
+    );
+}
+
+#[test]
+fn skyrim_compiles_a_script_alone() {
+    alone(
+        "SKYRIM",
+        "game = \"skyrim\"",
+        "homestead-skyrim",
+        "",
+        "Source/HomesteadMain.psc",
+        "HomesteadMain.pex",
+    );
+}
+
 /// Skyrim's compiler cannot read a `.ppj`: only `papyrus build` can.
 #[test]
 fn skyrim_builds_what_pyro_s_project_lists() {
