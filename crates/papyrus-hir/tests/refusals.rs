@@ -3,6 +3,7 @@
 
 use papyrus_dialect::GameId;
 use papyrus_hir::{Database, Problem, Project, Semantics, SourceFile};
+use salsa::Setter;
 
 const ALL: [GameId; 3] = [GameId::Skyrim, GameId::Fallout4, GameId::Starfield];
 
@@ -94,6 +95,64 @@ fn a_namespace_needs_its_folder() {
         assert_eq!(named("Source/MyMod/Sub/Stray.psc", game), [""; 0]);
         assert_eq!(named("Source/mymod/SUB/stray.psc", game), [""; 0]);
     }
+}
+
+#[test]
+fn known_roots_name_a_script() {
+    let named = |path: &str, text: &str, game, roots: &[&str]| {
+        let db = Database::default();
+        let file = SourceFile::new(&db, path.into(), text.to_owned());
+        let project = Project::new(&db, vec![file], Vec::new(), Some(game));
+        let mut db = db;
+        project
+            .set_roots(&mut db)
+            .to(roots.iter().map(Into::into).collect());
+        let sema = Semantics::new(&db, project);
+        sema.check(file)
+            .into_iter()
+            .filter(|d| d.problem == Problem::ScriptName)
+            .map(|d| d.fixes[0].edits[0].text.clone())
+            .collect::<Vec<_>>()
+    };
+    let none = [""; 0];
+    let root = ["Source"];
+    for game in [GameId::Fallout4, GameId::Starfield] {
+        let path = "Source/MyMod/Stray.psc";
+        // Refused by the compilers, unnoticed without a known root.
+        assert_eq!(
+            named(path, "ScriptName Stray\n", game, &root),
+            ["MyMod:Stray"]
+        );
+        assert_eq!(named(path, "ScriptName Stray\n", game, &[]), none);
+        assert_eq!(named(path, "ScriptName mymod:stray\n", game, &root), none);
+        let other = "ScriptName Other:Stray\n";
+        assert_eq!(named(path, other, game, &root), ["MyMod:Stray"]);
+        // A folder under a root may be a root too, the innermost one speaks.
+        let both = ["Source", "Source/MyMod"];
+        assert_eq!(named(path, "ScriptName Stray\n", game, &both), none);
+        assert_eq!(named(path, "ScriptName MyMod:Stray\n", game, &both), none);
+        assert_eq!(named(path, other, game, &both), ["Stray"]);
+        // Out of the roots, nothing is known: a game's folders change nothing.
+        assert_eq!(named(path, "ScriptName Stray\n", game, &["Lib"]), none);
+        let flat = "ScriptName MyMod:Stray\n";
+        assert_eq!(named("Source/Stray.psc", flat, game, &root), ["Stray"]);
+        let case = ["source"];
+        assert_eq!(
+            named(path, "ScriptName Stray\n", game, &case),
+            ["MyMod:Stray"]
+        );
+    }
+    // Skyrim's compiler only knows the file's name.
+    let skyrim = GameId::Skyrim;
+    assert_eq!(
+        named(
+            "Source/MyMod/Stray.psc",
+            "ScriptName Stray\n",
+            skyrim,
+            &root
+        ),
+        none
+    );
 }
 
 #[test]

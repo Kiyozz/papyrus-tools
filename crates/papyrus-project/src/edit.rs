@@ -91,6 +91,8 @@ pub fn template(game: Option<GameId>, ppj: Option<&str>) -> String {
     out.push_str(
         "# Folders of scripts the project builds on, read but never checked.\n\
          # imports = [\"../Library/Source/Scripts\"]\n\
+         # The folders above the namespaces of the project's scripts.\n\
+         # sources = [\"Source\"]\n\
          \n\
          [lints]\n\
          # \"naming/locals\" = \"error\"\n\

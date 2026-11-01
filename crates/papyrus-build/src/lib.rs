@@ -11,7 +11,7 @@
 
 mod output;
 
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 use papyrus_dialect::GameId;
@@ -238,15 +238,41 @@ pub fn command(compiler: &Compiler, job: &Job, root: &Path, script: Option<&Path
     command
 }
 
+/// True if `path` is `folder` or under it, in any case.
+fn within(path: &Path, folder: &Path) -> bool {
+    let mut parts = path.components();
+    folder.components().all(|part| {
+        let same = |other: Component<'_>| other.as_os_str().eq_ignore_ascii_case(part.as_os_str());
+        parts.next().is_some_and(same)
+    })
+}
+
 /// The folders holding the scripts, `(path, script name)`: for a namespaced
 /// script, `MyMod:Quests:Main` in `…/MyMod/Quests/Main.psc`, the folder
-/// above its namespace.
-pub fn roots<'a>(scripts: impl IntoIterator<Item = (&'a Path, &'a str)>) -> Vec<PathBuf> {
+/// above its namespace. A script misplaced under a folder of `known`, the
+/// project's own roots, stays in the innermost one: the compiler refuses that
+/// script alone there, where its own root would refuse all the others.
+pub fn roots<'a>(
+    scripts: impl IntoIterator<Item = (&'a Path, &'a str)>,
+    known: &[PathBuf],
+) -> Vec<PathBuf> {
     let mut out: Vec<PathBuf> = Vec::new();
     for (path, name) in scripts {
         let mut dir = path.parent().map(Path::to_owned).unwrap_or_default();
         for _ in 0..name.matches(':').count() {
             dir.pop();
+        }
+        if let Some(root) = known
+            .iter()
+            .find(|root| within(&dir, root) && within(root, &dir))
+        {
+            dir = root.clone();
+        } else if let Some(root) = known
+            .iter()
+            .filter(|root| within(path, root))
+            .max_by_key(|root| root.components().count())
+        {
+            dir = root.clone();
         }
         if !out.contains(&dir) {
             out.push(dir);
@@ -339,8 +365,34 @@ mod tests {
             (Path::new("mod/Other/Thing.psc"), "Thing"),
         ];
         assert_eq!(
-            roots(scripts),
+            roots(scripts, &[]),
             [PathBuf::from("mod/Other"), PathBuf::from("mod/Source")]
+        );
+    }
+
+    #[test]
+    fn a_misplaced_script_stays_in_its_known_root() {
+        let scripts = [
+            (Path::new("mod/Source/MyMod/Main.psc"), "MyMod:Main"),
+            (Path::new("mod/Source/Stray.psc"), "MyMod:Stray"),
+            (Path::new("mod/Source/MyMod/Lost.psc"), "Lost"),
+            (Path::new("mod/Other/Sub/Thing.psc"), "Sub:Thing"),
+        ];
+        assert_eq!(
+            roots(scripts, &[PathBuf::from("mod/source")]),
+            [PathBuf::from("mod/Other"), PathBuf::from("mod/source")]
+        );
+        // A folder under a root may be a root too, for the scripts it fits.
+        let known = [
+            PathBuf::from("mod/Source"),
+            PathBuf::from("mod/Source/MyMod"),
+        ];
+        assert_eq!(
+            roots(scripts[..3].iter().copied(), &known),
+            [
+                PathBuf::from("mod/Source"),
+                PathBuf::from("mod/Source/MyMod")
+            ]
         );
     }
 

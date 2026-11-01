@@ -285,6 +285,14 @@ pub fn parse(text: &str, path: &Path) -> Result<Config, ConfigError> {
     let listed = root
         .children()
         .any(|n| matches!(n.tag_name().name(), "Folders" | "Scripts"));
+    // The compilers name a script from its import, or from the folder they
+    // are given: Starfield's takes `Stray` in a `Folder` under the import.
+    let mut roots = imports.clone();
+    for folder in &sources.folders {
+        if !roots.contains(&folder.path) {
+            roots.push(folder.path.clone());
+        }
+    }
 
     // The vanilla flags are the default; another file is found like a script.
     let written_flags = attribute("Flags").filter(|f| !f.is_empty());
@@ -328,6 +336,7 @@ pub fn parse(text: &str, path: &Path) -> Result<Config, ConfigError> {
         game,
         flags,
         imports,
+        roots,
         sources: listed.then_some(sources),
         notes,
         ignored,
@@ -389,6 +398,10 @@ mod tests {
         assert_eq!(config.game, Some(GameId::Fallout4));
         assert_eq!(config.flags, None);
         assert_eq!(config.imports, [root.join("mod/Source")]);
+        assert_eq!(
+            config.roots,
+            [root.join("mod/Source"), root.join("mod/Source/MyNs")]
+        );
         assert_eq!(config.build.output, Some(root.join("out")));
         assert!(config.build.optimize && config.build.release && !config.build.final_);
         assert_eq!(

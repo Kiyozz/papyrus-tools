@@ -92,6 +92,11 @@ pub struct Project {
     /// Its target, configured or inferred; `None` when unknown.
     #[returns(copy)]
     pub game: Option<GameId>,
+    /// The folders known to be above the namespaces of its scripts: outside
+    /// them, a script's root is only what its name says.
+    #[default]
+    #[returns(deref)]
+    pub roots: Vec<PathBuf>,
     /// `skse = true`: Skyrim's native scripts include SKSE's additions.
     /// Also on when the project or its imports declare the `SKSE` script.
     #[default]

@@ -82,6 +82,11 @@ pub(crate) fn schema() -> String {
                 "items": { "type": "string" },
                 "description": "Folders of scripts the project builds on — a library, another mod, the game's sources — read but never checked, relative to this file.",
             },
+            "sources": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "The folders above the namespaces of the project's scripts, relative to this file: from Fallout 4, a script under one is named after its folders. Unknown without this key or a .ppj.",
+            },
             "ppj": path_value("A Creation Kit or Pyro project read underneath this file, relative to it: its scripts become the project's."),
             "fmt": {
                 "type": "object",

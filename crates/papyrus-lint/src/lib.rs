@@ -206,14 +206,14 @@ pub static NAMES_CASE: Lint = Lint {
     description: "name written with another case than its declaration, which the compiler ignores",
 };
 
-/// `PAP021`: `ScriptName` other than the file's name, or a namespace without
-/// its folder.
+/// `PAP021`: `ScriptName` other than the file's name, or a namespace not
+/// matching its folders.
 pub static SCRIPTS_NAME: Lint = Lint {
     code: "PAP021",
     name: "scripts/name",
     default: Level::Error,
-    description: "`ScriptName` other than the name of the file, or a namespace without its \
-                  folder, which the compiler refuses",
+    description: "`ScriptName` other than the name of the file, or a namespace not matching its \
+                  folders, which the compiler refuses",
 };
 
 /// `PAP022`: script among its own ancestors.

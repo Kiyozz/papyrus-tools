@@ -504,7 +504,7 @@
           "type": "string"
         },
         "PAP021": {
-          "description": "`ScriptName` other than the name of the file, or a namespace without its folder, which the compiler refuses (PAP021, error by default)",
+          "description": "`ScriptName` other than the name of the file, or a namespace not matching its folders, which the compiler refuses (PAP021, error by default)",
           "enum": [
             "allow",
             "warn",
@@ -1704,7 +1704,7 @@
           "type": "string"
         },
         "scripts/name": {
-          "description": "`ScriptName` other than the name of the file, or a namespace without its folder, which the compiler refuses (PAP021, error by default)",
+          "description": "`ScriptName` other than the name of the file, or a namespace not matching its folders, which the compiler refuses (PAP021, error by default)",
           "enum": [
             "allow",
             "warn",
@@ -1874,6 +1874,13 @@
       "default": false,
       "description": "Skyrim with SKSE installed: its functions and scripts are known.",
       "type": "boolean"
+    },
+    "sources": {
+      "description": "The folders above the namespaces of the project's scripts, relative to this file: from Fallout 4, a script under one is named after its folders. Unknown without this key or a .ppj.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     }
   },
   "title": "papyrus.toml",

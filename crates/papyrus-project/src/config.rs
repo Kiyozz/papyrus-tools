@@ -116,6 +116,10 @@ pub struct Config {
     /// Folders of scripts the project builds on — a library, another mod —
     /// read but never checked, like the compiler's import folders.
     pub imports: Vec<PathBuf>,
+    /// The folders above the namespaces of the project's scripts: the
+    /// `sources` key, else a `.ppj`'s imports and folders. A folder may hold
+    /// nothing of the project: those of the game are among a `.ppj`'s.
+    pub roots: Vec<PathBuf>,
     /// The level of each lint, by code (`PAP001`) or by name
     /// (`encoding/lossy`). Validating the keys is the registry's job.
     pub lints: BTreeMap<String, Level>,
@@ -179,6 +183,8 @@ struct Raw {
     flags: Option<PathBuf>,
     #[serde(default)]
     imports: Vec<PathBuf>,
+    #[serde(default)]
+    sources: Vec<PathBuf>,
     ppj: Option<PathBuf>,
     #[serde(default)]
     fmt: RawFmt,
@@ -266,6 +272,7 @@ impl Config {
         };
         let flags = raw.flags.map(relative);
         let imports = raw.imports.into_iter().map(relative).collect();
+        let roots = raw.sources.into_iter().map(relative).collect();
         let ppj = raw.ppj.map(relative);
         let build = BuildConfig {
             compiler: raw.build.compiler.map(relative),
@@ -284,6 +291,7 @@ impl Config {
             pascal_keywords,
             flags,
             imports,
+            roots,
             lints,
             build,
             ppj,
@@ -329,6 +337,9 @@ impl Config {
                 self.imports.push(import);
             }
         }
+        if self.roots.is_empty() {
+            self.roots = base.roots;
+        }
         self.build.output = self.build.output.take().or(base.build.output);
         self.build.optimize |= base.build.optimize;
         self.build.release |= base.build.release;
@@ -354,6 +365,21 @@ mod tests {
 
     fn parse(text: &str) -> Result<Config, ConfigError> {
         Config::parse(text, Path::new("/project/papyrus.toml"))
+    }
+
+    #[test]
+    fn sources_are_the_known_roots_over_a_ppj() {
+        let mut config = parse("sources = [\"Source\"]").unwrap();
+        assert_eq!(config.roots, [Path::new("/project/Source")]);
+        let base = Config {
+            roots: vec!["/project/Other".into()],
+            ..Config::default()
+        };
+        config.layer(base.clone());
+        assert_eq!(config.roots, [Path::new("/project/Source")]);
+        let mut config = parse("").unwrap();
+        config.layer(base);
+        assert_eq!(config.roots, [Path::new("/project/Other")]);
     }
 
     #[test]
