@@ -593,6 +593,7 @@ dependencies = [
  "papyrus-hir",
  "papyrus-lint",
  "papyrus-lsp",
+ "papyrus-pex",
  "papyrus-project",
  "papyrus-syntax",
  "salsa",
@@ -654,6 +655,13 @@ dependencies = [
  "similar",
  "tokio",
  "tower-lsp-server",
+]
+
+[[package]]
+name = "papyrus-pex"
+version = "0.12.0"
+dependencies = [
+ "encoding_rs",
 ]
 
 [[package]]

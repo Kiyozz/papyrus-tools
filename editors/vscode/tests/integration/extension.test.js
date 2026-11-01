@@ -179,6 +179,41 @@ describe("the extension", () => {
     assert.equal(await run(await papyrusTask("build")), 2);
   });
 
+  it("opens a .pex as read-only assembly", async () => {
+    const pex = vscode.Uri.file(path.join(folder, "Sample.pex"));
+    await vscode.commands.executeCommand("vscode.open", pex);
+    const editor = await until("the assembly", () => {
+      const editor = vscode.window.activeTextEditor;
+      return editor?.document.uri.scheme === "papyrus-pex" ? editor : undefined;
+    });
+    assert.equal(editor.document.languageId, "papyrus-assembly");
+    assert.match(editor.document.getText(), /\.object Sample Quest/);
+    await until("the custom editor gone", () =>
+      vscode.window.tabGroups.all
+        .flatMap((group) => group.tabs)
+        .every((tab) => !(tab.input instanceof vscode.TabInputCustom)),
+    );
+  });
+
+  it("says so when a .pex cannot be read", async () => {
+    const pex = vscode.Uri.file(path.join(folder, "Damaged.pex"));
+    await vscode.commands.executeCommand("vscode.open", pex);
+    const editor = await until("the message", () => {
+      const editor = vscode.window.activeTextEditor;
+      return editor?.document.uri.path.endsWith("Damaged.pex.pas") ? editor : undefined;
+    });
+    assert.match(editor.document.getText(), /not a \.pex file/);
+
+    // Compiled again: the document follows.
+    const damaged = fs.readFileSync(pex.fsPath);
+    fs.copyFileSync(path.join(folder, "Sample.pex"), pex.fsPath);
+    try {
+      await until("the new assembly", () => editor.document.getText().includes(".object Sample"));
+    } finally {
+      fs.writeFileSync(pex.fsPath, damaged);
+    }
+  });
+
   it("creates papyrus.toml", async () => {
     assert.ok(!fs.existsSync(config));
     await vscode.commands.executeCommand("papyrus.createConfig");

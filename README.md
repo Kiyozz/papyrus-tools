@@ -22,6 +22,7 @@ papyrus check --fix --unsafe .                    # and the case of properties
 papyrus fmt .                                     # format in place
 papyrus fmt --check --indent tab .                # CI: fail if a file needs formatting
 papyrus build                                     # compile with PapyrusCompiler or Caprica
+papyrus disassemble Build/MyScript.pex            # a compiled script, as assembly
 papyrus init                                      # write a papyrus.toml, on top of a .ppj if there is one
 papyrus lints                                     # list the lints
 papyrus explain PAP015                            # what a lint means, and what to do
@@ -332,6 +333,15 @@ out of the folder given in `imports`.
 `--message-format short`, on `build` and `check`, prints each problem on one
 line, `path:line:column:end line:end column: error[code]: message`, for
 editors' problem matchers.
+
+### Compiled scripts
+
+`papyrus disassemble` prints a `.pex` of Skyrim, Fallout 4, Fallout 76 or
+Starfield, whichever compiler wrote it, in the format of `PapyrusAssembler -D`,
+without needing the game's tools. Two differences: tables follow the order of
+the file, where `PapyrusAssembler` follows its own, and the dates in comments
+are in UTC. In VSCode, opening a `.pex` shows this text, read-only, and it
+follows the file when it is compiled again.
 
 ### Editors
 

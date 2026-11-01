@@ -19,6 +19,7 @@ papyrus-stdlib = { path = "crates/papyrus-stdlib", version = "0.12.0" }
 papyrus-lsp = { path = "crates/papyrus-lsp", version = "0.12.0" }
 papyrus-hir = { path = "crates/papyrus-hir", version = "0.12.0" }
 papyrus-build = { path = "crates/papyrus-build", version = "0.12.0" }
+papyrus-pex = { path = "crates/papyrus-pex", version = "0.12.0" }
 
 ariadne = "0.6"
 clap = { version = "4.6", features = ["derive"] }

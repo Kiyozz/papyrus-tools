@@ -69,6 +69,12 @@ enum Command {
         /// `PAP015`, `locals/unused` or `baseline`.
         lint: String,
     },
+    /// Print a compiled script (.pex) as assembly, in the format of
+    /// PapyrusAssembler.
+    Disassemble {
+        /// The `.pex` file.
+        file: PathBuf,
+    },
     /// Run the language server on standard input and output, for an
     /// editor.
     Lsp,
@@ -439,6 +445,7 @@ fn main() -> ExitCode {
             Ok(true)
         }
         Command::Explain { lint } => explain(&lint),
+        Command::Disassemble { file } => disassemble(&file),
         Command::Lsp => papyrus_lsp::run().map(|()| true).map_err(|e| e.to_string()),
     };
     if result.is_ok() {
@@ -482,6 +489,16 @@ fn explain(key: &str) -> Result<bool, String> {
         papyrus_lint::explanation(lint),
         name = lint.name,
     );
+    Ok(true)
+}
+
+fn disassemble(file: &Path) -> Result<bool, String> {
+    let error = |e: &dyn std::fmt::Display| format!("{}: {e}", file.display());
+    let bytes = std::fs::read(file).map_err(|e| error(&e))?;
+    let pex = papyrus_pex::Pex::read(&bytes).map_err(|e| error(&e))?;
+    std::io::stdout()
+        .write_all(papyrus_pex::disassemble(&pex).as_bytes())
+        .map_err(|e| e.to_string())?;
     Ok(true)
 }
 

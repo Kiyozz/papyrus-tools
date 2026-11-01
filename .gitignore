@@ -8,6 +8,8 @@
 
 # Papyrus compiler output
 *.pex
+!/crates/papyrus-pex/tests/fixtures/**/*.pex
+!/editors/vscode/tests/fixture/*.pex
 node_modules/
 /dist/
 var/

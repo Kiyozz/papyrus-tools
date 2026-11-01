@@ -1,10 +1,14 @@
 // @ts-check
 // The Papyrus LSP client: starts `papyrus lsp` and hands it the `.psc` files.
 
+const { execFile } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const vscode = require("vscode");
 const { LanguageClient } = require("vscode-languageclient/node");
+
+/** The read-only documents holding the assembly of `.pex` files. */
+const PEX_SCHEME = "papyrus-pex";
 
 /** @type {LanguageClient | undefined} */
 let client;
@@ -121,8 +125,60 @@ async function createConfig() {
   await vscode.window.showTextDocument(vscode.Uri.parse(result.uri));
 }
 
+/**
+ * The assembly of a `.pex`, or comments saying why there is none: this is
+ * what the reader sees either way.
+ * @param {vscode.ExtensionContext} context
+ * @param {vscode.Uri} uri
+ * @returns {Promise<string>}
+ */
+function disassemble(context, uri) {
+  const command = serverPath(context);
+  const file = uri.with({ scheme: "file", path: uri.path.slice(0, -".pas".length) }).fsPath;
+  return new Promise((resolve) => {
+    const options = { maxBuffer: 256 * 1024 * 1024 };
+    execFile(command, ["disassemble", file], options, (error, stdout, stderr) => {
+      resolve(
+        error
+          ? `; Papyrus could not disassemble this file.\n; ${stderr.trim() || error.message}\n`
+          : stdout,
+      );
+    });
+  });
+}
+
+/**
+ * Opens a `.pex` as a read-only text document. A custom editor is what VSCode
+ * opens a binary file with: this one hands over to the document and leaves.
+ * @param {vscode.ExtensionContext} context
+ */
+function registerPexEditor(context) {
+  const changes = new vscode.EventEmitter();
+  const watcher = vscode.workspace.createFileSystemWatcher("**/*.pex");
+  const assembly = (/** @type {vscode.Uri} */ uri) =>
+    uri.with({ scheme: PEX_SCHEME, path: `${uri.path}.pas` });
+  context.subscriptions.push(
+    changes,
+    watcher,
+    watcher.onDidChange((uri) => changes.fire(assembly(uri))),
+    vscode.workspace.registerTextDocumentContentProvider(PEX_SCHEME, {
+      onDidChange: changes.event,
+      provideTextDocumentContent: (uri) => disassemble(context, uri),
+    }),
+    vscode.window.registerCustomEditorProvider("papyrus.pex", {
+      openCustomDocument: (uri) => ({ uri, dispose() {} }),
+      resolveCustomEditor: async (document, panel) => {
+        const column = panel.viewColumn;
+        await vscode.window.showTextDocument(assembly(document.uri), { viewColumn: column });
+        panel.dispose();
+      },
+    }),
+  );
+}
+
 /** @param {vscode.ExtensionContext} context */
 async function activate(context) {
+  registerPexEditor(context);
   context.subscriptions.push(
     vscode.commands.registerCommand("papyrus.restart", async () => {
       await client?.stop();

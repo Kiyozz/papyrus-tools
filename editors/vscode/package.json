@@ -41,9 +41,35 @@
           ".psc"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "papyrus-assembly",
+        "aliases": [
+          "Papyrus Assembly"
+        ],
+        "filenamePatterns": [
+          "*.pex.pas"
+        ]
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "papyrus.pex",
+        "displayName": "Papyrus Assembly",
+        "selector": [
+          {
+            "filenamePattern": "*.pex"
+          }
+        ],
+        "priority": "default"
       }
     ],
     "grammars": [
+      {
+        "language": "papyrus-assembly",
+        "scopeName": "source.papyrus-assembly",
+        "path": "./syntaxes/papyrus-assembly.tmLanguage.json"
+      },
       {
         "language": "papyrus",
         "scopeName": "source.papyrus",

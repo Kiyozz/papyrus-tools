@@ -1,0 +1,14 @@
+[package]
+name = "papyrus-pex"
+description = "Reading and disassembling compiled Papyrus scripts"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+encoding_rs.workspace = true
+
+[lints]
+workspace = true
