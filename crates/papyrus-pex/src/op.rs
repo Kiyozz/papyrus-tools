@@ -101,4 +101,16 @@ impl Op {
     pub(crate) fn jumps(&self) -> bool {
         matches!(self.name, "Jump" | "JumpT" | "JumpF")
     }
+
+    /// Whether its argument at `position` names a member: written bare, even
+    /// when the file stores it as a string, as stripped scripts do.
+    pub(crate) fn names(&self, position: usize) -> bool {
+        match self.name {
+            "CallMethod" | "CallParent" | "PropGet" | "PropSet" => position == 0,
+            "CallStatic" => position <= 1,
+            "StructGet" => position == 2,
+            "StructSet" => position == 1,
+            _ => false,
+        }
+    }
 }

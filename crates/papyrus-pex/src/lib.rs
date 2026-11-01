@@ -298,7 +298,8 @@ impl<'a> Reader<'a> {
         let at = self.at;
         Ok(match self.u8()? {
             0 => Value::None,
-            1 => Value::Identifier(self.name()?),
+            // 8 and 9, a type and a guard, come from `PapyrusAssembler -S`.
+            1 | 8 | 9 => Value::Identifier(self.name()?),
             2 => Value::String(self.name()?),
             3 => Value::Integer(self.u32()?.cast_signed()),
             4 => Value::Float(f32::from_bits(self.u32()?)),

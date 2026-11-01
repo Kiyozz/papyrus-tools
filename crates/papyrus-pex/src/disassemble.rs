@@ -110,9 +110,12 @@ impl<'a> Writer<'a> {
         let pex = self.pex;
         self.line(0, ".info");
         self.line(1, &format!(".source {}", quoted(&pex.source)));
-        if let Some(Debug { modify_time, .. }) = pex.debug {
-            let date = date(modify_time);
-            self.line(1, &format!(".modifyTime {modify_time} ;{date} UTC"));
+        match pex.debug {
+            Some(Debug { modify_time, .. }) => {
+                let date = date(modify_time);
+                self.line(1, &format!(".modifyTime {modify_time} ;{date} UTC"));
+            }
+            None => self.line(1, ".modifyTime 0 ;Debug info: No"),
         }
         let date = date(pex.compile_time);
         self.line(1, &format!(".compileTime {} ;{date} UTC", pex.compile_time));
@@ -310,6 +313,9 @@ impl<'a> Writer<'a> {
                             }
                             None => text.push_str(&offset.to_string()),
                         }
+                    }
+                    Value::String(name) if instruction.op.names(position) => {
+                        text.push_str(self.text(name));
                     }
                     arg => text.push_str(&self.value(arg)),
                 }

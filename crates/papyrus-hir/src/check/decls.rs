@@ -134,6 +134,27 @@ impl Semantics<'_> {
         };
         let short = items.name.rsplit(':').next().unwrap_or_default();
         if short.is_empty() || short.eq_ignore_ascii_case(stem) {
+            // The root is unknown, but a namespace's folders are not: only a
+            // name without any cannot be told from a file under its root.
+            if let Some((namespace, _)) = items.name.rsplit_once(':')
+                && self.script_root(file).is_none()
+            {
+                out.push(Diagnostic {
+                    problem: Problem::ScriptName,
+                    range: items.name_range,
+                    message: format!(
+                        "the script is in the namespace `{namespace}`, but its file is not in \
+                         that folder: the compiler wants them to match"
+                    ),
+                    fixes: vec![Fix {
+                        title: format!("Rename the script to `{stem}`"),
+                        edits: vec![Replacement {
+                            range: items.name_range,
+                            text: stem.to_owned(),
+                        }],
+                    }],
+                });
+            }
             return;
         }
         let range = TextRange::new(

@@ -108,7 +108,7 @@ fn scripts(dir: &Path, out: &mut Vec<PathBuf>) {
 fn fixtures() -> Vec<PathBuf> {
     let mut paths = Vec::new();
     scripts(Path::new(FIXTURES), &mut paths);
-    assert_eq!(paths.len(), 3);
+    assert_eq!(paths.len(), 6);
     paths
 }
 
@@ -146,6 +146,18 @@ fn the_fixtures_hold_the_opcodes_of_their_game() {
         assert!(fallout.contains(op), "{op}");
     }
     assert!(text("skyrim").contains("ArrayRFindElement"));
+}
+
+#[test]
+fn a_stripped_script_says_so() {
+    for game in ["skyrim", "fallout4", "starfield"] {
+        let path = Path::new(FIXTURES).join(format!("{game}-stripped/Sample.pex"));
+        let pex = Pex::read(&std::fs::read(path).unwrap()).unwrap();
+        assert!(pex.debug.is_none());
+        let text = disassemble(&pex);
+        assert!(text.contains(".modifyTime 0 ;Debug info: No"), "{game}");
+        assert!(text.contains(";@line ??"), "{game}");
+    }
 }
 
 #[test]

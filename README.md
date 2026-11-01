@@ -139,7 +139,7 @@ Pyro: nothing of a `.ppj` is ever run.
 | `PAP018` | `scripts/unknown` | error | Script that does not exist, once the game's sources are in the project or its `imports` |
 | `PAP019` | `locals/duplicate` | error | Local declared twice in a block, named like a parameter or a script variable, or hiding one of an enclosing block |
 | `PAP020` | `names/case` | warn | Name written with another case than its declaration, which the compiler ignores (fixable) |
-| `PAP021` | `scripts/name` | error | `ScriptName` other than the file's name |
+| `PAP021` | `scripts/name` | error | `ScriptName` other than the file's name, or a namespace without its folder |
 | `PAP022` | `scripts/cycle` | error | Script that extends itself, directly or through its ancestors |
 | `PAP023` | `members/duplicate` | error | Function or event twice in a state, variable or property twice, a second `Auto` state; from Fallout 4, a property named like a variable |
 | `PAP024` | `returns/value` | error | `Return value` in a function without return type or an event, `Return` alone in a typed function |
