@@ -2,7 +2,7 @@
   "name": "papyrus-toolchain",
   "displayName": "Papyrus Toolchain",
   "description": "Diagnostics, formatting and lints for Papyrus, the scripting language of Skyrim, Fallout 4 and Starfield",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "publisher": "kiyozz",
   "license": "Apache-2.0",
   "icon": "images/icon.png",
