@@ -1,5 +1,12 @@
 # papyrus-tools
 
+## 0.16.0
+
+### Minor Changes
+
+- c970e22: `sources` in `papyrus.toml`, and the `Imports` and `Folders` of a `.ppj`, give the folders above the namespaces: `PAP021` then reports `ScriptName Stray` in `Source/MyMod/Stray.psc`, and a script out of its folder no longer moves the root of `papyrus build` for the others.
+- b14fc8e: The extension is ready for the Visual Studio Marketplace and Open VSX: an icon, the changelog on its page, and a universal package, without the binary, for the platforms not built.
+
 ## 0.15.0
 
 ### Minor Changes
