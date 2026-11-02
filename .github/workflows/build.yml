@@ -1,7 +1,8 @@
 # The `papyrus` binaries and the VSCode extension, per platform.
 #
-# Called by release.yml after a tag; can be run by hand to check the build
-# without publishing anything.
+# Called by release.yml after a tag, which then publishes the extensions on
+# the stores; can be run by hand to check the build without publishing
+# anything.
 
 name: Build
 
@@ -13,7 +14,7 @@ on:
         type: string
         required: true
       publish:
-        description: Create the GitHub release and publish the extension
+        description: Create the GitHub release
         type: boolean
         default: false
   workflow_dispatch:
@@ -23,7 +24,7 @@ on:
         type: string
         default: main
       publish:
-        description: Create the GitHub release and publish the extension
+        description: Create the GitHub release
         type: boolean
         default: false
 
@@ -93,15 +94,36 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  # The fallback of the stores for the other platforms (darwin-x64…), without
+  # a binary: `papyrus` from the `PATH`.
+  universal:
+    name: universal
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+      - run: npm ci
+        working-directory: editors/vscode
+      - run: node scripts/package-extension.mjs --target universal
+      - uses: actions/upload-artifact@v4
+        with:
+          name: papyrus-universal
+          path: dist/*
+          if-no-files-found: error
+
   publish:
-    name: Publish
-    needs: build
+    name: GitHub release
+    needs: [build, universal]
     if: inputs.publish
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      VSCE_PAT: ${{ secrets.VSCE_PAT }}
-      OVSX_PAT: ${{ secrets.OVSX_PAT }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -118,13 +140,3 @@ jobs:
           version=$(node -p "require('./package.json').version")
           node scripts/release-notes.mjs "$version" > notes.md
           gh release create "v$version" dist/* --title "v$version" --notes-file notes.md
-      # Without a token the step is skipped: the GitHub release is enough.
-      - name: Visual Studio Marketplace
-        if: env.VSCE_PAT != ''
-        run: npx --yes @vscode/vsce@4 publish --packagePath dist/*.vsix
-      - name: Open VSX
-        if: env.OVSX_PAT != ''
-        run: |
-          for vsix in dist/*.vsix; do
-            npx --yes ovsx@1 publish "$vsix" --pat "$OVSX_PAT"
-          done

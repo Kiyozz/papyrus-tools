@@ -51,6 +51,15 @@ The extension ships with the `papyrus` binary for its platform and runs
 `papyrus lsp`. The `papyrus.server.path` setting points to another binary;
 without an embedded one, the extension looks for `papyrus` in the `PATH`.
 
+Windows x64 and arm64, macOS on Apple Silicon and Linux x64 and arm64 get the
+binary. Elsewhere — macOS on Intel… — the extension comes without it: install
+`papyrus` from the [GitHub releases](https://github.com/Kiyozz/papyrus-tools/releases),
+or build it with `cargo install --git https://github.com/Kiyozz/papyrus-tools papyrus-cli`.
+
+The [Papyrus extension of joelday](https://marketplace.visualstudio.com/items?itemName=joelday.papyrus-lang-vscode)
+claims the same `.psc` files: with both, the diagnostics and completions come
+twice. Disable one of them for the workspace.
+
 ## Settings
 
 - `papyrus.inlayHints.parameterNames`: `literals` (default) shows the name of
