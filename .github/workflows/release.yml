@@ -113,7 +113,9 @@ jobs:
       # `--skip-duplicate`: a run started again publishes what is missing.
       - name: Visual Studio Marketplace
         run: npx --yes @vscode/vsce@^4.1.0 publish --oidc --skip-duplicate --packagePath dist/*.vsix
+      # Even when the Marketplace refuses: one store does not wait on the other.
       - name: Open VSX
+        if: ${{ !cancelled() }}
         run: |
           auth=--trusted-publishing
           if [ -n "$OVSX_PAT" ]; then auth="--pat $OVSX_PAT"; fi
