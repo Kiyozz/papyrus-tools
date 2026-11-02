@@ -1,4 +1,4 @@
-# Papyrus
+# Papyrus Toolchain
 
 Diagnostics, formatting and lints for **Papyrus**, the scripting language of
 the Creation Kit — Skyrim, Fallout 4, Starfield.
