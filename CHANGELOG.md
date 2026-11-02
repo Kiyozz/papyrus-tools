@@ -1,5 +1,11 @@
 # papyrus-tools
 
+## 0.16.1
+
+### Patch Changes
+
+- dbaf8d8: The extension is now `kiyozz.papyrus-toolchain`: `papyrus-tools` is already taken on the Visual Studio Marketplace.
+
 ## 0.16.0
 
 ### Minor Changes
