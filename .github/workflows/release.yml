@@ -26,7 +26,16 @@ jobs:
     outputs:
       pending: ${{ steps.changesets.outputs.hasChangesets }}
     steps:
+      # A PR opened with GITHUB_TOKEN triggers no workflow, its CI never
+      # runs: the release PR is opened by the repository's GitHub App.
+      - id: app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_KEY }}
       - uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app.outputs.token }}
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -41,7 +50,7 @@ jobs:
           commit: "chore: release"
           title: "chore: release"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app.outputs.token }}
 
   tag:
     name: Tag
@@ -78,3 +87,36 @@ jobs:
       ref: v${{ needs.tag.outputs.version }}
       publish: true
     secrets: inherit
+
+  # Trusted publishing (OIDC), no stored token: both stores' policies name
+  # this file, which is why the job lives here and not in build.yml.
+  stores:
+    name: Marketplace and Open VSX
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # Open VSX trusts a workflow only once the extension has a version: the
+      # first one goes out with this token, which can be deleted afterwards.
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: papyrus-*
+          path: dist
+          merge-multiple: true
+      # `--skip-duplicate`: a run started again publishes what is missing.
+      - name: Visual Studio Marketplace
+        run: npx --yes @vscode/vsce@^4.1.0 publish --oidc --skip-duplicate --packagePath dist/*.vsix
+      - name: Open VSX
+        run: |
+          auth=--trusted-publishing
+          if [ -n "$OVSX_PAT" ]; then auth="--pat $OVSX_PAT"; fi
+          for vsix in dist/*.vsix; do
+            npx --yes ovsx@^1.3.0 publish "$vsix" $auth --skip-duplicate
+          done

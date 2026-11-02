@@ -5,6 +5,16 @@
   "version": "0.15.0",
   "publisher": "kiyozz",
   "license": "Apache-2.0",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#2B2D42",
+    "theme": "dark"
+  },
+  "homepage": "https://github.com/Kiyozz/papyrus-tools#readme",
+  "bugs": {
+    "url": "https://github.com/Kiyozz/papyrus-tools/issues"
+  },
+  "qna": false,
   "repository": {
     "type": "git",
     "url": "https://github.com/kiyozz/papyrus-tools"

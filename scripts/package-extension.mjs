@@ -7,6 +7,10 @@
 // Writes to `dist/`:
 //   papyrus-tools-<target>-<version>.vsix
 //   papyrus-<version>-<target>.zip (Windows) or .tar.gz
+//
+// `--target universal`, without a binary, packages the extension alone for
+// the other platforms: `papyrus` is then taken from the `PATH` or the
+// `papyrus.server.path` setting.
 
 import { execFileSync } from "node:child_process";
 import { chmodSync, copyFileSync, mkdirSync, readFileSync, rmSync } from "node:fs";
@@ -24,8 +28,10 @@ const { values } = parseArgs({
   },
 });
 const { target, binary, out } = values;
-if (!TARGETS.includes(target ?? "") || !binary) {
+const universal = target === "universal";
+if (!(universal || (TARGETS.includes(target ?? "") && binary))) {
   console.error(`usage: --target <${TARGETS.join("|")}> --binary <path> [--out dist]`);
+  console.error("       --target universal [--out dist]");
   process.exit(2);
 }
 
@@ -46,19 +52,28 @@ function install(dir) {
 
 mkdirSync(dist, { recursive: true });
 
-// The binary goes where `extension.js` looks for it.
+// The binary goes where `extension.js` looks for it; the changelog, kept at
+// the root, is shown on the stores' page.
 const server = join(extension, "server");
-install(server);
+const changelog = join(extension, "CHANGELOG.md");
+rmSync(server, { recursive: true, force: true });
+if (!universal) install(server);
+copyFileSync(join(root, "CHANGELOG.md"), changelog);
 try {
   // vsce's entry point is run with node directly: no shell, no quoting.
   const vsce = join(extension, "node_modules", "@vscode", "vsce", "vsce");
-  const vsix = join(dist, `papyrus-tools-${target}-${version}.vsix`);
-  execFileSync(process.execPath, [vsce, "package", "--target", target, "--out", vsix], {
-    cwd: extension,
-    stdio: "inherit",
-  });
+  const name = universal ? `papyrus-tools-${version}.vsix` : `papyrus-tools-${target}-${version}.vsix`;
+  const args = [vsce, "package", "--out", join(dist, name)];
+  if (!universal) args.push("--target", target);
+  execFileSync(process.execPath, args, { cwd: extension, stdio: "inherit" });
 } finally {
   rmSync(server, { recursive: true, force: true });
+  rmSync(changelog, { force: true });
+}
+
+if (universal) {
+  console.log(`universal ${version}: extension in ${out}/`);
+  process.exit(0);
 }
 
 // The bare binary, with the license, for the CLI and other editors.

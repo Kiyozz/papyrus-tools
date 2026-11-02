@@ -534,8 +534,11 @@ On `main`, the *Release* workflow opens a "chore: release" PR that bumps the
 version, writes `CHANGELOG.md` and copies it into `Cargo.toml` and the
 extension. Once merged, the version is tagged, then binaries and extensions are
 built for each platform and attached to the GitHub release — and published on
-the Visual Studio Marketplace and Open VSX if the `VSCE_PAT` and `OVSX_PAT`
-secrets exist.
+the Visual Studio Marketplace and Open VSX by trusted publishing (OIDC), with
+a universal extension, without the binary, for the other platforms. Both
+stores trust `release.yml`; Open VSX only once the extension has a version,
+the first one published with the `OVSX_PAT` secret. The release PR is opened by a GitHub App (`RELEASE_APP_ID`,
+`RELEASE_APP_KEY`): one opened with `GITHUB_TOKEN` would start no CI.
 
 ## `.psc` encoding
 
