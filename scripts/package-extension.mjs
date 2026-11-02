@@ -5,7 +5,7 @@
 //     --binary target/x86_64-pc-windows-msvc/release/papyrus.exe
 //
 // Writes to `dist/`:
-//   papyrus-tools-<target>-<version>.vsix
+//   papyrus-toolchain-<target>-<version>.vsix
 //   papyrus-<version>-<target>.zip (Windows) or .tar.gz
 //
 // `--target universal`, without a binary, packages the extension alone for
@@ -62,7 +62,7 @@ copyFileSync(join(root, "CHANGELOG.md"), changelog);
 try {
   // vsce's entry point is run with node directly: no shell, no quoting.
   const vsce = join(extension, "node_modules", "@vscode", "vsce", "vsce");
-  const name = universal ? `papyrus-tools-${version}.vsix` : `papyrus-tools-${target}-${version}.vsix`;
+  const name = universal ? `papyrus-toolchain-${version}.vsix` : `papyrus-toolchain-${target}-${version}.vsix`;
   const args = [vsce, "package", "--out", join(dist, name)];
   if (!universal) args.push("--target", target);
   execFileSync(process.execPath, args, { cwd: extension, stdio: "inherit" });

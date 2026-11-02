@@ -1,5 +1,5 @@
 {
-  "name": "papyrus-tools",
+  "name": "papyrus-toolchain",
   "displayName": "Papyrus",
   "description": "Diagnostics, formatting and lints for Papyrus, the scripting language of Skyrim, Fallout 4 and Starfield",
   "version": "0.16.0",
