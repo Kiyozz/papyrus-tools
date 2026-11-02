@@ -84,10 +84,11 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Next
 
-- **v0.16 — A debugger.** Starts with a discovery: reuse or fork the xSE plugin
+- **v0.16 — Publication.** The extension on the Marketplace and Open VSX by
+  trusted publishing (OIDC), a universal package for the other platforms; the
+  release PR opened by a GitHub App, its CI run.
+- **v0.17 — A debugger.** Starts with a discovery: reuse or fork the xSE plugin
   of joelday's `papyrus-lang`, or write one; the DAP adapter on our side.
-- **v0.17 — Publication** (may move): the extension on the Marketplace and
-  Open VSX (tokens), CI on the release PR.
 - **v0.18 — A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the
   binary embedded, settings, `papyrus build` as a run configuration. Starts
   with a discovery of the best way to match the VSCode extension — Kotlin,
