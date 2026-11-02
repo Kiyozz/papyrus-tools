@@ -111,8 +111,15 @@ pub(crate) fn build(
         })?;
         let compiler = compiler(settings, args, game)?;
         let alone = settings.scripts.iter().all(|path| given.contains(path));
+        // Skyrim's compiler does not recurse: a script stays in its own folder.
+        let known = if game.rank() >= 1 {
+            settings.config.roots.as_slice()
+        } else {
+            &[]
+        };
         let folders = |scripts: &[(PathBuf, String)]| {
-            papyrus_build::roots(scripts.iter().map(|(p, n)| (p.as_path(), n.as_str())))
+            let names = scripts.iter().map(|(p, n)| (p.as_path(), n.as_str()));
+            papyrus_build::roots(names, known)
         };
         let roots = papyrus_build::outermost(game, folders(&named(settings, &settings.scripts)));
         // From the names of the scripts compiled alone: a script of the

@@ -75,6 +75,7 @@ include-fragments = false
 skse = true                  # Skyrim: SKSE's functions, events and scripts
 # flags = "MyFlags.flg"      # replaces the game's vanilla flags
 imports = ["../SkyUI/Scripts/Source"]  # read, never checked
+# sources = ["Source"]       # the folders above the namespaces
 
 [fmt]
 indent = 2                   # or "tab"
@@ -102,6 +103,14 @@ framework, another mod — relative to papyrus.toml, like the compiler's import
 folders. They are read to follow `extends` and calls, for the lints and the
 editor, but never checked nor changed. A project's own script wins over an
 imported one of the same name.
+
+`sources` names the folders above the namespaces of the project's scripts, for
+Fallout 4 and Starfield; a `.ppj`'s `Imports` and `Folders` say the same. It
+changes neither what is checked nor what is compiled. Under such a folder, the
+name of a script must follow its folders: `PAP021` reports `ScriptName Stray`
+in `Source/MyMod/Stray.psc`, and a script out of place no longer moves the root
+that `papyrus build` gives the others. Without it, the root is what each
+script's name says, and a name without namespace goes unnoticed in a subfolder.
 
 A `.ppj`, the Creation Kit's or [Pyro](https://github.com/fireundubh/pyro)'s,
 needs no configuration: in a folder without `papyrus.toml`, it is one. `check`,
@@ -139,7 +148,7 @@ Pyro: nothing of a `.ppj` is ever run.
 | `PAP018` | `scripts/unknown` | error | Script that does not exist, once the game's sources are in the project or its `imports` |
 | `PAP019` | `locals/duplicate` | error | Local declared twice in a block, named like a parameter or a script variable, or hiding one of an enclosing block |
 | `PAP020` | `names/case` | warn | Name written with another case than its declaration, which the compiler ignores (fixable) |
-| `PAP021` | `scripts/name` | error | `ScriptName` other than the file's name, or a namespace without its folder |
+| `PAP021` | `scripts/name` | error | `ScriptName` other than the file's name, or a namespace not matching its folders |
 | `PAP022` | `scripts/cycle` | error | Script that extends itself, directly or through its ancestors |
 | `PAP023` | `members/duplicate` | error | Function or event twice in a state, variable or property twice, a second `Auto` state; from Fallout 4, a property named like a variable |
 | `PAP024` | `returns/value` | error | `Return value` in a function without return type or an event, `Return` alone in a typed function |

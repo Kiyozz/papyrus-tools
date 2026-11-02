@@ -817,6 +817,36 @@ impl Semantics<'_> {
         Some(dir)
     }
 
+    /// The name the known roots give the script of `file`, from the innermost
+    /// one holding it; `None` if one agrees with its name, or none holds it.
+    pub(crate) fn name_from_roots(&self, file: SourceFile) -> Option<String> {
+        let path = file.path(self.db()).with_extension("");
+        let name = &self.items(file).name;
+        let mut expected: Option<Vec<&str>> = None;
+        for root in self.project().roots(self.db()) {
+            let mut folders = path.components();
+            let inside = root.components().all(|part| {
+                let same = |folder: Component<'_>| {
+                    folder.as_os_str().eq_ignore_ascii_case(part.as_os_str())
+                };
+                folders.next().is_some_and(same)
+            });
+            if !inside {
+                continue;
+            }
+            let segments = folders
+                .map(|folder| folder.as_os_str().to_str())
+                .collect::<Option<Vec<_>>>()?;
+            if segments.join(":").eq_ignore_ascii_case(name) {
+                return None;
+            }
+            if expected.as_ref().is_none_or(|e| segments.len() < e.len()) {
+                expected = Some(segments);
+            }
+        }
+        Some(expected?.join(":"))
+    }
+
     /// Where the script of `file` goes once named `name`.
     fn path_of_script(&self, file: SourceFile, name: &str) -> Option<PathBuf> {
         let mut path = self.script_root(file)?;

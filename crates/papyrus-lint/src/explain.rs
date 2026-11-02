@@ -203,6 +203,12 @@ From Fallout 4, a namespace also needs its folder:
     ; Source/Stray.psc, where Source/MyMod/Stray.psc is expected
     ScriptName MyMod:Stray
 
+When the root of the scripts is known, by `sources` in papyrus.toml or the
+imports of a `.ppj`, every folder under it counts, a namespace left out too:
+
+    ; Source/MyMod/Stray.psc, with sources = ["Source"]
+    ScriptName Stray
+
 Rename one of them, or move the file: the quick fix rewrites the `ScriptName`."#
         }
         "PAP022" => {

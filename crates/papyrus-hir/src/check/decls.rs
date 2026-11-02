@@ -134,8 +134,33 @@ impl Semantics<'_> {
         };
         let short = items.name.rsplit(':').next().unwrap_or_default();
         if short.is_empty() || short.eq_ignore_ascii_case(stem) {
-            // The root is unknown, but a namespace's folders are not: only a
-            // name without any cannot be told from a file under its root.
+            // Skyrim's scripts have no namespace, whatever their folder.
+            let known = self
+                .game()
+                .is_some_and(|g| g.rank() >= 1)
+                .then(|| self.name_from_roots(file))
+                .flatten();
+            if let Some(expected) = known {
+                out.push(Diagnostic {
+                    problem: Problem::ScriptName,
+                    range: items.name_range,
+                    message: format!(
+                        "the folders of this file make it `{expected}`: the compiler wants them \
+                         to match"
+                    ),
+                    fixes: vec![Fix {
+                        title: format!("Rename the script to `{expected}`"),
+                        edits: vec![Replacement {
+                            range: items.name_range,
+                            text: expected,
+                        }],
+                    }],
+                });
+                return;
+            }
+            // Otherwise the root is unknown, but a namespace's folders are
+            // not: only a name without any cannot be told from a file under
+            // its root.
             if let Some((namespace, _)) = items.name.rsplit_once(':')
                 && self.script_root(file).is_none()
             {

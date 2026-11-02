@@ -267,6 +267,62 @@ fn alone(game: &str, config: &str, fixture: &str, base: &str, script: &str, expe
     let _ = std::fs::remove_dir_all(&root);
 }
 
+/// With the root known, a script out of place is refused alone, by the check
+/// and by the official compiler, the others compiling from that same root.
+fn known_root(game: &str, config: &str, base: &str) {
+    let Some((sources, compiler)) = installed(game, base) else {
+        return;
+    };
+    let test = format!("root-{game}");
+    let root = prepare(&test, "homestead", "whole.ppj", "", "");
+    std::fs::remove_file(root.join("mod.ppj")).unwrap();
+    std::fs::remove_file(root.join("Source/Homestead/Draft.psc")).unwrap();
+    let config = format!(
+        "{config}\nsources = [\"Source\"]\nimports = [\"{sources}\"]\n[build]\noutput = \"Build\"\n"
+    );
+    std::fs::write(root.join("papyrus.toml"), config).unwrap();
+    let flat = root.join("Source/Stray.psc");
+    std::fs::write(flat, "ScriptName Homestead:Stray\n").unwrap();
+    let deep = root.join("Source/Homestead/Lost.psc");
+    std::fs::write(deep, "ScriptName Lost\n").unwrap();
+
+    let (found, _) = check(&root);
+    assert!(
+        found.contains("Stray") && found.contains("Lost"),
+        "{found:?}"
+    );
+
+    let compiler = compiler.to_string_lossy();
+    let built = papyrus(&root, &["build", "--compiler", &compiler]);
+    let printed = String::from_utf8_lossy(&built.stdout);
+    let printed = format!("{printed}{}", String::from_utf8_lossy(&built.stderr));
+    assert!(!built.status.success());
+    assert!(
+        printed.contains("Stray.psc") && printed.contains("Lost.psc"),
+        "{printed}"
+    );
+    assert!(!printed.contains("Main.psc"), "{printed}");
+    let pex = compiled(&root.join("Build"));
+    for script in ["Homestead/Main.pex", "Homestead/Util.pex", "Plain.pex"] {
+        assert!(pex.contains(script), "{script}: {pex:?}");
+    }
+    assert!(
+        !pex.iter()
+            .any(|p| p.contains("Stray") || p.contains("Lost"))
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn fallout4_knows_the_root_of_its_scripts() {
+    known_root("FALLOUT4", "game = \"fallout4\"", "/Base");
+}
+
+#[test]
+fn starfield_knows_the_root_of_its_scripts() {
+    known_root("STARFIELD", "game = \"starfield\"", "");
+}
+
 #[test]
 fn fallout4_compiles_a_script_alone() {
     alone(

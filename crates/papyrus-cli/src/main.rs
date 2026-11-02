@@ -652,6 +652,7 @@ fn index(settings: &Settings, stdin: Option<(&Path, &str)>) -> Index {
     }
     let project = papyrus_hir::Project::new(&db, own, imports, settings.game);
     project.set_skse(&mut db).to(settings.config.skse);
+    project.set_roots(&mut db).to(settings.config.roots.clone());
     Index {
         workspace,
         db,
