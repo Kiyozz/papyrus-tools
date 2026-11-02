@@ -1,5 +1,11 @@
 # papyrus-tools
 
+## 0.16.2
+
+### Patch Changes
+
+- f09c88c: The extension is shown as "Papyrus Toolchain": "Papyrus" is already taken on the Visual Studio Marketplace.
+
 ## 0.16.1
 
 ### Patch Changes
