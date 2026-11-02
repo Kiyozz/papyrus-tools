@@ -420,7 +420,7 @@ binary embedded. To build it locally:
 npm ci && npm ci --prefix editors/vscode
 cargo build --release -p papyrus-cli
 npm run package:extension -- --target win32-x64 --binary target/release/papyrus.exe
-code --install-extension dist/papyrus-tools-win32-x64-<version>.vsix
+code --install-extension dist/papyrus-toolchain-win32-x64-<version>.vsix
 ```
 
 The client and its dependencies are bundled by esbuild into

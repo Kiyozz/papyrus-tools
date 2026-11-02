@@ -75,7 +75,7 @@ describe("the extension", () => {
   });
 
   it("activates on a .psc", async () => {
-    const extension = vscode.extensions.getExtension("kiyozz.papyrus-tools");
+    const extension = vscode.extensions.getExtension("kiyozz.papyrus-toolchain");
     assert.ok(extension);
     await until("the activation", () => extension.isActive);
   });
