@@ -82,11 +82,13 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
   criterion: the text of `PapyrusAssembler` on the three games, tables in the
   order of the file.
 
+- **v0.16 — Publication**, as 0.16.2. The extension, `kiyozz.papyrus-toolchain`,
+  on the Marketplace and Open VSX by trusted publishing (OIDC), a universal
+  package for the other platforms; the release PR opened by a GitHub App, its
+  CI run.
+
 ## Next
 
-- **v0.16 — Publication.** The extension on the Marketplace and Open VSX by
-  trusted publishing (OIDC), a universal package for the other platforms; the
-  release PR opened by a GitHub App, its CI run.
 - **v0.17 — A debugger.** Starts with a discovery: reuse or fork the xSE plugin
   of joelday's `papyrus-lang`, or write one; the DAP adapter on our side.
 - **v0.18 — A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the
