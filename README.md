@@ -412,9 +412,12 @@ The type hierarchy follows `extends` through the scripts with a source: add the
 game's sources to `imports` to see the native ones. Formatting a selection only
 changes the selected lines.
 
-**VSCode** — the extension, in `editors/vscode`, is published once per platform
-(Windows x64 and arm64, macOS arm64, Linux x64 and arm64), with the `papyrus`
-binary embedded. To build it locally:
+**VSCode** — the extension, in `editors/vscode`, is on the
+[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=kiyozz.papyrus-toolchain)
+and [Open VSX](https://open-vsx.org/extension/kiyozz/papyrus-toolchain). It is
+published once per platform (Windows x64 and arm64, macOS arm64, Linux x64 and
+arm64), with the `papyrus` binary embedded, and once without it for the
+others, `papyrus` then taken from the `PATH`. To build it locally:
 
 ```sh
 npm ci && npm ci --prefix editors/vscode
