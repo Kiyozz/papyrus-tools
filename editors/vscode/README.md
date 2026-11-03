@@ -51,8 +51,8 @@ The extension ships with the `papyrus` binary for its platform and runs
 `papyrus lsp`. The `papyrus.server.path` setting points to another binary;
 without an embedded one, the extension looks for `papyrus` in the `PATH`.
 
-Windows x64 and arm64, macOS on Apple Silicon and Linux x64 and arm64 get the
-binary. Elsewhere — macOS on Intel… — the extension comes without it: install
+Windows, macOS and Linux, x64 and arm64, get the binary. Elsewhere — Linux on
+32-bit ARM, Alpine… — the extension comes without it: install
 `papyrus` from the [GitHub releases](https://github.com/Kiyozz/papyrus-tools/releases),
 or build it with `cargo install --git https://github.com/Kiyozz/papyrus-tools papyrus-cli`.
 

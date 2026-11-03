@@ -47,6 +47,10 @@ jobs:
           - target: darwin-arm64
             rust: aarch64-apple-darwin
             os: macos-latest
+          # Cross-compiled on the arm64 runner.
+          - target: darwin-x64
+            rust: x86_64-apple-darwin
+            os: macos-latest
           # musl: a static binary, which runs on any distribution.
           - target: linux-x64
             rust: x86_64-unknown-linux-musl
@@ -94,8 +98,8 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-  # The fallback of the stores for the other platforms (darwin-x64…), without
-  # a binary: `papyrus` from the `PATH`.
+  # Open VSX's fallback for the other platforms (linux-armhf, alpine…),
+  # without a binary: `papyrus` from the `PATH`. Not on the Marketplace.
   universal:
     name: universal
     runs-on: ubuntu-latest

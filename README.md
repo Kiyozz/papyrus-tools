@@ -415,9 +415,9 @@ changes the selected lines.
 **VSCode** — the extension, in `editors/vscode`, is on the
 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=kiyozz.papyrus-toolchain)
 and [Open VSX](https://open-vsx.org/extension/kiyozz/papyrus-toolchain). It is
-published once per platform (Windows x64 and arm64, macOS arm64, Linux x64 and
-arm64), with the `papyrus` binary embedded, and once without it for the
-others, `papyrus` then taken from the `PATH`. To build it locally:
+published once per platform (Windows, macOS and Linux, x64 and arm64), with
+the `papyrus` binary embedded, and on Open VSX once without it for the others,
+`papyrus` then taken from the `PATH`. To build it locally:
 
 ```sh
 npm ci && npm ci --prefix editors/vscode
@@ -537,8 +537,9 @@ On `main`, the *Release* workflow opens a "chore: release" PR that bumps the
 version, writes `CHANGELOG.md` and copies it into `Cargo.toml` and the
 extension. Once merged, the version is tagged, then binaries and extensions are
 built for each platform and attached to the GitHub release — and published on
-the Visual Studio Marketplace and Open VSX by trusted publishing (OIDC), with
-a universal extension, without the binary, for the other platforms. Both
+the Visual Studio Marketplace and Open VSX by trusted publishing (OIDC), Open
+VSX also getting a universal extension, without the binary, for the other
+platforms — the Marketplace keeps a universal package alone. Both
 stores trust `release.yml`; Open VSX only once the extension has a version,
 the first one published with the `OVSX_PAT` secret. The release PR is opened by a GitHub App (`RELEASE_APP_ID`,
 `RELEASE_APP_KEY`): one opened with `GITHUB_TOKEN` would start no CI.
