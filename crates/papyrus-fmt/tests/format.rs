@@ -33,7 +33,7 @@ fn fmt(source: &str) -> String {
 /// A carelessly written script, as found in the wild.
 const DESORDRE: &str = "\
 ScriptName   Foo:Bar   Extends Quest   CONDITIONAL\r
-{Documentation du script}\r
+{Script documentation}\r
 Import Utility\r
 \r
 \r
@@ -46,7 +46,7 @@ EndFunction\r
 ENDPROPERTY\r
 Auto State Default\r
 Event OnInit()\r
-; avant la boucle\r
+; before the loop\r
 Int[ ] t = New Int[ Count ]\r
 While t.Length>0&&!(akRef Is Actor)\r
 t[0]+=1\r

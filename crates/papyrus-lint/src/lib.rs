@@ -532,7 +532,7 @@ pub struct Edit {
 /// the code.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Suggestion {
-    /// What it does: « Renommer en `OnActivate` ».
+    /// What it does: "Rename to `OnActivate`".
     pub title: String,
     /// The replacements.
     pub edits: Vec<Edit>,

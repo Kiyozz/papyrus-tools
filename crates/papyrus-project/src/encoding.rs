@@ -294,7 +294,7 @@ mod tests {
         let decoded = decode("{café}\n".as_bytes());
         assert!(
             check(&decoded, GameId::Skyrim).is_some(),
-            "la docstring compte"
+            "the docstring counts"
         );
     }
 

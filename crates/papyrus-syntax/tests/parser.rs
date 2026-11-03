@@ -237,7 +237,7 @@ fn namespaces_are_reported_in_skyrim() {
     assert_eq!(
         skyrim.syntax().to_string(),
         source,
-        "l'arbre doit rester complet"
+        "the tree must stay complete"
     );
 
     assert!(parse(source, Dialect::new(GameId::Fallout4)).ok());

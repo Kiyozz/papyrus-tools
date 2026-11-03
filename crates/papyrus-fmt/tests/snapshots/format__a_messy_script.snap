@@ -3,7 +3,7 @@ source: crates/papyrus-fmt/tests/format.rs
 expression: fmt(DESORDRE)
 ---
 scriptname Foo:Bar extends Quest conditional
-{Documentation du script}
+{Script documentation}
 import Utility
 
 int property Count = 3 auto const ; compteur
@@ -16,7 +16,7 @@ endproperty
 
 auto state Default
   event OnInit()
-    ; avant la boucle
+    ; before the loop
     int[] t = new int[Count]
     while t.Length > 0 && !(akRef is Actor)
       t[0] += 1
