@@ -8,12 +8,19 @@ and IntelliJ.
 
 ## Status
 
-**v0.8** — `papyrus check`, `papyrus fmt`, `papyrus build`, configurable
-lints, checks of calls, types, members, states and dead code across files,
-SKSE as an option, quick fixes, language server with cross-file navigation:
-definition, hover, completion, references, rename, signature help, parameter
-names, call hierarchy, overrides — fast on projects importing a whole game. The milestones, done and next, are in
-[ROADMAP.md](ROADMAP.md).
+**v0.16** — `papyrus check`, `papyrus fmt`, `papyrus build`, `papyrus
+disassemble`, configurable lints, what the official compilers refuse, checks
+of calls, types, members, states and dead code across files, SKSE as an
+option, quick fixes, `.ppj` projects, a baseline for older mods, JSON and
+SARIF reports; a language server with cross-file navigation: definition,
+hover, completion, references, rename, signature help, parameter names, call
+and type hierarchies, overrides — fast on projects importing a whole game. The
+VSCode extension is on the
+[Marketplace](https://marketplace.visualstudio.com/items?itemName=kiyozz.papyrus-toolchain)
+and [Open VSX](https://open-vsx.org/extension/kiyozz/papyrus-toolchain); the
+binaries of each platform are in the
+[releases](https://github.com/Kiyozz/papyrus-tools/releases). The milestones,
+done and next, are in [ROADMAP.md](ROADMAP.md).
 
 ```sh
 papyrus check --game skyrim Data/Source/Scripts   # syntax + lints
