@@ -45,10 +45,14 @@ jobs:
       - run: npm ci
       - id: changesets
         uses: changesets/action@v1
+        # Through the API, the release commit is signed by GitHub: `main`
+        # requires signed commits.
         with:
           version: npm run release:version
           commit: "chore: release"
           title: "chore: release"
+          commitMode: github-api
+          github-token: ${{ steps.app.outputs.token }}
         env:
           GITHUB_TOKEN: ${{ steps.app.outputs.token }}
 
