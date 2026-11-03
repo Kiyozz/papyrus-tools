@@ -6,6 +6,10 @@ Bethesda's Creation Kit — Skyrim, Fallout 4, Starfield.
 A native binary with no runtime, serving a CLI and a language server for VSCode
 and IntelliJ.
 
+**[Demo in VSCode](docs/editor.mp4)** — and `papyrus check` in a terminal:
+
+![papyrus check on Frostfall](docs/terminal.jpg)
+
 ## Status
 
 **v0.16** — `papyrus check`, `papyrus fmt`, `papyrus build`, `papyrus

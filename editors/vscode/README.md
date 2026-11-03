@@ -3,6 +3,11 @@
 Diagnostics, formatting and lints for **Papyrus**, the scripting language of
 the Creation Kit — Skyrim, Fallout 4, Starfield.
 
+**[Demo video](https://github.com/Kiyozz/papyrus-tools/blob/main/docs/editor.mp4)**
+— and the same checks from the command line:
+
+![papyrus check on Frostfall](https://raw.githubusercontent.com/Kiyozz/papyrus-tools/main/docs/terminal.jpg)
+
 - syntax errors as you type, for the targeted game;
 - lints: misspelled events the engine will never call (`OnActivatee`),
   misplaced flags, text the compiler will corrupt, naming conventions;
