@@ -442,7 +442,8 @@ extension from source (F5): `npm run bundle --prefix editors/vscode`.
 The `papyrus.server.path` setting points to another binary; without an
 embedded binary, the extension looks for `papyrus` in the `PATH`. It adds a
 TextMate grammar and snippets, which work without the server, the
-**Papyrus: Create papyrus.toml** command, `papyrus: build` and
+**Papyrus: Create papyrus.toml** and **Papyrus: Compile this script**
+commands, a read-only view of `.pex` files, `papyrus: build` and
 `papyrus: check` tasks with their problem matcher, and the schema of
 `papyrus.toml` for [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml).
 The settings that belong to a project live in `papyrus.toml`, never in

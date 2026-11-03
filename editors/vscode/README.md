@@ -27,7 +27,9 @@ the Creation Kit — Skyrim, Fallout 4, Starfield.
   `property`, `state`, `if`, `while`, `foreach`… — even before the server
   answers;
 - `papyrus build` and `papyrus check` as tasks, their problems in the
-  Problems view.
+  Problems view;
+- compiled `.pex` scripts opened as assembly, read-only, in the format of
+  `PapyrusAssembler` — Skyrim, Fallout 4, Fallout 76, Starfield.
 
 ## Commands and tasks
 
