@@ -150,7 +150,7 @@ fn floats_need_digits_on_both_sides() {
     assert_eq!(
         kinds("1e5"),
         [SyntaxKind::INT_NUMBER, SyntaxKind::IDENT],
-        "`1e5` doit se lexer en entier suivi d'un identifiant"
+        "`1e5` must lex as an integer followed by an identifier"
     );
 }
 
