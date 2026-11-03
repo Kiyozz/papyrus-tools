@@ -8,12 +8,19 @@ and IntelliJ.
 
 ## Status
 
-**v0.8** — `papyrus check`, `papyrus fmt`, `papyrus build`, configurable
-lints, checks of calls, types, members, states and dead code across files,
-SKSE as an option, quick fixes, language server with cross-file navigation:
-definition, hover, completion, references, rename, signature help, parameter
-names, call hierarchy, overrides — fast on projects importing a whole game. The milestones, done and next, are in
-[ROADMAP.md](ROADMAP.md).
+**v0.16** — `papyrus check`, `papyrus fmt`, `papyrus build`, `papyrus
+disassemble`, configurable lints, what the official compilers refuse, checks
+of calls, types, members, states and dead code across files, SKSE as an
+option, quick fixes, `.ppj` projects, a baseline for older mods, JSON and
+SARIF reports; a language server with cross-file navigation: definition,
+hover, completion, references, rename, signature help, parameter names, call
+and type hierarchies, overrides — fast on projects importing a whole game. The
+VSCode extension is on the
+[Marketplace](https://marketplace.visualstudio.com/items?itemName=kiyozz.papyrus-toolchain)
+and [Open VSX](https://open-vsx.org/extension/kiyozz/papyrus-toolchain); the
+binaries of each platform are in the
+[releases](https://github.com/Kiyozz/papyrus-tools/releases). The milestones,
+done and next, are in [ROADMAP.md](ROADMAP.md).
 
 ```sh
 papyrus check --game skyrim Data/Source/Scripts   # syntax + lints
@@ -415,9 +422,9 @@ changes the selected lines.
 **VSCode** — the extension, in `editors/vscode`, is on the
 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=kiyozz.papyrus-toolchain)
 and [Open VSX](https://open-vsx.org/extension/kiyozz/papyrus-toolchain). It is
-published once per platform (Windows x64 and arm64, macOS arm64, Linux x64 and
-arm64), with the `papyrus` binary embedded, and once without it for the
-others, `papyrus` then taken from the `PATH`. To build it locally:
+published once per platform (Windows, macOS and Linux, x64 and arm64), with
+the `papyrus` binary embedded, and on Open VSX once without it for the others,
+`papyrus` then taken from the `PATH`. To build it locally:
 
 ```sh
 npm ci && npm ci --prefix editors/vscode
@@ -435,7 +442,8 @@ extension from source (F5): `npm run bundle --prefix editors/vscode`.
 The `papyrus.server.path` setting points to another binary; without an
 embedded binary, the extension looks for `papyrus` in the `PATH`. It adds a
 TextMate grammar and snippets, which work without the server, the
-**Papyrus: Create papyrus.toml** command, `papyrus: build` and
+**Papyrus: Create papyrus.toml** and **Papyrus: Compile this script**
+commands, a read-only view of `.pex` files, `papyrus: build` and
 `papyrus: check` tasks with their problem matcher, and the schema of
 `papyrus.toml` for [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml).
 The settings that belong to a project live in `papyrus.toml`, never in
@@ -537,8 +545,9 @@ On `main`, the *Release* workflow opens a "chore: release" PR that bumps the
 version, writes `CHANGELOG.md` and copies it into `Cargo.toml` and the
 extension. Once merged, the version is tagged, then binaries and extensions are
 built for each platform and attached to the GitHub release — and published on
-the Visual Studio Marketplace and Open VSX by trusted publishing (OIDC), with
-a universal extension, without the binary, for the other platforms. Both
+the Visual Studio Marketplace and Open VSX by trusted publishing (OIDC), Open
+VSX also getting a universal extension, without the binary, for the other
+platforms — the Marketplace keeps a universal package alone. Both
 stores trust `release.yml`; Open VSX only once the extension has a version,
 the first one published with the `OVSX_PAT` secret. The release PR is opened by a GitHub App (`RELEASE_APP_ID`,
 `RELEASE_APP_KEY`): one opened with `GITHUB_TOKEN` would start no CI.

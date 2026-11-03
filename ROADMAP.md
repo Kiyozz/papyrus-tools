@@ -91,7 +91,12 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
 
 - **v0.17 — A debugger.** Starts with a discovery: reuse or fork the xSE plugin
   of joelday's `papyrus-lang`, or write one; the DAP adapter on our side.
-- **v0.18 — A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the
+- **v0.18 — Skills for the modders' agents.** Agent skills (`SKILL.md`)
+  teaching coding agents to work on Papyrus with the toolchain: `papyrus
+  check`, `fmt`, `build`, `explain`, the lints and `papyrus.toml`. Starts with
+  a discovery of `npx skills` — how a skill is packaged, published and
+  installed — and where they live: this repository or one of their own.
+- **v0.19 — A dedicated IntelliJ plugin**, beyond the generic LSP4IJ: the
   binary embedded, settings, `papyrus build` as a run configuration. Starts
   with a discovery of the best way to match the VSCode extension — Kotlin,
   Gradle, the IntelliJ Platform's LSP API or LSP4IJ.

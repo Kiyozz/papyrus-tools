@@ -111,8 +111,12 @@ jobs:
           path: dist
           merge-multiple: true
       # `--skip-duplicate`: a run started again publishes what is missing.
+      # The platforms only: with the universal package, the Marketplace kept
+      # it alone (0.16.2) and every platform installed it, binary-less.
       - name: Visual Studio Marketplace
-        run: npx --yes @vscode/vsce@^4.1.0 publish --oidc --skip-duplicate --packagePath dist/*.vsix
+        run: |
+          platforms=$(ls dist/*.vsix | grep -v '/papyrus-toolchain-[0-9]')
+          npx --yes @vscode/vsce@^4.1.0 publish --oidc --skip-duplicate --packagePath $platforms
       # Even when the Marketplace refuses: one store does not wait on the other.
       - name: Open VSX
         if: ${{ !cancelled() }}
