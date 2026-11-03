@@ -100,3 +100,12 @@ version changed in detail is in [CHANGELOG.md](CHANGELOG.md).
   binary embedded, settings, `papyrus build` as a run configuration. Starts
   with a discovery of the best way to match the VSCode extension — Kotlin,
   Gradle, the IntelliJ Platform's LSP API or LSP4IJ.
+
+## Later
+
+- **Anonymized `.pex`.** `papyrus build` strips the user and computer names
+  the compilers write in the header of a `.pex`, as Pyro does; `anonymize` in
+  `[build]`, and a `.ppj`'s `Anonymize` read instead of ignored.
+- **Faster human output.** On the vanilla Skyrim scripts, `papyrus check` takes
+  4 s with `--message-format json` and 9.5 s with the default output, its
+  46,000 diagnostics rendered even into `/dev/null`: profile the rendering.
